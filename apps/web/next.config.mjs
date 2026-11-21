@@ -37,17 +37,7 @@ const nextConfig = {
         unoptimized: true,
     },
 
-    
-    async redirects() {
-        return [
-            {
-                source: '/:path*',
-                has: [{ type: 'host', value: 'www.lifepartnerai.in' }],
-                destination: 'https://lifepartnerai.in/:path*',
-                permanent: true,
-            },
-        ];
-    },
+
 
     async headers() {
         return [

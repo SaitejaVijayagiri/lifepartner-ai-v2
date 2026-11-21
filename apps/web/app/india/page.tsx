@@ -29,40 +29,40 @@ export const metadata: Metadata = {
     'nri matrimony usa uk canada'
   ],
   alternates: {
-    canonical: 'https://lifepartnerai.in/india',
+    canonical: 'https://www.lifepartnerai.in/india',
     languages: {
-      'x-default': 'https://lifepartnerai.in',
-      'en': 'https://lifepartnerai.in',
-      'en-IN': 'https://lifepartnerai.in/india',
-      'en-US': 'https://lifepartnerai.in/usa',
-      'en-GB': 'https://lifepartnerai.in/uk',
-      'en-CA': 'https://lifepartnerai.in/canada',
-      'en-AU': 'https://lifepartnerai.in/australia',
-      'en-SG': 'https://lifepartnerai.in/singapore',
-      'en-PH': 'https://lifepartnerai.in/philippines',
-      'en-AE': 'https://lifepartnerai.in/uae',
-      'ja-JP': 'https://lifepartnerai.in/japan',
-      'ko-KR': 'https://lifepartnerai.in/korea',
-      'ru-RU': 'https://lifepartnerai.in/russia',
-      'id-ID': 'https://lifepartnerai.in/indonesia',
-      'ms-MY': 'https://lifepartnerai.in/malaysia',
-      'vi-VN': 'https://lifepartnerai.in/vietnam',
-      'th-TH': 'https://lifepartnerai.in/thailand',
-      'pt-BR': 'https://lifepartnerai.in/brazil',
-      'de-DE': 'https://lifepartnerai.in/germany',
-      'fr-FR': 'https://lifepartnerai.in/france'
+      'x-default': 'https://www.lifepartnerai.in',
+      'en': 'https://www.lifepartnerai.in',
+      'en-IN': 'https://www.lifepartnerai.in/india',
+      'en-US': 'https://www.lifepartnerai.in/usa',
+      'en-GB': 'https://www.lifepartnerai.in/uk',
+      'en-CA': 'https://www.lifepartnerai.in/canada',
+      'en-AU': 'https://www.lifepartnerai.in/australia',
+      'en-SG': 'https://www.lifepartnerai.in/singapore',
+      'en-PH': 'https://www.lifepartnerai.in/philippines',
+      'en-AE': 'https://www.lifepartnerai.in/uae',
+      'ja-JP': 'https://www.lifepartnerai.in/japan',
+      'ko-KR': 'https://www.lifepartnerai.in/korea',
+      'ru-RU': 'https://www.lifepartnerai.in/russia',
+      'id-ID': 'https://www.lifepartnerai.in/indonesia',
+      'ms-MY': 'https://www.lifepartnerai.in/malaysia',
+      'vi-VN': 'https://www.lifepartnerai.in/vietnam',
+      'th-TH': 'https://www.lifepartnerai.in/thailand',
+      'pt-BR': 'https://www.lifepartnerai.in/brazil',
+      'de-DE': 'https://www.lifepartnerai.in/germany',
+      'fr-FR': 'https://www.lifepartnerai.in/france'
 }
   },
   openGraph: {
     title: 'LifePartner AI India | 100% Free Safe Matrimony & Dating for Indian Girls & Brides',
     description: 'No forced monthly subscriptions or unsolicited phone number leaks. 100% OTP verified brides & grooms, AI Anti-Harassment Shield, Vedic Kundali Milan, and disappearing photos.',
-    url: 'https://lifepartnerai.in/india',
+    url: 'https://www.lifepartnerai.in/india',
     siteName: 'LifePartner AI India',
     locale: 'en_IN',
     type: 'website',
     images: [
       {
-        url: 'https://lifepartnerai.in/opengraph-image',
+        url: 'https://www.lifepartnerai.in/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI India - Safe Free Matrimony for Indian Girls & Brides'
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'LifePartner AI India | #1 Free Verified Matrimony & Safe Matchmaking',
     description: 'India\'s safest matchmaking app for girls and women. Free lifetime VIP, Vedic Kundali Milan, and zero broker paywalls.',
-    images: ['https://lifepartnerai.in/opengraph-image']
+    images: ['https://www.lifepartnerai.in/opengraph-image']
   }
 };
 
@@ -83,7 +83,7 @@ export default function IndiaLandingPage() {
     '@type': 'DatingService',
     'name': 'LifePartner AI India',
     'description': 'The safest AI-driven matrimonial and matchmaking platform built for Indian girls, women, and families with 100% free direct chat.',
-    'url': 'https://lifepartnerai.in/india',
+    'url': 'https://www.lifepartnerai.in/india',
     'areaServed': [
       { '@type': 'Country', 'name': 'India' },
       { '@type': 'AdministrativeArea', 'name': 'Delhi NCR' },

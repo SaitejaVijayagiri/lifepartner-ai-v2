@@ -34,46 +34,46 @@ export const metadata: Metadata = {
     "Знакомства Онлайн", "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "App de Rencontres Gratuite"
   ],
   alternates: {
-    canonical: 'https://lifepartnerai.in',
+    canonical: 'https://www.lifepartnerai.in',
     languages: {
-      'x-default': 'https://lifepartnerai.in',
-      'en': 'https://lifepartnerai.in',
-      'en-IN': 'https://lifepartnerai.in/india',
-      'en-US': 'https://lifepartnerai.in/usa',
-      'en-GB': 'https://lifepartnerai.in/uk',
-      'en-CA': 'https://lifepartnerai.in/canada',
-      'en-AU': 'https://lifepartnerai.in/australia',
-      'en-SG': 'https://lifepartnerai.in/singapore',
-      'en-PH': 'https://lifepartnerai.in/philippines',
-      'en-AE': 'https://lifepartnerai.in/uae',
-      'ja-JP': 'https://lifepartnerai.in/japan',
-      'ko-KR': 'https://lifepartnerai.in/korea',
-      'ru-RU': 'https://lifepartnerai.in/russia',
-      'id-ID': 'https://lifepartnerai.in/indonesia',
-      'ms-MY': 'https://lifepartnerai.in/malaysia',
-      'vi-VN': 'https://lifepartnerai.in/vietnam',
-      'th-TH': 'https://lifepartnerai.in/thailand',
-      'pt-BR': 'https://lifepartnerai.in/brazil',
-      'de-DE': 'https://lifepartnerai.in/germany',
-      'fr-FR': 'https://lifepartnerai.in/france'
+      'x-default': 'https://www.lifepartnerai.in',
+      'en': 'https://www.lifepartnerai.in',
+      'en-IN': 'https://www.lifepartnerai.in/india',
+      'en-US': 'https://www.lifepartnerai.in/usa',
+      'en-GB': 'https://www.lifepartnerai.in/uk',
+      'en-CA': 'https://www.lifepartnerai.in/canada',
+      'en-AU': 'https://www.lifepartnerai.in/australia',
+      'en-SG': 'https://www.lifepartnerai.in/singapore',
+      'en-PH': 'https://www.lifepartnerai.in/philippines',
+      'en-AE': 'https://www.lifepartnerai.in/uae',
+      'ja-JP': 'https://www.lifepartnerai.in/japan',
+      'ko-KR': 'https://www.lifepartnerai.in/korea',
+      'ru-RU': 'https://www.lifepartnerai.in/russia',
+      'id-ID': 'https://www.lifepartnerai.in/indonesia',
+      'ms-MY': 'https://www.lifepartnerai.in/malaysia',
+      'vi-VN': 'https://www.lifepartnerai.in/vietnam',
+      'th-TH': 'https://www.lifepartnerai.in/thailand',
+      'pt-BR': 'https://www.lifepartnerai.in/brazil',
+      'de-DE': 'https://www.lifepartnerai.in/germany',
+      'fr-FR': 'https://www.lifepartnerai.in/france'
 }
   },
   openGraph: {
     title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
     description: "Connect & chat with verified singles globally on LifePartner AI. 100% Free Direct Chat, AI Compatibility, and Women-First Privacy Protection across India, USA, UK, Canada, Australia, Japan, Korea & worldwide.",
-    url: 'https://lifepartnerai.in',
+    url: 'https://www.lifepartnerai.in',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://lifepartnerai.in/opengraph-image',
+        url: 'https://www.lifepartnerai.in/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI - #1 Free Worldwide Dating & Matrimony Platform',
       },
       {
-        url: 'https://lifepartnerai.in/og-image.jpg',
+        url: 'https://www.lifepartnerai.in/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI - Verified Matrimony & Matchmaking',
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
     description: 'Join verified singles finding love globally on LifePartner AI. Featuring 100% Free Direct Chat, AI Matchmaking, Snaps, Stories & Women-First Safety.',
-    images: ['https://lifepartnerai.in/opengraph-image', 'https://lifepartnerai.in/og-image.jpg'],
+    images: ['https://www.lifepartnerai.in/opengraph-image', 'https://www.lifepartnerai.in/og-image.jpg'],
   }
 };
 
@@ -111,8 +111,8 @@ export default function LandingPage({
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "LifePartner AI",
-    "url": "https://lifepartnerai.in",
-    "logo": "https://lifepartnerai.in/icon-512x512.png",
+    "url": "https://www.lifepartnerai.in",
+    "logo": "https://www.lifepartnerai.in/icon-512x512.png",
     "sameAs": [
       "https://twitter.com/lifepartnerai",
       "https://www.instagram.com/lifepartnerai.in",
@@ -132,14 +132,14 @@ export default function LandingPage({
     "@type": "WebSite",
     "name": "LifePartner AI",
     "alternateName": ["LifePartner AI Matrimony", "LifePartner AI Dating"],
-    "url": "https://lifepartnerai.in"
+    "url": "https://www.lifepartnerai.in"
   };
 
   const jsonLdApp = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "LifePartner AI",
-    "url": "https://lifepartnerai.in",
+    "url": "https://www.lifepartnerai.in",
     "applicationCategory": "SocialNetworkingApplication",
     "operatingSystem": "Web, Android, iOS",
     "offers": {
@@ -158,19 +158,19 @@ export default function LandingPage({
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://lifepartnerai.in"
+        "item": "https://www.lifepartnerai.in"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "For Women (100% Free VIP & Safety)",
-        "item": "https://lifepartnerai.in/for-women"
+        "item": "https://www.lifepartnerai.in/for-women"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Matchmaking & Relationship Guides",
-        "item": "https://lifepartnerai.in/blog"
+        "item": "https://www.lifepartnerai.in/blog"
       }
     ]
   };

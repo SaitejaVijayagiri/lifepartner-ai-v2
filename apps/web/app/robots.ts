@@ -47,6 +47,6 @@ export default function robots(): MetadataRoute.Robots {
                 allow: '/',
             }
         ],
-        sitemap: 'https://lifepartnerai.in/sitemap.xml',
+        sitemap: 'https://www.lifepartnerai.in/sitemap.xml',
     };
 }

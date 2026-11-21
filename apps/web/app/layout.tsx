@@ -42,7 +42,7 @@ const fontMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://lifepartnerai.in'),
+  metadataBase: new URL('https://www.lifepartnerai.in'),
   alternates: {
     canonical: '/',
   },
@@ -89,24 +89,24 @@ export const metadata: Metadata = {
   authors: [{ name: "LifePartner AI Team" }],
   creator: "LifePartner AI",
   publisher: "LifePartner AI",
-  manifest: 'https://lifepartnerai.in/manifest.json',
+  manifest: 'https://www.lifepartnerai.in/manifest.json',
   openGraph: {
     type: "website",
     locale: "en_US",
     alternateLocale: ["en_GB", "en_CA", "en_AU", "en_IN", "ja_JP", "ko_KR", "hi_IN", "te_IN", "ta_IN"],
-    url: "https://lifepartnerai.in",
+    url: "https://www.lifepartnerai.in",
     title: "LifePartner AI | AI Matrimony & Worldwide Matchmaking App",
     description: "Meet verified singles for serious matrimony and meaningful dating worldwide. Free core registration and direct chat, AI compatibility, HD video calls, and Women-First privacy protection.",
     siteName: "LifePartner AI",
     images: [
       {
-        url: "https://lifepartnerai.in/opengraph-image",
+        url: "https://www.lifepartnerai.in/opengraph-image",
         width: 1200,
         height: 630,
         alt: "LifePartner AI - #1 Trusted Worldwide Matrimony & Dating App",
       },
       {
-        url: "https://lifepartnerai.in/og-image.jpg",
+        url: "https://www.lifepartnerai.in/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "LifePartner AI - #1 Matrimony & Matchmaking Platform",
@@ -117,7 +117,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "LifePartner AI | AI Matrimony & Worldwide Matchmaking App",
     description: "Meet verified singles finding meaningful connections on LifePartner AI. Free direct chat, AI compatibility matching, and Women-First privacy protection.",
-    images: ["https://lifepartnerai.in/opengraph-image", "https://lifepartnerai.in/og-image.jpg"],
+    images: ["https://www.lifepartnerai.in/opengraph-image", "https://www.lifepartnerai.in/og-image.jpg"],
   },
   category: "Dating Application",
   other: {
@@ -229,8 +229,8 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "DatingService",
               "name": "LifePartner AI",
-              "url": "https://lifepartnerai.in",
-              "logo": "https://lifepartnerai.in/icon-512x512.png",
+              "url": "https://www.lifepartnerai.in",
+              "logo": "https://www.lifepartnerai.in/icon-512x512.png",
               "founders": [
                 {
                   "@type": "Person",

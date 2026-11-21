@@ -20,46 +20,46 @@ export const metadata: Metadata = {
     'screenshot proof dating app'
   ],
   alternates: {
-    canonical: 'https://lifepartnerai.in/for-women',
+    canonical: 'https://www.lifepartnerai.in/for-women',
     languages: {
-      'x-default': 'https://lifepartnerai.in',
-      'en': 'https://lifepartnerai.in',
-      'en-IN': 'https://lifepartnerai.in/india',
-      'en-US': 'https://lifepartnerai.in/usa',
-      'en-GB': 'https://lifepartnerai.in/uk',
-      'en-CA': 'https://lifepartnerai.in/canada',
-      'en-AU': 'https://lifepartnerai.in/australia',
-      'en-SG': 'https://lifepartnerai.in/singapore',
-      'en-PH': 'https://lifepartnerai.in/philippines',
-      'en-AE': 'https://lifepartnerai.in/uae',
-      'ja-JP': 'https://lifepartnerai.in/japan',
-      'ko-KR': 'https://lifepartnerai.in/korea',
-      'ru-RU': 'https://lifepartnerai.in/russia',
-      'id-ID': 'https://lifepartnerai.in/indonesia',
-      'ms-MY': 'https://lifepartnerai.in/malaysia',
-      'vi-VN': 'https://lifepartnerai.in/vietnam',
-      'th-TH': 'https://lifepartnerai.in/thailand',
-      'pt-BR': 'https://lifepartnerai.in/brazil',
-      'de-DE': 'https://lifepartnerai.in/germany',
-      'fr-FR': 'https://lifepartnerai.in/france'
+      'x-default': 'https://www.lifepartnerai.in',
+      'en': 'https://www.lifepartnerai.in',
+      'en-IN': 'https://www.lifepartnerai.in/india',
+      'en-US': 'https://www.lifepartnerai.in/usa',
+      'en-GB': 'https://www.lifepartnerai.in/uk',
+      'en-CA': 'https://www.lifepartnerai.in/canada',
+      'en-AU': 'https://www.lifepartnerai.in/australia',
+      'en-SG': 'https://www.lifepartnerai.in/singapore',
+      'en-PH': 'https://www.lifepartnerai.in/philippines',
+      'en-AE': 'https://www.lifepartnerai.in/uae',
+      'ja-JP': 'https://www.lifepartnerai.in/japan',
+      'ko-KR': 'https://www.lifepartnerai.in/korea',
+      'ru-RU': 'https://www.lifepartnerai.in/russia',
+      'id-ID': 'https://www.lifepartnerai.in/indonesia',
+      'ms-MY': 'https://www.lifepartnerai.in/malaysia',
+      'vi-VN': 'https://www.lifepartnerai.in/vietnam',
+      'th-TH': 'https://www.lifepartnerai.in/thailand',
+      'pt-BR': 'https://www.lifepartnerai.in/brazil',
+      'de-DE': 'https://www.lifepartnerai.in/germany',
+      'fr-FR': 'https://www.lifepartnerai.in/france'
 }
   },
   openGraph: {
     title: 'LifePartner AI for Women | Safe, 100% Free VIP Dating & Matrimony',
     description: 'Designed for women\'s privacy and peace of mind. Zero creeps, zero paywalls, lifetime VIP status, and verified profiles worldwide.',
-    url: 'https://lifepartnerai.in/for-women',
+    url: 'https://www.lifepartnerai.in/for-women',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://lifepartnerai.in/opengraph-image',
+        url: 'https://www.lifepartnerai.in/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI for Women - 100% Free VIP & Anti-Creep Protection'
       },
       {
-        url: 'https://lifepartnerai.in/og-image.jpg',
+        url: 'https://www.lifepartnerai.in/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI for Women'
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'LifePartner AI for Women | Safe, 100% Free VIP Dating & Matrimony',
     description: 'Zero creeps, zero paywalls, lifetime Queen VIP status, and verified profiles worldwide.',
-    images: ['https://lifepartnerai.in/opengraph-image', 'https://lifepartnerai.in/og-image.jpg'],
+    images: ['https://www.lifepartnerai.in/opengraph-image', 'https://www.lifepartnerai.in/og-image.jpg'],
   }
 };
 
@@ -80,7 +80,7 @@ export default function ForWomenPage() {
     '@type': 'DatingService',
     'name': 'LifePartner AI for Women',
     'description': 'Safe, women-first dating & matrimony platform offering 100% free VIP privileges, AI anti-creep shield, and verified global connections.',
-    'url': 'https://lifepartnerai.in/for-women',
+    'url': 'https://www.lifepartnerai.in/for-women',
     'areaServed': 'Worldwide',
     'offers': {
       '@type': 'Offer',

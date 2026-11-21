@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { BLOG_POSTS } from '@/lib/blog-data';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://lifepartnerai.in';
+    const baseUrl = 'https://www.lifepartnerai.in';
 
     // Static Pages
     const routes = [

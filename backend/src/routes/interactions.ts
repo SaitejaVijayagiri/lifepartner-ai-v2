@@ -3,6 +3,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
+import { trackGrowthEvent } from '../services/growthAnalytics';
 import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, areUsersConnected, getBlockedUserIdSet } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 import { mergeStoriesHelper } from './profile';
@@ -1823,6 +1824,8 @@ router.post('/view', authenticateToken, async (req: any, res) => {
             }
         });
         if (block) return res.sendStatus(200);
+
+        trackGrowthEvent('profile_viewed', { userId, metadata: { targetId } }).catch(() => {});
 
         await prisma.interactions.upsert({
             where: {

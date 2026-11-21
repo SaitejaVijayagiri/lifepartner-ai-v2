@@ -10,11 +10,12 @@ import { api, getApiUrl } from '@/lib/api';
 
 import { Eye, EyeOff, Sparkles, ArrowLeft, Crown, ShieldCheck, Lock } from 'lucide-react';
 import { Notifications, startGoogleOAuthFlow } from '@/lib/notifications';
+import { growthTracker } from '@/lib/growthTracker';
 
 const TESTIMONIALS = [
-    { quote: "I met my soulmate here. The AI just understood us.", author: "Priya & Rahul, Mumbai" },
-    { quote: "Finally, a platform that values privacy and tradition.", author: "Dr. Arjun, Bangalore" },
-    { quote: "Simple, elegant, and effective. Highly recommended.", author: "Sneha, Delhi" }
+    { quote: "100% Free Lifetime Queen VIP for women with zero hidden paywalls.", author: "Women-First Platform Protection" },
+    { quote: "AI Anti-Creep Shield proactively filters unsolicited harassment.", author: "Verified & Safe Dating Community" },
+    { quote: "Direct audio and video calling without disclosing phone numbers.", author: "Privacy & Masked Contact Security" }
 ];
 
 function RegisterForm() {
@@ -31,6 +32,8 @@ function RegisterForm() {
     const toast = useToast();
 
     useEffect(() => {
+        growthTracker.trackRegistrationStarted();
+
         const interval = setInterval(() => {
             setActiveTestimonial(prev => (prev + 1) % TESTIMONIALS.length);
         }, 5000);

@@ -6,6 +6,7 @@ import { prisma } from '../prisma';
 import { Resend } from 'resend';
 import validateEmail from 'deep-email-validator';
 import { authenticateToken } from '../middleware/auth';
+import { trackGrowthEvent, parseTrafficSource } from '../services/growthAnalytics';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock');
@@ -247,6 +248,16 @@ router.post('/register', async (req, res) => {
         }
 
         // 6. Issue JWT Token immediately so user goes straight to Onboarding without OTP drop-off
+        
+        // Ingest registration_completed growth event
+        trackGrowthEvent('registration_completed', {
+            userId: newUser.id,
+            gender: cleanGender || newUser.gender,
+            country: location_name || req.body?.country || null,
+            trafficSource: parseTrafficSource(req.body?.referrer, req.body?.utm_source, req.body?.utm_medium),
+            metadata: { method: 'email_password' }
+        }).catch(() => {});
+
         const token = generateToken(newUser.id);
         setTokenCookie(res, token);
 

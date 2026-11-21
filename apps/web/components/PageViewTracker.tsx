@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { growthTracker } from '@/lib/growthTracker';
 
 export default function PageViewTracker() {
     const pathname = usePathname();
@@ -13,6 +14,8 @@ export default function PageViewTracker() {
         const currentPath = pathname || window.location.pathname;
         if (lastTrackedPath.current === currentPath) return;
         lastTrackedPath.current = currentPath;
+
+        growthTracker.trackLandingVisit(currentPath);
 
         const isNewVisitor = !localStorage.getItem('lp_visited');
         if (isNewVisitor) {

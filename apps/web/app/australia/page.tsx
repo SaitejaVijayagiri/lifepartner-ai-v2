@@ -21,9 +21,27 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://lifepartnerai.in/australia',
     languages: {
+      'x-default': 'https://lifepartnerai.in',
+      'en': 'https://lifepartnerai.in',
+      'en-IN': 'https://lifepartnerai.in/india',
+      'en-US': 'https://lifepartnerai.in/usa',
+      'en-GB': 'https://lifepartnerai.in/uk',
+      'en-CA': 'https://lifepartnerai.in/canada',
       'en-AU': 'https://lifepartnerai.in/australia',
-      'en': 'https://lifepartnerai.in'
-    }
+      'en-SG': 'https://lifepartnerai.in/singapore',
+      'en-PH': 'https://lifepartnerai.in/philippines',
+      'en-AE': 'https://lifepartnerai.in/uae',
+      'ja-JP': 'https://lifepartnerai.in/japan',
+      'ko-KR': 'https://lifepartnerai.in/korea',
+      'ru-RU': 'https://lifepartnerai.in/russia',
+      'id-ID': 'https://lifepartnerai.in/indonesia',
+      'ms-MY': 'https://lifepartnerai.in/malaysia',
+      'vi-VN': 'https://lifepartnerai.in/vietnam',
+      'th-TH': 'https://lifepartnerai.in/thailand',
+      'pt-BR': 'https://lifepartnerai.in/brazil',
+      'de-DE': 'https://lifepartnerai.in/germany',
+      'fr-FR': 'https://lifepartnerai.in/france'
+}
   },
   openGraph: {
     title: 'LifePartner AI Australia | Safe Dating & Matrimony for Women (100% Free VIP)',

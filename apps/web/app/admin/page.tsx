@@ -12,6 +12,7 @@ import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus,
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import GrowthAnalyticsView from '@/components/GrowthAnalyticsView';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -241,8 +242,9 @@ export default function AdminDashboard() {
                 )}
 
                 {/* Main Content Tabs */}
-                <Tabs defaultValue="users" className="space-y-4">
+                <Tabs defaultValue="growth" className="space-y-4">
                     <TabsList>
+                        <TabsTrigger value="growth">🚀 Growth & Funnel Analytics</TabsTrigger>
                         <TabsTrigger value="users">User Management</TabsTrigger>
                         <TabsTrigger value="analytics">📊 Image & Drop-Off Analytics</TabsTrigger>
                         <TabsTrigger value="moderation">Photo Moderation</TabsTrigger>
@@ -252,6 +254,12 @@ export default function AdminDashboard() {
                     </TabsList>
 
                     {/* ANALYTICS & DROP-OFF TAB */}
+                    
+                    {/* PRODUCT GROWTH & ACQUISITION TAB */}
+                    <TabsContent value="growth" className="space-y-6">
+                        <GrowthAnalyticsView />
+                    </TabsContent>
+
                     <TabsContent value="analytics" className="space-y-6">
                         {/* 1. Global Traffic & Country Reach Live Counters */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

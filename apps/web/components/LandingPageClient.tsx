@@ -22,6 +22,7 @@ import { api, getApiUrl } from '@/lib/api';
 import { detectVisitorGeo, VisitorGeo } from '@/lib/geoDetect';
 import { isNativePlatform } from '@/lib/notifications';
 import NativeAppGate from '@/components/NativeAppGate';
+import { growthTracker } from '@/lib/growthTracker';
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
@@ -581,6 +582,7 @@ export default function LandingPageClient() {
                           onClick={() => {
                             setSignupForm({ ...signupForm, gender: 'Female', looking_for: 'Male' });
                             localStorage.setItem('pendingUserGender', 'Female');
+                            growthTracker.trackRegistrationStarted('Female');
                           }}
                           className={`h-11 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                             signupForm.gender === 'Female'
@@ -597,6 +599,7 @@ export default function LandingPageClient() {
                           onClick={() => {
                             setSignupForm({ ...signupForm, gender: 'Male', looking_for: 'Female' });
                             localStorage.setItem('pendingUserGender', 'Male');
+                            growthTracker.trackRegistrationStarted('Male');
                           }}
                           className={`h-11 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                             signupForm.gender === 'Male'
@@ -932,8 +935,8 @@ export default function LandingPageClient() {
       <section id="app-features" className="py-32 relative bg-slate-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20 max-w-3xl mx-auto">
-            <h2 className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-6">The Future of Dating</h2>
-            <h3 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Upgrade Your Love Life.</h3>
+            <p className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-4">The Future of Dating</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Upgrade Your Love Life.</h2>
             <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-lg">Leave the swipe fatigue behind using our advanced AI tools designed for meaningful, long-term connections.</p>
           </div>
 
@@ -1151,30 +1154,44 @@ export default function LandingPageClient() {
       </section>
 
       {/* --- SUCCESS STORIES --- */}
-      <section id="success-stories" className="py-24 bg-white dark:bg-gray-950 relative border-t border-gray-100 dark:border-gray-800">
+      <section id="safety-pillars" className="py-24 bg-white dark:bg-gray-950 relative border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block py-1 px-3 rounded-full bg-pink-100 text-pink-600 text-xs font-bold uppercase tracking-wider mb-4">Real Love</span>
-            <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Success Stories</h2>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 max-w-2xl mx-auto">See how AI helped these couples find their perfect match.</p>
+            <span className="inline-block py-1 px-3 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">High-Trust Matchmaking</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Built on Privacy, Verified Identity & Safety</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">We prioritize genuine connections by engineering privacy protections into every conversation.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <StoryCard
-              image="/images/story-1.jpg"
-              names="Priya & Rahul"
-              story="We matched instantly! The AI suggested we both loved hiking and classical music. 6 months later, we're engaged!"
-            />
-            <StoryCard
-              image="/images/register-hero-wiki.jpg"
-              names="Sarah & James"
-              story="I was skeptical about AI, but LifePartner's interactive map showed me James was grabbing coffee just down the street! Best decision ever."
-            />
-            <StoryCard
-              image="/images/orbital.jpg"
-              names="Anjali & Vikram"
-              story="The compatibility score was spot on. Our families clicked immediately, and now we are planning our dream wedding."
-            />
+            <div className="p-8 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6">
+                <Lock size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Masked Contact Information</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Connect and chat freely through encrypted in-app messaging and HD audio/video calls without disclosing your personal phone number or private social handles.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-6">
+                <ShieldCheck size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">AI Anti-Harassment Shield</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Real-time machine learning monitors and blocks unsolicited vulgarity, predatory behavior, and abusive messages before they enter your inbox.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:shadow-xl transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-6">
+                <Camera size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Screenshot-Protected Ephemeral Media</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                Share private photos with disappearing timers and built-in screenshot prevention, giving female singles complete ownership of their digital privacy.
+              </p>
+            </div>
           </div>
         </div>
       </section>

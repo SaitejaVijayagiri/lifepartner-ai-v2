@@ -44,7 +44,7 @@ const fontMono = Roboto_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://lifepartnerai.in'),
   alternates: {
-    canonical: './',
+    canonical: '/',
   },
   robots: {
     index: true,
@@ -259,11 +259,6 @@ export default function RootLayout({
                 "Vedic Astrology & Kundali Milan Matching",
                 "Worldwide NRI Cross-Border Matchmaking"
               ],
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.9",
-                "reviewCount": "1250"
-              },
               "offers": {
                 "@type": "Offer",
                 "price": "0",

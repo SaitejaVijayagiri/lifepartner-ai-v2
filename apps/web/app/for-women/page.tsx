@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://lifepartnerai.in/for-women',
     languages: {
-      'x-default': 'https://lifepartnerai.in/for-women',
-      'en': 'https://lifepartnerai.in/for-women',
+      'x-default': 'https://lifepartnerai.in',
+      'en': 'https://lifepartnerai.in',
       'en-IN': 'https://lifepartnerai.in/india',
       'en-US': 'https://lifepartnerai.in/usa',
       'en-GB': 'https://lifepartnerai.in/uk',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
       'pt-BR': 'https://lifepartnerai.in/brazil',
       'de-DE': 'https://lifepartnerai.in/germany',
       'fr-FR': 'https://lifepartnerai.in/france'
-    }
+}
   },
   openGraph: {
     title: 'LifePartner AI for Women | Safe, 100% Free VIP Dating & Matrimony',

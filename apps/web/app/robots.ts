@@ -1,42 +1,42 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
+    const privateRoutes = [
+        '/admin/',
+        '/dashboard/',
+        '/private/',
+        '/api/auth/',
+        '/chat/',
+        '/onboarding/',
+        '/profile/'
+    ];
+
     return {
         rules: [
             {
                 userAgent: '*',
                 allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/', '/api/auth/'],
+                disallow: privateRoutes,
             },
             {
                 userAgent: 'Googlebot',
                 allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
+                disallow: privateRoutes,
             },
             {
                 userAgent: 'Bingbot',
                 allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
+                disallow: privateRoutes,
             },
             {
                 userAgent: 'Applebot',
                 allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
-            },
-            {
-                userAgent: 'YandexBot',
-                allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
+                disallow: privateRoutes,
             },
             {
                 userAgent: 'DuckDuckBot',
                 allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
-            },
-            {
-                userAgent: 'Baiduspider',
-                allow: '/',
-                disallow: ['/admin/', '/dashboard/', '/private/'],
+                disallow: privateRoutes,
             },
             {
                 userAgent: 'Twitterbot',

@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     languages: {
       'x-default': 'https://lifepartnerai.in',
       'en': 'https://lifepartnerai.in',
-      'en-IN': 'https://lifepartnerai.in',
+      'en-IN': 'https://lifepartnerai.in/india',
       'en-US': 'https://lifepartnerai.in/usa',
       'en-GB': 'https://lifepartnerai.in/uk',
       'en-CA': 'https://lifepartnerai.in/canada',
@@ -55,8 +55,8 @@ export const metadata: Metadata = {
       'th-TH': 'https://lifepartnerai.in/thailand',
       'pt-BR': 'https://lifepartnerai.in/brazil',
       'de-DE': 'https://lifepartnerai.in/germany',
-      'fr-FR': 'https://lifepartnerai.in/france',
-    }
+      'fr-FR': 'https://lifepartnerai.in/france'
+}
   },
   openGraph: {
     title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',

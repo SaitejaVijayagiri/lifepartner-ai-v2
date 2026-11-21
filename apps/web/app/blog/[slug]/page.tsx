@@ -96,6 +96,7 @@ export default async function BlogPostPage({ params }: Props) {
         "@type": "BlogPosting",
         "headline": post.title,
         "description": post.excerpt || post.meta_description,
+        "image": (post as any).image || "https://lifepartnerai.in/og-image.jpg",
         "datePublished": post.created_at,
         "dateModified": post.created_at,
         "mainEntityOfPage": {
@@ -104,7 +105,8 @@ export default async function BlogPostPage({ params }: Props) {
         },
         "author": {
             "@type": "Organization",
-            "name": "LifePartner AI Editorial"
+            "name": "LifePartner AI Editorial",
+            "url": "https://lifepartnerai.in"
         },
         "publisher": {
             "@type": "Organization",
@@ -116,17 +118,53 @@ export default async function BlogPostPage({ params }: Props) {
         }
     };
 
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://lifepartnerai.in"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog & Guides",
+                "item": "https://lifepartnerai.in/blog"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": post.title,
+                "item": `https://lifepartnerai.in/blog/${params.slug}`
+            }
+        ]
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
             />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
             <Navbar />
 
             <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16 w-full">
                 <article className="bg-white dark:bg-gray-950 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <div className="p-8 md:p-12">
+                        <nav aria-label="Breadcrumb" className="mb-6 flex items-center justify-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            <a href="/" className="hover:text-rose-600 transition-colors">Home</a>
+                            <span>/</span>
+                            <a href="/blog" className="hover:text-rose-600 transition-colors">Blog</a>
+                            <span>/</span>
+                            <span className="text-gray-800 dark:text-gray-200 truncate max-w-xs">{post.title}</span>
+                        </nav>
                         <header className="mb-10 text-center border-b border-gray-100 dark:border-gray-800 pb-10">
                             <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-gray-100 leading-tight mb-6">
                                 {post.title}

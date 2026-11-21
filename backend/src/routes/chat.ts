@@ -4,6 +4,7 @@ import fs from 'fs';
 import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import { trackGrowthEvent } from '../services/growthAnalytics';
 import multer from 'multer';
 import { isR2Configured, uploadBufferToR2 } from '../services/r2Storage';
 
@@ -292,6 +293,23 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                 }
             });
         }
+
+        
+        // Ingest growth tracking: user_active, first_message_sent, first_reply_received
+        (async () => {
+            try {
+                trackGrowthEvent('user_active', { userId: senderId }).catch(() => {});
+                const priorMessages = await prisma.messages.count({ where: { sender_id: senderId } });
+                if (priorMessages <= 1) {
+                    trackGrowthEvent('first_message_sent', { userId: senderId }).catch(() => {});
+                }
+                const connectionPriorMessages = await prisma.messages.count({ where: { sender_id: connectionId, receiver_id: senderId } });
+                const myPriorReplies = await prisma.messages.count({ where: { sender_id: senderId, receiver_id: connectionId } });
+                if (connectionPriorMessages > 0 && myPriorReplies <= 1) {
+                    trackGrowthEvent('first_reply_received', { userId: connectionId }).catch(() => {});
+                }
+            } catch (_) {}
+        })();
 
         const newMessage = {
             id: newMessageRecord.id,

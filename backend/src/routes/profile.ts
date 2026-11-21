@@ -26,6 +26,7 @@ const astrologyService = new AstrologyService();
 
 import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
+import { trackGrowthEvent } from '../services/growthAnalytics';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, redactStoriesIfBlurred, getBlockedUserIdSet, getConnectedUserIdSet, areUsersConnected, resolveMatchStatus } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
@@ -1336,6 +1337,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         });
 
                         if (!existingBonus) {
+                            trackGrowthEvent('profile_completed', { userId: currentUser.id, gender: finalGender }).catch(() => {});
                             console.log(`🎉 Onboarding complete for User ${currentUser.id}. Minting Deferred Referral Coins...`);
 
                             try {
@@ -2535,6 +2537,7 @@ router.delete('/me', authenticateToken, async (req: any, res) => {
 
         try { require('./matches').matchCache.clear(); } catch (_) {}
 
+        trackGrowthEvent('account_deleted', { userId }).catch(() => {});
         console.log(`✅ Successfully permanently deleted user: ${userId}`);
         res.json({ success: true, message: "Account deleted permanently." });
     } catch (e) {

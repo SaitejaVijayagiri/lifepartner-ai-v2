@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
+import { trackGrowthEvent, getGrowthMetrics, parseTrafficSource, normalizeCountryCode } from '../services/growthAnalytics';
 
 const router = Router();
 
@@ -364,6 +365,16 @@ router.post('/pageview', async (req: Request, res: Response) => {
         const country = detectCountry(req, req.body);
         const pagePath = (path || req.body?.path || '/').toString().substring(0, 100);
 
+        // Ingest into growth_events table asynchronously
+        const trafficSource = parseTrafficSource(req.body?.referrer, req.body?.utm_source, req.body?.utm_medium);
+        trackGrowthEvent('landing_visit', {
+            sessionId: req.body?.session_id || null,
+            trafficSource,
+            country,
+            metadata: { path: pagePath, is_unique: isUniqueBool }
+        }).catch(() => {});
+
+
         // 1. Update global counter
         const rows: any[] = await prisma.$queryRawUnsafe(`
             INSERT INTO site_views_counter (id, total_views, today_views, unique_visitors, countries_count, last_updated_date)
@@ -527,6 +538,52 @@ router.get('/email-stats', authenticateToken, adminAuth, async (req: Request, re
         });
     } catch (e: any) {
         return res.status(500).json({ error: 'Failed to fetch email stats', message: e.message });
+    }
+});
+
+
+/**
+ * POST /api/analytics/track
+ * Records high-priority growth funnel events (landing_visit, registration_started, etc.)
+ */
+router.post('/track', async (req: Request, res: Response) => {
+    try {
+        const { event_name, user_id, session_id, referrer, utm_source, utm_medium, country, gender, metadata } = req.body;
+
+        if (!event_name) {
+            return res.status(400).json({ error: 'event_name is required' });
+        }
+
+        const detectedCountry = country || detectCountry(req, req.body);
+        const trafficSource = parseTrafficSource(referrer, utm_source, utm_medium);
+
+        await trackGrowthEvent(event_name as any, {
+            userId: user_id || null,
+            sessionId: session_id || null,
+            trafficSource,
+            country: detectedCountry,
+            gender: gender || null,
+            metadata: metadata || {}
+        });
+
+        return res.status(200).json({ success: true });
+    } catch (err: any) {
+        return res.status(200).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * GET /api/analytics/growth-metrics
+ * Comprehensive growth dashboard analytics: gender counts, funnel drop-off, acquisition, retention
+ */
+router.get('/growth-metrics', authenticateToken, adminAuth, async (req: Request, res: Response) => {
+    try {
+        const range = ((req.query.range as string) || '30d') as '7d' | '30d' | '90d' | 'all';
+        const metrics = await getGrowthMetrics(range);
+        return res.status(200).json(metrics);
+    } catch (err: any) {
+        console.error('[Analytics] Error fetching growth metrics:', err);
+        return res.status(500).json({ error: 'Failed to fetch growth metrics', message: err.message });
     }
 });
 

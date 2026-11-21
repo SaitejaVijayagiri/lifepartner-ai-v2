@@ -3,6 +3,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
+import { trackGrowthEvent } from '../services/growthAnalytics';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline, getOnlineUserIds } from '../socket';
 import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, redactStoriesIfBlurred, getBlockedUserIdSet, getConnectedUserIdSet, resolveMatchStatus } from '../utils/photoUrl';
@@ -883,6 +884,7 @@ const getCountrySearchPatterns = (country: string): string[] => {
 };
 
 router.get('/recommendations', authenticateToken, async (req: any, res) => {
+    try { trackGrowthEvent('match_viewed', { userId: req.user.userId }).catch(() => {}); } catch (_) {}
     try {
         const userId = req.user.userId;
 

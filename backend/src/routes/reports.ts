@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { getIO } from '../socket';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
+import { trackGrowthEvent } from '../services/growthAnalytics';
 
 const router = express.Router();
 
@@ -55,6 +56,9 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 created_at: new Date()
             });
         } catch (e) { /* ignore if socket not ready */ }
+
+        trackGrowthEvent('user_reported', { userId: reporterId, metadata: { reason } }).catch(() => {});
+        trackGrowthEvent('user_blocked', { userId: reporterId }).catch(() => {});
 
         res.status(201).json({
             message: "Report submitted successfully",

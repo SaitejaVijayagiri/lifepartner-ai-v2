@@ -6,7 +6,7 @@ import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2, Headphones, Clock } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, ChevronUp, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2, Headphones, Clock, Copy, AlertCircle, Search } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -790,6 +790,39 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
     const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+    const [isSearchingChat, setIsSearchingChat] = useState(false);
+    const [chatSearchQuery, setChatSearchQuery] = useState('');
+    const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
+    const searchMatchingMsgIds = useMemo(() => {
+        if (!chatSearchQuery.trim()) return [];
+        const q = chatSearchQuery.toLowerCase();
+        return messages
+            .filter(m => typeof m.text === 'string' && m.text.toLowerCase().includes(q))
+            .map(m => m.id);
+    }, [chatSearchQuery, messages]);
+
+    useEffect(() => {
+        if (searchMatchingMsgIds.length > 0) {
+            setCurrentSearchIndex(0);
+            scrollToMessage(searchMatchingMsgIds[0]);
+        }
+    }, [searchMatchingMsgIds]);
+
+    const handleNextSearchMatch = () => {
+        if (searchMatchingMsgIds.length === 0) return;
+        const nextIdx = (currentSearchIndex + 1) % searchMatchingMsgIds.length;
+        setCurrentSearchIndex(nextIdx);
+        scrollToMessage(searchMatchingMsgIds[nextIdx]);
+    };
+
+    const handlePrevSearchMatch = () => {
+        if (searchMatchingMsgIds.length === 0) return;
+        const prevIdx = (currentSearchIndex - 1 + searchMatchingMsgIds.length) % searchMatchingMsgIds.length;
+        setCurrentSearchIndex(prevIdx);
+        scrollToMessage(searchMatchingMsgIds[prevIdx]);
+    };
+
     const [showJukebox, setShowJukebox] = useState(false);
     const syncedAudioRef = useRef<HTMLAudioElement | null>(null);
     const [activeSyncedTrack, setActiveSyncedTrack] = useState<{
@@ -1163,10 +1196,63 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
         }
     };
 
+    const handleCopyMessage = (text: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (!text) return;
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                toast.success("Message copied to clipboard!");
+            }).catch(() => {
+                try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                    toast.success("Message copied to clipboard!");
+                } catch (_) {
+                    toast.error("Failed to copy");
+                }
+            });
+        } else {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                toast.success("Message copied to clipboard!");
+            } catch (_) {
+                toast.error("Failed to copy");
+            }
+        }
+    };
+
+    const handleRetry = async (failedMsg: any) => {
+        if (!failedMsg || !failedMsg.text) return;
+        setMessages(prev => prev.filter(m => m.id !== failedMsg.id));
+        await handleSend(undefined, failedMsg.text);
+    };
+
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+            const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm'))
+                ? 'audio/webm'
+                : (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/mp4'))
+                    ? 'audio/mp4'
+                    : '';
+            const recorderOptions = mimeType ? { mimeType } : undefined;
+            const mediaRecorder = new MediaRecorder(stream, recorderOptions);
             mediaRecorderRef.current = mediaRecorder;
             audioChunksRef.current = [];
 
@@ -1175,13 +1261,15 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
             };
 
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const blobType = mimeType || 'audio/webm';
+                const audioFileExt = mimeType === 'audio/mp4' ? 'audio.mp4' : 'audio.webm';
+                const audioBlob = new Blob(audioChunksRef.current, { type: blobType });
                 stream.getTracks().forEach(track => track.stop());
                 
                 setIsUploadingMedia(true);
                 setUploadProgress(0);
                 try {
-                    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+                    const audioFile = new File([audioBlob], audioFileExt, { type: blobType });
                     const res = await api.chat.uploadMedia(audioFile, (percent) => setUploadProgress(percent));
                     if (res.url) handleSend(undefined, `[AUDIO]${res.url}`);
                 } catch (e: any) {
@@ -1852,6 +1940,8 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
             if (onMessageSent) onMessageSent(response?.message || { text: textToSend });
         } catch (err) {
             console.error("Send failed", err);
+            setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...m, status: 'failed' } : m));
+            toast.error("Message could not be sent. Tap retry to resend.");
         } finally {
             isSendingMessageRef.current = false;
         }
@@ -2238,6 +2328,16 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                         AI Relationship Scenario
                                     </button>
                                     <button
+                                        onClick={() => {
+                                            setShowHeaderMenu(false);
+                                            setIsSearchingChat(true);
+                                        }}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-3 transition-colors font-medium"
+                                    >
+                                        <Search size={16} className="text-indigo-500" />
+                                        Search in Conversation
+                                    </button>
+                                    <button
                                         onClick={async () => { 
                                             setShowHeaderMenu(false); 
                                             if (await verifySafetyContact()) {
@@ -2354,6 +2454,57 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                             <X size={14} />
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* In-Chat Search Bar */}
+            {isSearchingChat && (
+                <div className="bg-slate-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2 flex items-center gap-2 z-40 animate-in slide-in-from-top-2">
+                    <Search size={15} className="text-gray-400 shrink-0" />
+                    <input
+                        type="text"
+                        autoFocus
+                        value={chatSearchQuery}
+                        onChange={(e) => setChatSearchQuery(e.target.value)}
+                        placeholder="Search conversation..."
+                        className="flex-1 bg-white dark:bg-gray-900 text-xs px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    {chatSearchQuery && (
+                        <span className="text-[10px] text-gray-400 font-bold shrink-0">
+                            {searchMatchingMsgIds.length > 0 ? `${currentSearchIndex + 1} of ${searchMatchingMsgIds.length}` : 'No matches'}
+                        </span>
+                    )}
+                    {searchMatchingMsgIds.length > 1 && (
+                        <div className="flex items-center gap-1 shrink-0">
+                            <button
+                                type="button"
+                                onClick={handlePrevSearchMatch}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 cursor-pointer"
+                                title="Previous match"
+                            >
+                                <ChevronUp size={14} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleNextSearchMatch}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 cursor-pointer"
+                                title="Next match"
+                            >
+                                <ChevronDown size={14} />
+                            </button>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsSearchingChat(false);
+                            setChatSearchQuery('');
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg cursor-pointer"
+                        title="Close Search"
+                    >
+                        <X size={15} />
+                    </button>
                 </div>
             )}
 
@@ -2502,6 +2653,13 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                             title="Reply"
                                         >
                                             <Reply size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleCopyMessage(cleanMsgText, e)}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer"
+                                            title="Copy Text"
+                                        >
+                                            <Copy size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
@@ -2969,6 +3127,17 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                                     {msg.status === 'sent' && <Check size={12} />}
                                                     {msg.status === 'delivered' && <CheckCheck size={12} />}
                                                     {msg.status === 'read' && <CheckCheck size={12} className={cleanMsgText.startsWith('[STICKER]') || cleanMsgText.startsWith('[MUSIC_SHARE:') ? 'text-pink-400' : 'text-blue-300'} />}
+                                                    {msg.status === 'failed' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRetry(msg)}
+                                                            title="Failed to send. Tap to retry"
+                                                            className="flex items-center gap-0.5 text-red-400 hover:text-red-300 cursor-pointer ml-1 select-none"
+                                                        >
+                                                            <AlertCircle size={11} className="text-red-400 shrink-0" />
+                                                            <span className="text-[9px] font-bold underline">Retry</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -3021,6 +3190,19 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                             >
                                                 <Reply size={13} />
                                                 <span className="text-[10px] font-semibold">Reply</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCopyMessage(cleanMsgText, e);
+                                                    setActiveMsgId(null);
+                                                }}
+                                                className="p-1 text-gray-600 dark:text-gray-300 hover:text-indigo-500 rounded-full transition-colors cursor-pointer flex items-center gap-1"
+                                                title="Copy Text"
+                                            >
+                                                <Copy size={13} />
+                                                <span className="text-[10px] font-semibold">Copy</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -3078,6 +3260,13 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                             title="Reply"
                                         >
                                             <Reply size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleCopyMessage(cleanMsgText, e)}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer"
+                                            title="Copy Text"
+                                        >
+                                            <Copy size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}

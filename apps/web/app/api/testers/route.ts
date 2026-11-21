@@ -15,7 +15,15 @@ interface TesterRecord {
 }
 
 function getDataFilePath(): string {
-    return path.join(process.cwd(), 'data', 'beta_testers.json');
+    const candidates = [
+        path.join(process.cwd(), 'apps', 'web', 'data', 'beta_testers.json'),
+        path.join(process.cwd(), 'data', 'beta_testers.json'),
+        path.join(process.cwd(), 'beta_testers.json')
+    ];
+    for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+    }
+    return candidates[0];
 }
 
 function readTesters(): TesterRecord[] {

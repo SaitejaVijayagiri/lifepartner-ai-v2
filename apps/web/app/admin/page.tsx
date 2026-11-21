@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { api, fetchAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,51 @@ import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import GrowthAnalyticsView from '@/components/GrowthAnalyticsView';
+
+function formatDateSafe(val: any, fmt: string = 'dd MMM yyyy'): string {
+    if (!val) return '-';
+    try {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return '-';
+        return format(d, fmt);
+    } catch {
+        return '-';
+    }
+}
+
+class SafeTabBoundary extends Component<{ children: React.ReactNode; title?: string }, { hasError: boolean; error: any }> {
+    constructor(props: any) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error: any) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error: any, info: any) {
+        console.error('SafeTabBoundary caught render error:', error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-8 text-center bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-3xl space-y-2">
+                    <p className="font-bold text-sm text-rose-600 dark:text-rose-400">
+                        {this.props.title || 'Unable to display this tab'}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono">
+                        {this.state.error?.message || 'A display error occurred. Other tabs remain fully accessible.'}
+                    </p>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                        className="px-4 py-1.5 text-xs bg-white dark:bg-gray-900 border rounded-xl shadow-sm hover:bg-gray-50 mt-2 font-bold cursor-pointer"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -63,21 +108,21 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const [statsRes, usersRes, txRes, photosRes, campaignStatsRes, analyticsRes, viewsRes] = await Promise.all([
-                api.admin.getStats(),
-                api.admin.getUsers({ search, limit: 20 }),
-                api.admin.getTransactions({ limit: 50 }),
-                api.admin.getPhotosPending(),
-                api.admin.getCampaignStats(),
+                api.admin.getStats().catch(err => { console.warn('getStats failed:', err); return null; }),
+                api.admin.getUsers({ search, limit: 20 }).catch(err => { console.warn('getUsers failed:', err); return []; }),
+                api.admin.getTransactions({ limit: 50 }).catch(err => { console.warn('getTransactions failed:', err); return []; }),
+                api.admin.getPhotosPending().catch(err => { console.warn('getPhotosPending failed:', err); return []; }),
+                api.admin.getCampaignStats().catch(err => { console.warn('getCampaignStats failed:', err); return null; }),
                 fetchAPI('/analytics/insights').catch(() => null),
                 fetchAPI('/analytics/views').catch(() => null)
             ]);
-            setStats(statsRes);
-            setUsers(usersRes);
-            setTransactions(txRes);
-            setPendingPhotos(photosRes);
-            setCampaignStats(campaignStatsRes);
-            setAnalyticsInsights(analyticsRes);
-            setSiteViews(viewsRes);
+            setStats(statsRes || {});
+            setUsers(Array.isArray(usersRes) ? usersRes : []);
+            setTransactions(Array.isArray(txRes) ? txRes : []);
+            setPendingPhotos(Array.isArray(photosRes) ? photosRes : []);
+            setCampaignStats(campaignStatsRes || {});
+            setAnalyticsInsights(analyticsRes || {});
+            setSiteViews(viewsRes || {});
             fetchTesters();
         } catch (e) {
             console.error("Admin Load Error", e);
@@ -90,9 +135,16 @@ export default function AdminDashboard() {
         setTestersLoading(true);
         try {
             const res = await fetch('/api/testers');
-            const data = await res.json();
-            if (data?.testers) {
-                setTesters(data.testers);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data?.testers)) {
+                    setTesters(data.testers);
+                    return;
+                }
+            }
+            const fallback = await api.admin.getTesters().catch(() => null);
+            if (Array.isArray(fallback?.testers)) {
+                setTesters(fallback.testers);
             }
         } catch (e) {
             console.error("Failed to fetch testers", e);
@@ -102,16 +154,19 @@ export default function AdminDashboard() {
     };
 
     const handleCopyAllTesters = () => {
-        const emails = testers.map(t => t.email.trim().toLowerCase()).join(', ');
+        const safe = Array.isArray(testers) ? testers : [];
+        const emails = safe.map(t => (t?.email || '').trim().toLowerCase()).filter(Boolean).join(', ');
         navigator.clipboard.writeText(emails);
         setCopyAllSuccess(true);
         setTimeout(() => setCopyAllSuccess(false), 2500);
     };
 
     const handleCopyPendingTesters = () => {
-        const emails = testers
-            .filter(t => t.status !== 'added_to_console')
-            .map(t => t.email.trim().toLowerCase())
+        const safe = Array.isArray(testers) ? testers : [];
+        const emails = safe
+            .filter(t => t?.status !== 'added_to_console')
+            .map(t => (t?.email || '').trim().toLowerCase())
+            .filter(Boolean)
             .join(', ');
         navigator.clipboard.writeText(emails);
         setCopyPendingSuccess(true);
@@ -203,6 +258,8 @@ export default function AdminDashboard() {
             alert("Failed to moderate photo");
         }
     };
+
+    const safeTesters = Array.isArray(testers) ? testers : [];
 
     if (loading && !stats) return <div className="p-20 text-center flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
@@ -317,11 +374,11 @@ export default function AdminDashboard() {
                                             </linearGradient>
                                         </defs>
                                         {/* @ts-ignore */}
-                                        <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
+                                        <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => formatDateSafe(val, 'MMM dd')} />
                                         {/* @ts-ignore */}
                                         <YAxis tick={{fontSize: 12}} />
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                                        <Tooltip labelFormatter={(val) => format(new Date(val), 'dd MMM yyyy')} />
+                                        <Tooltip labelFormatter={(val) => formatDateSafe(val, 'dd MMM yyyy')} />
                                         {/* @ts-ignore */}
                                         <Area type="monotone" dataKey="female" name="Female Users" stroke="#ec4899" strokeWidth={2} fillOpacity={1} fill="url(#colorFemale)" />
                                         {/* @ts-ignore */}
@@ -336,10 +393,10 @@ export default function AdminDashboard() {
                 )}
 
                 {/* Main Content Tabs */}
-                <Tabs defaultValue="growth" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="growth">🚀 Growth & Funnel Analytics</TabsTrigger>
-                        <TabsTrigger value="testers">🎯 Google Play Testers ({testers.length})</TabsTrigger>
+                <Tabs defaultValue="testers" className="space-y-4">
+                    <TabsList className="flex flex-wrap gap-1">
+                        <TabsTrigger value="testers">🎯 Google Play Testers ({Array.isArray(testers) ? testers.length : 0})</TabsTrigger>
+                        <TabsTrigger value="growth">🚀 Growth Analytics</TabsTrigger>
                         <TabsTrigger value="users">User Management</TabsTrigger>
                         <TabsTrigger value="analytics">📊 Image & Drop-Off Analytics</TabsTrigger>
                         <TabsTrigger value="moderation">Photo Moderation</TabsTrigger>
@@ -348,14 +405,15 @@ export default function AdminDashboard() {
                         <TabsTrigger value="campaigns">📧 Campaigns</TabsTrigger>
                     </TabsList>
 
-                    {/* ANALYTICS & DROP-OFF TAB */}
-                    
                     {/* PRODUCT GROWTH & ACQUISITION TAB */}
                     <TabsContent value="growth" className="space-y-6">
-                        <GrowthAnalyticsView />
+                        <SafeTabBoundary title="Growth Analytics Engine">
+                            <GrowthAnalyticsView />
+                        </SafeTabBoundary>
                     </TabsContent>
 
                     <TabsContent value="analytics" className="space-y-6">
+                        <SafeTabBoundary title="Analytics & Metrics">
                         {/* 1. Global Traffic & Country Reach Live Counters */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <Card className="bg-gradient-to-br from-blue-50 to-indigo-100/50 dark:from-blue-950/20 dark:to-indigo-900/10 border border-blue-200 dark:border-blue-900/50">
@@ -630,6 +688,7 @@ export default function AdminDashboard() {
                                 )}
                             </CardContent>
                         </Card>
+                        </SafeTabBoundary>
                     </TabsContent>
 
                     {/* MODERATION TAB */}
@@ -711,7 +770,7 @@ export default function AdminDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {users.map((user) => (
+                                            {(Array.isArray(users) ? users : []).map((user) => (
                                                 <tr key={user.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
                                                     <td className="p-4">
                                                         <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
@@ -741,7 +800,7 @@ export default function AdminDashboard() {
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-gray-500 dark:text-gray-400">
-                                                        {format(new Date(user.created_at), 'dd MMM yyyy')}
+                                                        {formatDateSafe(user.created_at, 'dd MMM yyyy')}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -770,22 +829,22 @@ export default function AdminDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {transactions.map((tx) => (
+                                            {(Array.isArray(transactions) ? transactions : []).map((tx) => (
                                                 <tr key={tx.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
                                                     <td className="p-4">
                                                         <div className="font-medium text-gray-900 dark:text-gray-100">{tx.full_name}</div>
                                                         <div className="text-xs text-gray-500 dark:text-gray-400">{tx.email}</div>
                                                     </td>
                                                     <td className="p-4">
-                                                        <Badge variant={tx.type.includes('REFERRAL') ? 'secondary' : 'default'} className="uppercase text-[10px] dark:bg-indigo-900 dark:text-indigo-200">
-                                                            {tx.type.replace('_', ' ')}
+                                                        <Badge variant={tx.type?.includes('REFERRAL') ? 'secondary' : 'default'} className="uppercase text-[10px] dark:bg-indigo-900 dark:text-indigo-200">
+                                                            {tx.type ? tx.type.replace('_', ' ') : 'TX'}
                                                         </Badge>
                                                     </td>
                                                     <td className="p-4 font-bold text-gray-900 dark:text-gray-100">
                                                         {tx.amount > 0 ? '+' : ''}{tx.amount}
                                                     </td>
                                                     <td className="p-4 text-gray-500 dark:text-gray-400">
-                                                        {format(new Date(tx.created_at), 'dd MMM HH:mm')}
+                                                        {formatDateSafe(tx.created_at, 'dd MMM HH:mm')}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -814,7 +873,7 @@ export default function AdminDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {users.filter(u => u.referral_code).map((user) => (
+                                            {(Array.isArray(users) ? users : []).filter(u => u?.referral_code).map((user) => (
                                                 <tr key={user.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
                                                     <td className="p-4 font-medium text-gray-900 dark:text-gray-100">{user.name}</td>
                                                     <td className="p-4 font-mono bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-fit px-2 rounded">{user.referral_code}</td>
@@ -831,6 +890,7 @@ export default function AdminDashboard() {
 
                     {/* CAMPAIGNS TAB */}
                     <TabsContent value="campaigns" className="space-y-6">
+                        <SafeTabBoundary title="Marketing Campaigns">
                         {/* 1. Analytics Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/20 dark:to-indigo-900/10 border border-indigo-200 dark:border-indigo-900/50">
@@ -998,11 +1058,11 @@ export default function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {campaignStats.recentCampaigns.map((c: any) => (
+                                                {(campaignStats?.recentCampaigns || []).map((c: any) => (
                                                     <tr key={c.id} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
                                                         <td className="p-3 font-medium text-gray-800 dark:text-gray-200">{c.title}</td>
                                                         <td className="p-3 text-gray-500 dark:text-gray-400">
-                                                            {format(new Date(c.sentAt), 'dd MMM yyyy, HH:mm')}
+                                                            {formatDateSafe(c.sentAt, 'dd MMM yyyy, HH:mm')}
                                                         </td>
                                                         <td className="p-3">
                                                             {c.clicked ? (
@@ -1015,7 +1075,7 @@ export default function AdminDashboard() {
                                                             {c.clicked ? (c.action === 'notification_body' ? 'Main Body Click' : c.action) : '-'}
                                                         </td>
                                                         <td className="p-3 text-gray-400 dark:text-gray-500">
-                                                            {c.clickedAt ? format(new Date(c.clickedAt), 'dd MMM HH:mm') : '-'}
+                                                            {formatDateSafe(c.clickedAt, 'dd MMM HH:mm')}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1025,306 +1085,309 @@ export default function AdminDashboard() {
                                 )}
                             </CardContent>
                         </Card>
+                        </SafeTabBoundary>
                     </TabsContent>
 
                     {/* GOOGLE PLAY CLOSED BETA TESTERS TAB */}
                     <TabsContent value="testers" className="space-y-6">
-                        {/* 1. Header Overview & Google Play Requirement Bar */}
-                        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-                                <div>
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-2 border border-white/30 text-emerald-100">
-                                        <Sparkles size={13} />
-                                        <span>Google Play Production Requirement</span>
-                                    </div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">
-                                        Google Play Closed Beta Testers
-                                    </h2>
-                                    <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-                                        Google requires at least <strong>20 testers</strong> opted-in for at least 14 days before applying for Production.
-                                        Copy the email list below and paste directly into Google Play Console closed testing track!
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                    <button
-                                        onClick={handleCopyAllTesters}
-                                        disabled={testers.length === 0}
-                                        className="px-4 py-3 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 active:scale-95 font-black text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                                    >
-                                        {copyAllSuccess ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
-                                        <span>{copyAllSuccess ? 'Copied All to Clipboard!' : `Copy All (${testers.length}) Emails`}</span>
-                                    </button>
-
-                                    <button
-                                        onClick={handleCopyPendingTesters}
-                                        disabled={testers.filter(t => t.status !== 'added_to_console').length === 0}
-                                        className="px-4 py-3 rounded-2xl bg-emerald-950/60 border border-white/30 text-white hover:bg-emerald-950/80 active:scale-95 font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                                    >
-                                        {copyPendingSuccess ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                                        <span>{copyPendingSuccess ? 'Copied Pending!' : `Copy Pending (${testers.filter(t => t.status !== 'added_to_console').length})`}</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Progress bar towards 20 testers */}
-                            <div className="mt-6 pt-6 border-t border-white/20">
-                                <div className="flex items-center justify-between text-xs font-bold mb-2">
-                                    <span>Production Application Readiness:</span>
-                                    <span>{testers.length} / 20 Testers ({Math.min(100, Math.round((testers.length / 20) * 100))}%)</span>
-                                </div>
-                                <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-emerald-300 to-yellow-300 transition-all duration-500 rounded-full"
-                                        style={{ width: `${Math.min(100, Math.round((testers.length / 20) * 100))}%` }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 2. Quick Links Card */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <a
-                                href="https://play.google.com/console"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                                        <Play size={20} className="fill-current" />
-                                    </div>
+                        <SafeTabBoundary title="Google Play Testers">
+                            {/* 1. Header Overview & Google Play Requirement Bar */}
+                            <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
                                     <div>
-                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Google Play Console</div>
-                                        <div className="text-[11px] text-gray-500">Manage Track & Testers</div>
-                                    </div>
-                                </div>
-                                <ExternalLink size={16} className="text-gray-400" />
-                            </a>
-
-                            <a
-                                href="https://play.google.com/apps/testing/com.lifepartner.ai"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                                        <Globe size={20} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Web Testing Opt-In Link</div>
-                                        <div className="text-[11px] text-gray-500">Testers tap "Become a Tester"</div>
-                                    </div>
-                                </div>
-                                <ExternalLink size={16} className="text-gray-400" />
-                            </a>
-
-                            <a
-                                href="https://play.google.com/store/apps/details?id=com.lifepartner.ai"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                                        <Smartphone size={20} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Play Store Download Link</div>
-                                        <div className="text-[11px] text-gray-500">Direct app listing</div>
-                                    </div>
-                                </div>
-                                <ExternalLink size={16} className="text-gray-400" />
-                            </a>
-                        </div>
-
-                        {/* 3. Manual Add Tester & Bulk Add Box */}
-                        <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                    <UserPlus className="w-4 h-4 text-emerald-600" />
-                                    <span>Add Tester Emails Manually</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleAddManualTesters} className="space-y-3">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Paste one or more email addresses (separated by commas or newlines) to record them as testers:
-                                    </p>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="tester1@gmail.com, tester2@gmail.com, ..."
-                                            value={manualTesterEmails}
-                                            onChange={(e) => setManualTesterEmails(e.target.value)}
-                                            className="text-xs"
-                                        />
-                                        <Button type="submit" disabled={testersLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs">
-                                            {testersLoading ? 'Adding...' : 'Add to List'}
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-
-                        {/* 4. Testers Table */}
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-3">
-                                <div className="flex items-center gap-2">
-                                    <CardTitle className="text-base font-bold">
-                                        Registered Testers List ({testers.length})
-                                    </CardTitle>
-                                    <Badge variant="outline" className="text-xs">
-                                        {testers.filter(t => t.status === 'added_to_console').length} Added to Console
-                                    </Badge>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 p-0.5 text-xs">
-                                        <button
-                                            type="button"
-                                            onClick={() => setTesterFilter('all')}
-                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-white font-bold' : 'text-gray-500'}`}
-                                        >
-                                            All ({testers.length})
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setTesterFilter('pending')}
-                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'pending' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold' : 'text-gray-500'}`}
-                                        >
-                                            Pending ({testers.filter(t => t.status !== 'added_to_console').length})
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setTesterFilter('added_to_console')}
-                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'added_to_console' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold' : 'text-gray-500'}`}
-                                        >
-                                            Added ({testers.filter(t => t.status === 'added_to_console').length})
-                                        </button>
-                                    </div>
-
-                                    <a
-                                        href="/api/testers?format=csv"
-                                        download="google_play_testers.csv"
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 transition-all"
-                                    >
-                                        <Download size={13} />
-                                        <span>Export CSV</span>
-                                    </a>
-                                </div>
-                            </CardHeader>
-
-                            <CardContent>
-                                {testers.length === 0 ? (
-                                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-xs space-y-2">
-                                        <Mail className="w-8 h-8 mx-auto text-gray-400 opacity-60" />
-                                        <p>No testers registered yet.</p>
-                                        <p className="text-[11px] text-gray-400">
-                                            As soon as users submit their emails on the landing page or download page, they will appear here!
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-2 border border-white/30 text-emerald-100">
+                                            <Sparkles size={13} />
+                                            <span>Google Play Production Requirement</span>
+                                        </div>
+                                        <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">
+                                            Google Play Closed Beta Testers
+                                        </h2>
+                                        <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
+                                            Google requires at least <strong>20 testers</strong> opted-in for at least 14 days before applying for Production.
+                                            Copy the email list below and paste directly into Google Play Console closed testing track!
                                         </p>
                                     </div>
-                                ) : (
-                                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-                                        <table className="w-full text-xs text-left">
-                                            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
-                                                <tr>
-                                                    <th className="p-3 font-semibold">Email Address</th>
-                                                    <th className="p-3 font-semibold">Registered Date</th>
-                                                    <th className="p-3 font-semibold">Play Console Status</th>
-                                                    <th className="p-3 font-semibold text-right">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {testers
-                                                    .filter(t => {
-                                                        if (testerFilter === 'pending') return t.status !== 'added_to_console';
-                                                        if (testerFilter === 'added_to_console') return t.status === 'added_to_console';
-                                                        return true;
-                                                    })
-                                                    .map((t) => (
-                                                        <tr key={t.id || t.email} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
-                                                            <td className="p-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-mono font-medium text-gray-900 dark:text-gray-100">{t.email}</span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleCopySingleEmail(t.id, t.email)}
-                                                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-all"
-                                                                        title="Copy email"
-                                                                    >
-                                                                        {copiedEmailId === t.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                                                                    </button>
-                                                                </div>
-                                                                {t.name && t.name !== 'Play Store Tester' && (
-                                                                    <div className="text-[10px] text-gray-400">{t.name}</div>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-gray-500 dark:text-gray-400">
-                                                                {t.createdAt ? format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm') : '-'}
-                                                            </td>
-                                                            <td className="p-3">
-                                                                {t.status === 'added_to_console' ? (
-                                                                    <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
-                                                                        Added to Play Console ✅
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
-                                                                        Pending Console Addition ⏳
-                                                                    </Badge>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-right">
-                                                                <div className="flex items-center justify-end gap-1.5">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant={t.status === 'added_to_console' ? 'outline' : 'default'}
-                                                                        className={`text-[11px] h-7 px-2.5 ${t.status !== 'added_to_console' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
-                                                                        onClick={() => handleToggleTesterStatus(t.id, t.status)}
-                                                                    >
-                                                                        {t.status === 'added_to_console' ? 'Mark Pending' : 'Mark as Added'}
-                                                                    </Button>
 
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteTester(t.id)}
-                                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                                                                        title="Delete tester"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                            </tbody>
-                                        </table>
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <button
+                                            onClick={handleCopyAllTesters}
+                                            disabled={safeTesters.length === 0}
+                                            className="px-4 py-3 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 active:scale-95 font-black text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                        >
+                                            {copyAllSuccess ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                                            <span>{copyAllSuccess ? 'Copied All to Clipboard!' : `Copy All (${safeTesters.length}) Emails`}</span>
+                                        </button>
+
+                                        <button
+                                            onClick={handleCopyPendingTesters}
+                                            disabled={safeTesters.filter(t => t.status !== 'added_to_console').length === 0}
+                                            className="px-4 py-3 rounded-2xl bg-emerald-950/60 border border-white/30 text-white hover:bg-emerald-950/80 active:scale-95 font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                        >
+                                            {copyPendingSuccess ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                                            <span>{copyPendingSuccess ? 'Copied Pending!' : `Copy Pending (${safeTesters.filter(t => t.status !== 'added_to_console').length})`}</span>
+                                        </button>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                </div>
 
-                        {/* 5. Google Play Console Closed Testing Instructions */}
-                        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-3">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                                <ShieldCheck size={15} className="text-emerald-600" />
-                                <span>Instructions: How to add these emails in Google Play Console</span>
-                            </h4>
-                            <div className="grid md:grid-cols-3 gap-3 text-xs text-gray-600 dark:text-gray-400">
-                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
-                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 1: Copy Emails</div>
-                                    <p className="text-[11px]">Click <strong>"Copy All Emails"</strong> or <strong>"Copy Pending"</strong> above. It copies a single comma-separated list of all email addresses.</p>
-                                </div>
-                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
-                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 2: Paste in Play Console</div>
-                                    <p className="text-[11px]">In Play Console &gt; Closed Testing &gt; Testers &gt; Email lists, paste the emails and click <strong>Save changes</strong>.</p>
-                                </div>
-                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
-                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 3: User Opt-In & Download</div>
-                                    <p className="text-[11px]">The user opens the Web Opt-in link, accepts the test invite, and downloads from Google Play Store!</p>
+                                {/* Progress bar towards 20 testers */}
+                                <div className="mt-6 pt-6 border-t border-white/20">
+                                    <div className="flex items-center justify-between text-xs font-bold mb-2">
+                                        <span>Production Application Readiness:</span>
+                                        <span>{safeTesters.length} / 20 Testers ({Math.min(100, Math.round((safeTesters.length / 20) * 100))}%)</span>
+                                    </div>
+                                    <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-emerald-300 to-yellow-300 transition-all duration-500 rounded-full"
+                                            style={{ width: `${Math.min(100, Math.round((safeTesters.length / 20) * 100))}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* 2. Quick Links Card */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <a
+                                    href="https://play.google.com/console"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                            <Play size={20} className="fill-current" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-gray-900 dark:text-white">Google Play Console</div>
+                                            <div className="text-[11px] text-gray-500">Manage Track & Testers</div>
+                                        </div>
+                                    </div>
+                                    <ExternalLink size={16} className="text-gray-400" />
+                                </a>
+
+                                <a
+                                    href="https://play.google.com/apps/testing/com.lifepartner.ai"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                                            <Globe size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-gray-900 dark:text-white">Web Testing Opt-In Link</div>
+                                            <div className="text-[11px] text-gray-500">Testers tap "Become a Tester"</div>
+                                        </div>
+                                    </div>
+                                    <ExternalLink size={16} className="text-gray-400" />
+                                </a>
+
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=com.lifepartner.ai"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                            <Smartphone size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-gray-900 dark:text-white">Play Store Download Link</div>
+                                            <div className="text-[11px] text-gray-500">Direct app listing</div>
+                                        </div>
+                                    </div>
+                                    <ExternalLink size={16} className="text-gray-400" />
+                                </a>
+                            </div>
+
+                            {/* 3. Manual Add Tester & Bulk Add Box */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                        <UserPlus className="w-4 h-4 text-emerald-600" />
+                                        <span>Add Tester Emails Manually</span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleAddManualTesters} className="space-y-3">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Paste one or more email addresses (separated by commas or newlines) to record them as testers:
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="tester1@gmail.com, tester2@gmail.com, ..."
+                                                value={manualTesterEmails}
+                                                onChange={(e) => setManualTesterEmails(e.target.value)}
+                                                className="text-xs"
+                                            />
+                                            <Button type="submit" disabled={testersLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs">
+                                                {testersLoading ? 'Adding...' : 'Add to List'}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+
+                            {/* 4. Testers Table */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-base font-bold">
+                                            Registered Testers List ({safeTesters.length})
+                                        </CardTitle>
+                                        <Badge variant="outline" className="text-xs">
+                                            {safeTesters.filter(t => t.status === 'added_to_console').length} Added to Console
+                                        </Badge>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 p-0.5 text-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => setTesterFilter('all')}
+                                                className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-white font-bold' : 'text-gray-500'}`}
+                                            >
+                                                All ({safeTesters.length})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTesterFilter('pending')}
+                                                className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'pending' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold' : 'text-gray-500'}`}
+                                            >
+                                                Pending ({safeTesters.filter(t => t.status !== 'added_to_console').length})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTesterFilter('added_to_console')}
+                                                className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'added_to_console' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold' : 'text-gray-500'}`}
+                                            >
+                                                Added ({safeTesters.filter(t => t.status === 'added_to_console').length})
+                                            </button>
+                                        </div>
+
+                                        <a
+                                            href="/api/testers?format=csv"
+                                            download="google_play_testers.csv"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 transition-all"
+                                        >
+                                            <Download size={13} />
+                                            <span>Export CSV</span>
+                                        </a>
+                                    </div>
+                                </CardHeader>
+
+                                <CardContent>
+                                    {safeTesters.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-xs space-y-2">
+                                            <Mail className="w-8 h-8 mx-auto text-gray-400 opacity-60" />
+                                            <p>No testers registered yet.</p>
+                                            <p className="text-[11px] text-gray-400">
+                                                As soon as users submit their emails on the landing page or download page, they will appear here!
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                                                    <tr>
+                                                        <th className="p-3 font-semibold">Email Address</th>
+                                                        <th className="p-3 font-semibold">Registered Date</th>
+                                                        <th className="p-3 font-semibold">Play Console Status</th>
+                                                        <th className="p-3 font-semibold text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {safeTesters
+                                                        .filter(t => {
+                                                            if (testerFilter === 'pending') return t.status !== 'added_to_console';
+                                                            if (testerFilter === 'added_to_console') return t.status === 'added_to_console';
+                                                            return true;
+                                                        })
+                                                        .map((t) => (
+                                                            <tr key={t.id || t.email} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
+                                                                <td className="p-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-mono font-medium text-gray-900 dark:text-gray-100">{t.email}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleCopySingleEmail(t.id, t.email)}
+                                                                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-all"
+                                                                            title="Copy email"
+                                                                        >
+                                                                            {copiedEmailId === t.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                                                        </button>
+                                                                    </div>
+                                                                    {t.name && t.name !== 'Play Store Tester' && (
+                                                                        <div className="text-[10px] text-gray-400">{t.name}</div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-3 text-gray-500 dark:text-gray-400">
+                                                                    {formatDateSafe(t.createdAt, 'dd MMM yyyy, HH:mm')}
+                                                                </td>
+                                                                <td className="p-3">
+                                                                    {t.status === 'added_to_console' ? (
+                                                                        <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                                                                            Added to Play Console ✅
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                                                            Pending Console Addition ⏳
+                                                                        </Badge>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-3 text-right">
+                                                                    <div className="flex items-center justify-end gap-1.5">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant={t.status === 'added_to_console' ? 'outline' : 'default'}
+                                                                            className={`text-[11px] h-7 px-2.5 ${t.status !== 'added_to_console' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                                                                            onClick={() => handleToggleTesterStatus(t.id, t.status)}
+                                                                        >
+                                                                            {t.status === 'added_to_console' ? 'Mark Pending' : 'Mark as Added'}
+                                                                        </Button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleDeleteTester(t.id)}
+                                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                                                                            title="Delete tester"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* 5. Google Play Console Closed Testing Instructions */}
+                            <div className="p-5 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                                    <ShieldCheck size={15} className="text-emerald-600" />
+                                    <span>Instructions: How to add these emails in Google Play Console</span>
+                                </h4>
+                                <div className="grid md:grid-cols-3 gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                    <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                        <div className="font-bold text-gray-900 dark:text-white mb-1">Step 1: Copy Emails</div>
+                                        <p className="text-[11px]">Click <strong>"Copy All Emails"</strong> or <strong>"Copy Pending"</strong> above. It copies a single comma-separated list of all email addresses.</p>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                        <div className="font-bold text-gray-900 dark:text-white mb-1">Step 2: Paste in Play Console</div>
+                                        <p className="text-[11px]">In Play Console &gt; Closed Testing &gt; Testers &gt; Email lists, paste the emails and click <strong>Save changes</strong>.</p>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                        <div className="font-bold text-gray-900 dark:text-white mb-1">Step 3: User Opt-In & Download</div>
+                                        <p className="text-[11px]">The user opens the Web Opt-in link, accepts the test invite, and downloads from Google Play Store!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </SafeTabBoundary>
                     </TabsContent>
                 </Tabs>
             </div>

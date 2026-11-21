@@ -306,7 +306,7 @@ export default function GrowthAnalyticsView({ initialMetrics }: GrowthAnalyticsV
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(val: any, name: any, item: any) => [`${val} visits (${item.payload.percentage}%)`, name]}
+                                        formatter={(val: any, name: any, item: any) => [`${val} visits (${item?.payload?.percentage ?? 0}%)`, name]}
                                         contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '10px', color: '#fff', fontSize: '11px' }}
                                     />
                                 </PieChart>

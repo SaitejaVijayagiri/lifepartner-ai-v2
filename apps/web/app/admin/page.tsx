@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe, Heart, Copy, Check, ExternalLink, Download, Trash2, Smartphone, Play, Sparkles } from 'lucide-react';
+import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe, Heart, Copy, Check, ExternalLink, Download, Trash2, Smartphone, Play, Sparkles, ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -396,7 +396,6 @@ export default function AdminDashboard() {
                         </Card>
                     </SafeTabBoundary>
                 )}
-                )}
 
                 {/* Main Content Tabs */}
                 <Tabs defaultValue="testers" className="space-y-4">
@@ -509,8 +508,8 @@ export default function AdminDashboard() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="h-[260px] w-full">
-                                        {/* @ts-ignore */}
                                         {isMounted && Array.isArray(siteViews?.daily_trends) && siteViews.daily_trends.length > 0 ? (
+                                            /* @ts-ignore */
                                             <ResponsiveContainer width="100%" height="100%">
                                                 {/* @ts-ignore */}
                                                 <AreaChart data={siteViews.daily_trends} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
@@ -1346,7 +1345,7 @@ export default function AdminDashboard() {
                                                                     <div className="flex items-center justify-end gap-1.5">
                                                                         <Button
                                                                             size="sm"
-                                                                            variant={t.status === 'added_to_console' ? 'outline' : 'default'}
+                                                                            variant={t.status === 'added_to_console' ? 'outline' : 'primary'}
                                                                             className={`text-[11px] h-7 px-2.5 ${t.status !== 'added_to_console' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
                                                                             onClick={() => handleToggleTesterStatus(t.id, t.status)}
                                                                         >

@@ -484,7 +484,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 
 let featuredCache: { data: any, timestamp: number } | null = null;
 
-// Get Featured Public Profiles (For Landing Page)
+// Get Featured Public Profiles (For Landing Page - Balanced Boys & Girls, Multi-Photo First)
 router.get('/public/featured', async (req, res) => {
     try {
         const now = Date.now();
@@ -493,11 +493,6 @@ router.get('/public/featured', async (req, res) => {
             return res.json(featuredCache.data);
         }
 
-        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'vimal', 'gautam', 'sunny dharod', 'hamoudi', 'sunny', 'giridhar', 'gk'];
-        const orConditions = targetNames.map(name => ({
-            full_name: { contains: name, mode: 'insensitive' as const }
-        }));
-
         const excludeConditions = [
             { full_name: { contains: 'archana', mode: 'insensitive' as const } },
             { full_name: { contains: 'archna', mode: 'insensitive' as const } },
@@ -505,61 +500,43 @@ router.get('/public/featured', async (req, res) => {
             { full_name: { contains: 'sidham', mode: 'insensitive' as const } }
         ];
 
-        const activeFilter = {
+        const basePublicWhere = {
+            is_verified: true,
+            age: { not: null },
             is_banned: false,
             OR: [
                 { is_deactivated: false },
                 { is_deactivated: null },
                 { deactivated_until: { lt: new Date() } }
-            ]
+            ],
+            NOT: { OR: excludeConditions }
         };
 
-        // 1. Prioritize these specific users
-        const specificUsers = await prisma.users.findMany({
-            where: {
-                AND: [
-                    activeFilter,
-                    {
-                        OR: orConditions,
-                        NOT: { OR: excludeConditions }
-                    }
-                ]
-            },
-            include: { profiles: true },
-            take: 15
-        });
-
-        // 2. Fill the rest with general verified, high-quality users if needed
-        const remainingCount = 40 - specificUsers.length;
-        let randomUsers: any[] = [];
-        if (remainingCount > 0) {
-            randomUsers = await prisma.users.findMany({
+        // Fetch balanced real female & male pools in parallel so both girls and boys always appear
+        const [femaleCandidates, maleCandidates] = await Promise.all([
+            prisma.users.findMany({
                 where: {
-                    is_verified: true,
-                    gender: { not: null },
-                    age: { not: null },
-                    avatar_url: { not: null },
-                    is_banned: false,
-                    OR: [
-                        { is_deactivated: false },
-                        { is_deactivated: null },
-                        { deactivated_until: { lt: new Date() } }
-                    ],
-                    NOT: { OR: excludeConditions },
-                    id: { notIn: specificUsers.map(u => u.id) }
+                    ...basePublicWhere,
+                    gender: { equals: 'Female', mode: 'insensitive' as const }
                 },
-                take: remainingCount,
+                take: 45,
                 include: { profiles: true },
                 orderBy: { created_at: 'desc' }
-            });
-        }
+            }),
+            prisma.users.findMany({
+                where: {
+                    ...basePublicWhere,
+                    gender: { equals: 'Male', mode: 'insensitive' as const }
+                },
+                take: 45,
+                include: { profiles: true },
+                orderBy: { created_at: 'desc' }
+            })
+        ]);
 
-        const combinedUsers = [...specificUsers, ...randomUsers];
-        // Ensure randomize order
-        const shuffled = combinedUsers.sort(() => 0.5 - Math.random());
-        const approvedFeaturedIds = await getApprovedVerificationUserIds(shuffled.map(u => u.id));
+        const allCandidates = [...(femaleCandidates || []), ...(maleCandidates || [])];
+        const approvedFeaturedIds = await getApprovedVerificationUserIds(allCandidates.map(u => u.id));
 
-        // Map to public profile format
         const nameAliasMap: Record<string, string> = {
             'gk': 'Giridhar Kumar',
             'g.k.': 'Giridhar Kumar',
@@ -570,17 +547,34 @@ router.get('/public/featured', async (req, res) => {
             'sunny': 'United States',
         };
 
-        const allProfiles = shuffled.map(user => {
+        const isPlaceholderUrl = (url: any): boolean => {
+            if (!url || typeof url !== 'string') return true;
+            const u = url.trim().toLowerCase();
+            return !u || u.includes('dicebear.com') || u.includes('avatar-fallback') || u === '/avatar-fallback.svg';
+        };
+
+        const formatCandidate = (user: any) => {
             const meta = (user.profiles?.metadata as any) || {};
-            const rawFirstName = (user.full_name?.split(' ')[0] || 'User').toLowerCase();
-            const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'User');
+            if (isPhotoPrivacyShieldEnabled(meta)) {
+                return null;
+            }
+
+            const rawPhotos = extractPhotosList(user.profiles, meta, user.avatar_url)
+                .map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id));
+            const uniqueRealPhotos = Array.from(new Set(rawPhotos)).filter((p) => !isPlaceholderUrl(p));
+
+            if (uniqueRealPhotos.length === 0) {
+                return null;
+            }
+
+            const rawFirstName = (user.full_name?.split(' ')[0] || 'Member').toLowerCase();
+            const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'Member');
             const country = countryOverrideMap[rawFirstName] || meta.location?.country || (user.state && user.state !== 'India' ? user.state : null) || 'India';
-            
-            // Clean deduplicated location string (prevents "India, India")
+
             let locationStr = 'India';
-            const userCity = user.city?.trim();
+            const userCity = user.city?.trim() || meta.location?.city?.trim() || user.location_name?.trim();
             const cleanCountry = country?.trim() || 'India';
-            
+
             if (userCity && cleanCountry) {
                 if (userCity.toLowerCase() === cleanCountry.toLowerCase()) {
                     locationStr = cleanCountry;
@@ -596,20 +590,40 @@ router.get('/public/featured', async (req, res) => {
                 name: displayName,
                 age: user.age,
                 gender: user.gender,
-                photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
-                photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
+                photoUrl: uniqueRealPhotos[0],
+                photos: uniqueRealPhotos,
                 location: locationStr,
-                profession: meta.career?.profession || "Professional",
+                profession: meta.career?.profession || 'Professional',
+                managed_by: user.profiles?.managed_by || meta.managed_by || 'Self',
                 isVerified: approvedFeaturedIds.has(user.id) || hasMetadataIdVerification(meta),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: isPhotoPrivacyShieldEnabled(meta)
+                isBlurred: false
             };
-        });
+        };
 
-        // Split into two distinct rows
-        const mid = Math.ceil(allProfiles.length / 2);
-        const topRow = allProfiles.slice(0, mid);
-        const bottomRow = allProfiles.slice(mid);
+        const rankByMultiPhoto = (pool: any[]) => {
+            const formatted = pool.map(formatCandidate).filter(Boolean) as any[];
+            const multiPhoto = formatted.filter(p => p.photos.length >= 2)
+                .sort((a, b) => (b.photos.length - a.photos.length) || (Number(b.isVerified) - Number(a.isVerified)));
+            const singlePhoto = formatted.filter(p => p.photos.length === 1);
+            // Strictly prioritize multi-photo members; only backfill single-photo members if fewer than 6 multi-photo exist
+            return [...multiPhoto, ...(multiPhoto.length < 6 ? singlePhoto : [])].slice(0, 14);
+        };
+
+        const girls = rankByMultiPhoto(femaleCandidates || []);
+        const boys = rankByMultiPhoto(maleCandidates || []);
+
+        // Interleave girls & boys so both appear prominently in topRow and bottomRow
+        const interleaved: any[] = [];
+        const maxLen = Math.max(girls.length, boys.length);
+        for (let i = 0; i < maxLen; i++) {
+            if (i < girls.length) interleaved.push(girls[i]);
+            if (i < boys.length) interleaved.push(boys[i]);
+        }
+
+        const mid = Math.ceil(interleaved.length / 2);
+        const topRow = interleaved.slice(0, mid);
+        const bottomRow = interleaved.slice(mid);
 
         const responseData = { success: true, topRow, bottomRow };
         featuredCache = { data: responseData, timestamp: now };

@@ -356,8 +356,15 @@ export default function LandingPageClient() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes scrollReverse {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
         .animate-scroll {
-          animation: scroll 40s linear infinite;
+          animation: scroll 42s linear infinite;
+        }
+        .animate-scroll-reverse {
+          animation: scrollReverse 46s linear infinite;
         }
         .glass-card {
             background: rgba(255, 255, 255, 0.7);
@@ -949,7 +956,7 @@ export default function LandingPageClient() {
         </div>
       </section>
 
-      {/* --- LIVE PRIVACY-PROTECTED MEMBER PREVIEWS --- */}
+      {/* --- LIVE REAL COMMUNITY PROFILES (BOYS & GIRLS WITH MULTIPLE PHOTOS) --- */}
       {(topRow.length > 0 || bottomRow.length > 0) && (
         <section className="py-16 bg-slate-950 text-white border-y border-slate-800/80 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -958,10 +965,10 @@ export default function LandingPageClient() {
                 <ShieldCheck size={14} className="text-emerald-400" /> Real Community Profiles
               </span>
               <h2 className="text-2xl sm:text-3xl font-heading font-black text-white">
-                Privacy-Controlled Member Previews
+                Meet Real Brides &amp; Grooms on LifePartner AI
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Photos stay blurred or hidden on request until you accept a connection. Family-managed profiles are clearly labeled.
+                Explore real women and men with multiple profile photos — flip through photos on each card, with family-managed badges clearly shown.
               </p>
             </div>
             <Link
@@ -971,10 +978,21 @@ export default function LandingPageClient() {
               Browse by City &amp; Community →
             </Link>
           </div>
-          <div className="flex gap-6 px-6 w-max animate-scroll hover:[animation-play-state:paused]">
-            {[...(topRow.length > 0 ? topRow : bottomRow), ...(topRow.length > 0 ? topRow : bottomRow)].map((profile, idx) => (
-              <PublicMatchCard key={`${profile.id || 'member'}-${idx}`} match={profile} />
-            ))}
+          <div className="space-y-6">
+            {topRow.length > 0 && (
+              <div className="flex gap-6 px-6 w-max animate-scroll hover:[animation-play-state:paused]">
+                {[...topRow, ...topRow].map((profile, idx) => (
+                  <PublicMatchCard key={`top-${profile.id || 'member'}-${idx}`} match={profile} />
+                ))}
+              </div>
+            )}
+            {bottomRow.length > 0 && (
+              <div className="flex gap-6 px-6 w-max animate-scroll-reverse hover:[animation-play-state:paused]">
+                {[...bottomRow, ...bottomRow].map((profile, idx) => (
+                  <PublicMatchCard key={`bottom-${profile.id || 'member'}-${idx}`} match={profile} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}

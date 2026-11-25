@@ -6,12 +6,17 @@ jest.mock('../src/prisma', () => ({
         users: {
             findUnique: jest.fn(),
             findFirst: jest.fn(),
+            findMany: jest.fn(),
             update: jest.fn(),
         },
         profiles: {
             findUnique: jest.fn(),
             upsert: jest.fn(),
             update: jest.fn(),
+        },
+        verification_requests: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            findMany: jest.fn().mockResolvedValue([]),
         },
         $transaction: jest.fn((callback) => callback(require('../src/prisma').prisma)),
     }
@@ -118,6 +123,83 @@ describe('Profile Routes', () => {
 
             expect(res.status).toBe(200);
             expect(prisma.users.update).toHaveBeenCalled();
+        });
+    });
+
+    describe('GET /profile/public/featured', () => {
+        it('returns both girls and boys prioritizing real multi-photo public profiles', async () => {
+            const multiPhotoGirls = [
+                {
+                    id: 'girl-multi-1',
+                    full_name: 'Ananya Sharma',
+                    age: 25,
+                    gender: 'Female',
+                    avatar_url: 'https://cdn.example.com/g1_a.jpg',
+                    location_name: 'Hyderabad',
+                    profiles: {
+                        photos: ['https://cdn.example.com/g1_a.jpg', 'https://cdn.example.com/g1_b.jpg', 'https://cdn.example.com/g1_c.jpg'],
+                        metadata: { photo_privacy: 'public', career: { profession: 'Product Designer' } }
+                    }
+                },
+                {
+                    id: 'girl-blurred',
+                    full_name: 'Private User',
+                    age: 26,
+                    gender: 'Female',
+                    avatar_url: 'https://cdn.example.com/g_blur.jpg',
+                    location_name: 'Delhi',
+                    profiles: {
+                        photos: ['https://cdn.example.com/g_blur.jpg', 'https://cdn.example.com/g_blur2.jpg'],
+                        metadata: { photo_privacy: 'blurred_until_accept' }
+                    }
+                },
+                {
+                    id: 'girl-dicebear-only',
+                    full_name: 'No Photo User',
+                    age: 24,
+                    gender: 'Female',
+                    avatar_url: 'https://api.dicebear.com/7.x/initials/svg?seed=NP',
+                    location_name: 'Pune',
+                    profiles: {
+                        photos: ['https://api.dicebear.com/7.x/initials/svg?seed=NP'],
+                        metadata: { photo_privacy: 'public' }
+                    }
+                }
+            ];
+
+            const multiPhotoBoys = [
+                {
+                    id: 'boy-multi-1',
+                    full_name: 'Rohan Reddy',
+                    age: 28,
+                    gender: 'Male',
+                    avatar_url: 'https://cdn.example.com/b1_a.jpg',
+                    location_name: 'Bengaluru',
+                    profiles: {
+                        photos: ['https://cdn.example.com/b1_a.jpg', 'https://cdn.example.com/b1_b.jpg'],
+                        metadata: { photo_privacy: 'public', career: { profession: 'Software Architect' } }
+                    }
+                }
+            ];
+
+            (prisma.users.findMany as jest.Mock)
+                .mockResolvedValueOnce(multiPhotoGirls)
+                .mockResolvedValueOnce(multiPhotoBoys);
+
+            const res = await request(app).get('/profile/public/featured');
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            const allReturned = [...(res.body.topRow || []), ...(res.body.bottomRow || [])];
+            const returnedIds = allReturned.map((p: any) => p.id);
+            expect(returnedIds).toContain('girl-multi-1');
+            expect(returnedIds).toContain('boy-multi-1');
+            expect(returnedIds).not.toContain('girl-blurred');
+            expect(returnedIds).not.toContain('girl-dicebear-only');
+            const girlCard = allReturned.find((p: any) => p.id === 'girl-multi-1');
+            const boyCard = allReturned.find((p: any) => p.id === 'boy-multi-1');
+            expect(girlCard.photos.length).toBe(3);
+            expect(boyCard.photos.length).toBe(2);
         });
     });
 });

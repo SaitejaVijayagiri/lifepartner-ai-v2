@@ -15,17 +15,18 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const isPhotoBlurred = isProfilePhotoBlurred(match);
 
-    // Photos Array (with robust fallback)
+    // Photos Array (prefer real uploaded photos without placeholder URLs)
     const fallbackAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
     const rawList = (Array.isArray(match.photos) && match.photos.length > 0)
         ? match.photos
         : [match.photoUrl || match.avatar_url || fallbackAvatar];
-    const photos = rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
-    if (photos.length === 0) photos.push(fallbackAvatar);
+    const cleanStrings = Array.from(new Set(rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0))) as string[];
+    const realPhotoList = cleanStrings.filter((p) => !isPlaceholderPhoto(p));
+    const photos = realPhotoList.length > 0 ? realPhotoList : (cleanStrings.length > 0 ? cleanStrings : [fallbackAvatar]);
 
     const hasUploadedPhoto = useMemo(() => {
-        return hasUserUploadedPhoto(match) && photos.some((p: any) => !isPlaceholderPhoto(p));
-    }, [match, photos]);
+        return realPhotoList.length > 0 || hasUserUploadedPhoto(match);
+    }, [match, realPhotoList.length]);
 
     const displayName = useMemo(() => {
         if (typeof match?.name === 'string') return match.name;
@@ -238,17 +239,62 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                         </>
                     )}
 
-                    {/* Photo Progress Bar */}
+                    {/* Photo Progress Bar + Multi-Photo Controls */}
                     {!isPhotoBlurred && photos.length > 1 && (
-                        <div className="absolute top-2 left-3 right-3 flex gap-1 z-30 transition-opacity">
-                            {photos.map((_url: string, idx: number) => (
-                                <div key={idx} className="h-0.5 flex-1 bg-black/40 rounded-full overflow-hidden backdrop-blur-md border border-white/10">
-                                    <div
-                                        className={`h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full opacity-60' : 'w-0'}`}
-                                    />
-                                </div>
-                            ))}
-                        </div>
+                        <>
+                            <div className="absolute top-2.5 left-3 right-3 flex gap-1.5 z-30">
+                                {photos.map((_url: string, idx: number) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        aria-label={`View photo ${idx + 1} of ${photos.length}`}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setCurrentPhotoIndex(idx);
+                                        }}
+                                        className="h-1.5 flex-1 bg-black/40 rounded-full overflow-hidden backdrop-blur-md border border-white/15 cursor-pointer"
+                                    >
+                                        <div
+                                            className={`h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full opacity-70' : 'w-0'}`}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Photo Count Pill (Top Left) */}
+                            <div className="absolute top-6 left-3 z-30">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/20 text-white text-[10px] font-bold shadow">
+                                    📸 {currentPhotoIndex + 1}/{photos.length} Photos
+                                </span>
+                            </div>
+
+                            {/* Left / Right Tap & Click Controls for Flipping Photos */}
+                            <button
+                                type="button"
+                                aria-label="Previous photo"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+                                }}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm border border-white/20 cursor-pointer"
+                            >
+                                ‹
+                            </button>
+                            <button
+                                type="button"
+                                aria-label="Next photo"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm border border-white/20 cursor-pointer"
+                            >
+                                ›
+                            </button>
+                        </>
                     )}
 
                     {/* Subtle Edge Gradients Only - Keeps middle of photo 100% bright & crystal clear */}

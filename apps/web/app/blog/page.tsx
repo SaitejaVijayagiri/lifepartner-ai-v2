@@ -50,8 +50,14 @@ async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
         }
 
         const data = await res.json();
-        const posts: BlogPost[] = data.posts?.length ? data.posts : staticPosts;
-        return { posts };
+        let fetchedPosts: BlogPost[] = data.posts?.length ? data.posts : staticPosts;
+        // Deduplicate by slug — API posts take priority, then fill gaps with static
+        if (data.posts?.length) {
+            const apiSlugs = new Set(fetchedPosts.map((p: BlogPost) => p.slug));
+            const extraStatic = staticPosts.filter(sp => !apiSlugs.has(sp.slug));
+            fetchedPosts = [...fetchedPosts, ...extraStatic];
+        }
+        return { posts: fetchedPosts };
     } catch (error: any) {
         console.error("Failed to fetch blog posts:", error.message, "- Using static fallback");
         return { posts: staticPosts };

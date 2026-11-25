@@ -176,58 +176,71 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
         });
     }
 
-    // 4. Religion & Community (15 points)
-    const hasReligion = Boolean(meta?.religion?.religion || meta?.religion?.faith);
-    const hasCasteOrLang = Boolean(meta?.motherTongue || meta?.religion?.caste);
-    if (hasReligion && hasCasteOrLang) {
+    // 4. Religion, Community & Vedic Astrology (15 points)
+    const hasReligion = Boolean((meta?.religion?.religion && meta.religion.religion !== 'Not Specified') || meta?.religion?.faith);
+    const hasHoroscope = Boolean(meta?.horoscope?.zodiacSign || meta?.horoscope?.nakshatra || meta?.dob || meta?.horoscope?.manglik);
+    if (hasReligion && hasHoroscope) {
         score += 15;
-    } else if (hasReligion || hasCasteOrLang) {
+    } else if (hasReligion || hasHoroscope) {
         score += 8;
         missingSections.push({
-            key: 'religion',
-            label: 'Add Caste & Mother Tongue',
+            key: 'horoscope',
+            label: hasHoroscope ? 'Add Faith & Mother Tongue' : 'Add Zodiac, Nakshatra & DOB',
             points: 7,
             actionUrl: '/onboarding'
         });
     } else {
         missingSections.push({
-            key: 'religion',
-            label: 'Religion, Caste & Mother Tongue',
+            key: 'horoscope',
+            label: 'Faith, Zodiac & Horoscope Details',
             points: 15,
             actionUrl: '/onboarding'
         });
     }
 
-    // 5. Family & Lifestyle (15 points)
-    const hasFamily = Boolean(meta?.family?.type || meta?.family?.values);
-    const hasLifestyle = Boolean(meta?.lifestyle?.diet || (meta?.interests && meta?.interests.length > 0));
-    if (hasFamily && hasLifestyle) {
+    // 5. Lifestyle & Hobbies (15 points)
+    const hasDiet = Boolean(meta?.lifestyle?.diet);
+    const hasHobbies = Boolean((Array.isArray(meta?.interests) && meta.interests.length > 0) || (typeof meta?.lifestyle?.hobbies === 'string' && meta.lifestyle.hobbies.trim().length > 0));
+    if (hasDiet && hasHobbies) {
         score += 15;
-    } else if (hasFamily || hasLifestyle) {
+    } else if (hasDiet || hasHobbies) {
         score += 8;
         missingSections.push({
             key: 'lifestyle',
-            label: 'Family Values & Lifestyle Details',
+            label: hasHobbies ? 'Add Diet & Habits' : 'Add Hobbies & Interests',
             points: 7,
             actionUrl: '/onboarding'
         });
     } else {
         missingSections.push({
             key: 'lifestyle',
-            label: 'Family Values, Diet & Hobbies',
+            label: 'Diet, Habits & Hobbies',
             points: 15,
             actionUrl: '/onboarding'
         });
     }
 
-    // 6. About Me & Expectations (10 points)
-    const bioText = meta?.aboutMe || meta?.bio || user?.profiles?.raw_prompt || meta?.expectations || "";
-    if (bioText.trim().length >= 15) {
+    // 6. About Me & Partner Expectations (10 points)
+    const bioText = meta?.aboutMe || meta?.bio || user?.profiles?.raw_prompt || "";
+    const hasExpectations = Boolean(
+        meta?.expectations ||
+        meta?.partnerPreferences?.ageRange ||
+        meta?.partnerPreferences?.location
+    );
+    if (bioText.trim().length >= 10 && hasExpectations) {
         score += 10;
+    } else if (bioText.trim().length >= 10 || hasExpectations) {
+        score += 5;
+        missingSections.push({
+            key: 'bio',
+            label: hasExpectations ? 'Write About Me Bio' : 'Set Partner Age & Location Expectations',
+            points: 5,
+            actionUrl: '/onboarding'
+        });
     } else {
         missingSections.push({
             key: 'bio',
-            label: 'About Me & Partner Preferences',
+            label: 'About Me & Partner Expectations',
             points: 10,
             actionUrl: '/onboarding'
         });
@@ -283,11 +296,20 @@ export function formatFullProfile(user: any, profileRecord: any, isIdVerifiedOve
 
     const completeness = calculateProfileCompleteness(user, meta, photosList, isIdVerified);
 
+    const fallbackCountry = (() => {
+        if (meta.location?.country) return meta.location.country;
+        const locName = String(user.location_name || '').trim();
+        if (locName && !locName.includes(',')) {
+            const cNames = ['united states', 'usa', 'united kingdom', 'uk', 'canada', 'australia', 'uae', 'united arab emirates', 'singapore', 'germany', 'france', 'ireland', 'saudi arabia', 'qatar', 'malaysia', 'japan', 'south korea'];
+            if (cNames.includes(locName.toLowerCase())) return locName;
+        }
+        return "India";
+    })();
     const locationObj = {
         city: meta.location?.city || user.city || user.location_name || "",
         district: meta.location?.district || user.district || "",
         state: meta.location?.state || user.state || "",
-        country: meta.location?.country || "India",
+        country: fallbackCountry,
         lat: meta.location?.lat,
         lng: meta.location?.lng,
         live_enabled: meta.location?.live_enabled !== false && meta.location?.live_enabled !== 'false'
@@ -1102,16 +1124,30 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 career.educationLevel = career.education;
             }
         }
-        if (location) location.city = typeof location.city === 'string' ? location.city.trim() : (location.city || '');
+        if (location) {
+            location.city = typeof location.city === 'string' ? location.city.trim() : (location.city || '');
+            location.district = typeof location.district === 'string' ? location.district.trim() : (location.district || '');
+            location.state = typeof location.state === 'string' ? location.state.trim() : (location.state || '');
+            location.country = typeof location.country === 'string' ? location.country.trim() : (location.country || '');
+        }
 
-        // Normalize lifestyle habits and synchronize hobbies
+        // Normalize lifestyle habits and synchronize hobbies <-> interests cleanly
+        const normalizedInterests: string[] | undefined = Array.isArray(interests)
+            ? interests.map((s: any) => String(s).trim()).filter(Boolean)
+            : (typeof interests === 'string'
+                ? interests.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : (lifestyle?.hobbies
+                    ? (Array.isArray(lifestyle.hobbies)
+                        ? lifestyle.hobbies.map((s: any) => String(s).trim()).filter(Boolean)
+                        : String(lifestyle.hobbies).split(',').map((s: string) => s.trim()).filter(Boolean))
+                    : undefined));
         if (lifestyle) {
             lifestyle.smoking = lifestyle.smoking || lifestyle.smoke || 'No';
             lifestyle.smoke = lifestyle.smoke || lifestyle.smoking || 'No';
             lifestyle.drinking = lifestyle.drinking || lifestyle.drink || 'No';
             lifestyle.drink = lifestyle.drink || lifestyle.drinking || 'No';
-            if (interests && Array.isArray(interests) && interests.length > 0) {
-                lifestyle.hobbies = lifestyle.hobbies || interests.join(', ');
+            if (normalizedInterests && normalizedInterests.length > 0) {
+                lifestyle.hobbies = lifestyle.hobbies || normalizedInterests.join(', ');
             }
         }
 
@@ -1182,21 +1218,28 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
-        // SPEED OPTIMIZATION: Generate the AI Vector OUTSIDE the database transaction
-        // External network calls inside transactions cause DB lock timeouts and silent connection crashes!
+        // Build rich profile semantic text covering bio, expectations, hobbies, astrology, career & location
         const bioTextToEmbed = [
             cleanPrompt,
+            cleanExpectations,
             career?.profession,
             career?.educationLevel,
-            location?.city
+            location?.city,
+            location?.state,
+            location?.country,
+            religion?.religion,
+            religion?.caste,
+            horoscope?.zodiacSign,
+            horoscope?.nakshatra,
+            horoscope?.manglik ? `Manglik ${horoscope.manglik}` : '',
+            lifestyle?.diet,
+            motherTongue,
+            normalizedInterests ? normalizedInterests.join(' ') : ''
         ].filter(Boolean).join(" ");
 
-        // SPEED OPTIMIZATION: Skip embedding if there's no meaningful text
-        // This avoids cold-starting the AI service on every basic profile update
         let bioVector: number[] = [];
-        if (bioTextToEmbed.length > 20) {
+        if (bioTextToEmbed.length > 5 && typeof aiService.generateEmbedding === 'function') {
             try {
-                // 8-second timeout so embedding never blocks the save
                 const embeddingPromise = aiService.generateEmbedding(bioTextToEmbed);
                 const timeoutPromise = new Promise<number[]>(resolve => setTimeout(() => resolve([]), 8000));
                 bioVector = await Promise.race([embeddingPromise, timeoutPromise]);
@@ -1227,9 +1270,14 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         const resolvedBio = cleanBio || finalBio;
         const resolvedRawPrompt = resolvedBio ? resolvedBio : (existingRawPrompt || undefined);
 
+        const isDraftSave = req.body.isDraft === true || req.body.markOnboardingComplete === false;
+        const resolvedOnboardingCompleted = isDraftSave
+            ? Boolean(existingMeta?.onboarding_completed === true)
+            : true;
+
         const metadataUpdates: any = {
             religion,
-            horoscope,
+            horoscope: horoscope ? { ...horoscope, ...(dob ? { dob } : {}) } : undefined,
             career,
             family,
             lifestyle,
@@ -1251,13 +1299,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             aboutMe: resolvedBio || undefined,
             expectations: cleanExpectations || undefined,
             savedStickers: savedStickers || undefined,
-            interests: interests !== undefined 
-                ? interests 
-                : (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
+            interests: normalizedInterests,
             emergency_contact: emergencyContact || undefined,
             photo_privacy: photo_privacy || photoPrivacy || rawMetadata?.photo_privacy || undefined,
             managed_by: managed_by || managedBy || rawMetadata?.managed_by || undefined,
-            onboarding_completed: true,
+            onboarding_completed: resolvedOnboardingCompleted,
             age: finalAge || undefined,
             gender: finalGender || undefined,
             timezone: timezone || rawMetadata?.timezone || (location?.timezone || undefined)
@@ -1486,12 +1532,15 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 include: { profiles: true }
             });
 
-            const profileData = formatFullProfile(updatedUser, updatedUser?.profiles);
+            const isIdVerified = updatedUser
+                ? await isUserIdVerified(updatedUser.id, updatedUser.profiles?.metadata)
+                : false;
+            const profileData = formatFullProfile(updatedUser, updatedUser?.profiles, isIdVerified);
 
             res.json({
                 success: true,
                 message: "Profile saved",
-                onboarding_completed: true,
+                onboarding_completed: resolvedOnboardingCompleted,
                 profile: profileData
             });
 

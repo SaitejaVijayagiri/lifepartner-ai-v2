@@ -7,6 +7,7 @@ import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 import StoriesFeed from '@/components/StoriesFeed';
 import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 import ProfileStrengthCard from '@/components/ProfileStrengthCard';
+import RequestVerificationButton from '@/components/RequestVerificationButton';
 import ChatMusicJukebox from '@/components/ChatMusicJukebox';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
@@ -248,6 +249,17 @@ export default function HomeTab({
                 badgeLevel={currentUser?.badgeLevel || 'Basic'}
                 onEditProfile={() => onNavigateTab('profile_edit')}
             />
+
+            {/* Get Blue ID Verified Seal — shown for unverified users */}
+            {currentUser && !currentUser.isVerified && (
+                <div className="mx-1 mt-1 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Get Your Blue ID Verified Seal 🛡️</p>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Verified profiles get 3× more connection requests and appear above unverified matches.</p>
+                    </div>
+                    <RequestVerificationButton />
+                </div>
+            )}
 
             {/* 3. Balanced 6-Card Interactive Feature Hub (2x3 Grid on Mobile, 3x2 on Desktop) */}
             <div className="space-y-3.5">

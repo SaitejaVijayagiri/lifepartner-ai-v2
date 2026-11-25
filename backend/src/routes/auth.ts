@@ -119,10 +119,13 @@ router.post('/register', async (req, res) => {
                     select: { id: true, full_name: true, gender: true, age: true, is_premium: true, coins: true }
                 });
 
-                // Ensure profile row exists and has gender/age/onboarding_completed synced
+                // Ensure profile row exists and has gender/age/country synced WITHOUT falsely skipping full onboarding
                 try {
                     const existingProf = await prisma.profiles.findUnique({ where: { user_id: existingUser.id } });
                     const prevMeta = (existingProf?.metadata as any) || {};
+                    const signupCountry = (location_name && String(location_name).trim() && String(location_name).trim().toLowerCase() !== 'worldwide')
+                        ? String(location_name).trim()
+                        : undefined;
                     await prisma.profiles.upsert({
                         where: { user_id: existingUser.id },
                         create: {
@@ -130,8 +133,9 @@ router.post('/register', async (req, res) => {
                             metadata: {
                                 ...(resolvedGender ? { gender: resolvedGender } : {}),
                                 ...(resolvedAge ? { age: resolvedAge } : {}),
+                                ...(signupCountry ? { location: { country: signupCountry } } : {}),
                                 intent: cleanIntent,
-                                onboarding_completed: Boolean(resolvedGender && resolvedAge)
+                                onboarding_completed: false
                             },
                             photos: [],
                             stories: [],
@@ -142,8 +146,9 @@ router.post('/register', async (req, res) => {
                                 ...prevMeta,
                                 ...(resolvedGender ? { gender: resolvedGender } : {}),
                                 ...(resolvedAge ? { age: resolvedAge } : {}),
+                                ...(signupCountry && !prevMeta.location?.country ? { location: { ...(prevMeta.location || {}), country: signupCountry } } : {}),
                                 intent: prevMeta.intent || cleanIntent,
-                                onboarding_completed: Boolean(prevMeta.onboarding_completed || (resolvedGender && resolvedAge))
+                                onboarding_completed: Boolean(prevMeta.onboarding_completed === true)
                             }
                         }
                     });
@@ -223,12 +228,16 @@ router.post('/register', async (req, res) => {
             });
 
             // Initialize profile row immediately so joins, recommendations, and campaigns never omit this user
+            const signupCountry = (location_name && String(location_name).trim() && String(location_name).trim().toLowerCase() !== 'worldwide')
+                ? String(location_name).trim()
+                : undefined;
             await tx.profiles.create({
                 data: {
                     user_id: user.id,
                     metadata: {
                         ...(cleanGender ? { gender: cleanGender } : {}),
                         ...(validAge ? { age: validAge } : {}),
+                        ...(signupCountry ? { location: { country: signupCountry } } : {}),
                         intent: cleanIntent,
                         onboarding_completed: false
                     },
@@ -836,6 +845,8 @@ router.post('/google', async (req, res) => {
                             ...prevMeta,
                             ...(effGender ? { gender: effGender } : {}),
                             ...(effAge ? { age: effAge } : {}),
+                            ...(cleanGoogleCountry && !prevMeta.location?.country ? { location: { ...(prevMeta.location || {}), country: cleanGoogleCountry } } : {}),
+                            intent: prevMeta.intent || cleanGoogleIntent,
                             onboarding_completed: Boolean(prevMeta.onboarding_completed === true)
                         }
                     }
@@ -879,6 +890,7 @@ router.post('/google', async (req, res) => {
                         metadata: {
                             ...(resolvedGender ? { gender: resolvedGender } : {}),
                             ...(validGoogleAge ? { age: validGoogleAge } : {}),
+                            ...(cleanGoogleCountry ? { location: { country: cleanGoogleCountry } } : {}),
                             intent: cleanGoogleIntent,
                             onboarding_completed: false
                         }
@@ -899,13 +911,14 @@ router.post('/google', async (req, res) => {
         const googleMeta = (userProfile?.metadata as any) || {};
         const googleHasAge = Boolean((user as any).age || googleMeta.age || googleMeta.dob);
         const googleHasGender = Boolean((user as any).gender || googleMeta.gender);
+        const googleHasCity = Boolean((user as any).city || googleMeta.location?.city);
         const userPhotos = Array.isArray(userProfile?.photos) ? userProfile.photos : [];
         const hasRealPhotos = userPhotos.length > 0 && !userPhotos.every((p: any) => typeof p === 'string' && p.includes('googleusercontent.com'));
 
         const requiresOnboarding = Boolean(
             isNewUser ||
             googleMeta.onboarding_completed === false ||
-            (!googleMeta.onboarding_completed && (!googleHasAge || !googleHasGender || !hasRealPhotos))
+            (!googleMeta.onboarding_completed && (!googleHasAge || !googleHasGender || !googleHasCity || !hasRealPhotos))
         );
 
         setTokenCookie(res, token);

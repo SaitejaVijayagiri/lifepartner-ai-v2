@@ -37,16 +37,25 @@ export const getCashfreeMode = (): 'sandbox' | 'production' => {
 
 export const startGoogleOAuthFlow = ({
     gender = '',
-    age = ''
+    age = '',
+    intent = '',
+    country = ''
 }: {
     gender?: string;
     age?: string;
+    intent?: string;
+    country?: string;
 } = {}) => {
     if (typeof window === 'undefined') return;
     const isNative = isNativePlatform();
+    const resolvedCountry = country || (() => {
+        try { return localStorage.getItem('pendingUserCountry') || ''; } catch (_) { return ''; }
+    })();
     const oauthState = encodeURIComponent(JSON.stringify({
         gender,
         age,
+        ...(intent ? { intent } : {}),
+        ...(resolvedCountry && resolvedCountry !== 'Worldwide' ? { country: resolvedCountry } : {}),
         native: isNative
     }));
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";

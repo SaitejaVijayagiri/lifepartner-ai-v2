@@ -1139,7 +1139,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 ))}
                             </select>
                         </div>
-                        <Input label="Nakshatra" value={formData.horoscope?.nakshatra || ''} onChange={(e) => handleChange('horoscope', 'nakshatra', e.target.value)} />
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nakshatra</label>
+                            <input
+                                list="nakshatra-options"
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                value={formData.horoscope?.nakshatra || ''}
+                                onChange={(e) => handleChange('horoscope', 'nakshatra', e.target.value)}
+                                placeholder="Select or type your Nakshatra"
+                            />
+                            <datalist id="nakshatra-options">
+                                {['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishtha','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'].map(n => (
+                                    <option key={n} value={n} />
+                                ))}
+                            </datalist>
+                        </div>
 
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Manglik</label>

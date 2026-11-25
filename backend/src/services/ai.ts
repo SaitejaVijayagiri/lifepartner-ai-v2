@@ -120,8 +120,13 @@ export class AIService {
         keywords?: string[];
         gothra?: string;
         religion?: string;
+        zodiacSign?: string;
+        nakshatra?: string;
+        manglik?: string;
+        maritalStatus?: string;
         diet?: string;
         smoking?: string;
+        drinking?: string;
         motherTongue?: string;
         targetGender?: string;
         exactProfileId?: string;
@@ -304,17 +309,67 @@ export class AIService {
             filters.diet = 'Vegan';
         }
 
-        // --- Smoking preference ---
+        // --- Astrology / Zodiac / Nakshatra / Manglik Detection ---
+        const zodiacMap: Record<string, string> = {
+            aries: 'Aries', mesha: 'Aries',
+            taurus: 'Taurus', vrishabha: 'Taurus',
+            gemini: 'Gemini', mithuna: 'Gemini',
+            cancer: 'Cancer', karka: 'Cancer',
+            leo: 'Leo', simha: 'Leo',
+            virgo: 'Virgo', kanya: 'Virgo',
+            libra: 'Libra', tula: 'Libra',
+            scorpio: 'Scorpio', vrishchika: 'Scorpio',
+            sagittarius: 'Sagittarius', dhanu: 'Sagittarius',
+            capricorn: 'Capricorn', makara: 'Capricorn',
+            aquarius: 'Aquarius', kumbha: 'Aquarius',
+            pisces: 'Pisces', meena: 'Pisces'
+        };
+        for (const [alias, canonicalSign] of Object.entries(zodiacMap)) {
+            if (new RegExp(`\\b${alias}\\b`, 'i').test(lower)) {
+                filters.zodiacSign = canonicalSign;
+                break;
+            }
+        }
+        const nakshatraList = [
+            'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',
+            'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni',
+            'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
+            'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha',
+            'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
+        ];
+        for (const nak of nakshatraList) {
+            if (lower.includes(nak.toLowerCase())) {
+                filters.nakshatra = nak;
+                break;
+            }
+        }
+        if (/non[-\s]?manglik|not\s+manglik|no\s+manglik/i.test(lower)) {
+            filters.manglik = 'No';
+        } else if (/\bmanglik\b/i.test(lower)) {
+            filters.manglik = 'Yes';
+        }
+
+        // --- Marital Status ---
+        if (/\bdivorced\b/i.test(lower)) filters.maritalStatus = 'Divorced';
+        else if (/\bwidowed\b/i.test(lower)) filters.maritalStatus = 'Widowed';
+        else if (/\bnever married\b|\bunmarried\b/i.test(lower)) filters.maritalStatus = 'Single';
+
+        // --- Smoking & Drinking preference ---
         if (lower.includes('non-smoker') || lower.includes('non smoker') || lower.includes('no smoking')) {
             filters.smoking = 'No';
+        }
+        if (lower.includes('non-drinker') || lower.includes('non drinker') || lower.includes('no drinking') || lower.includes('teetotaler')) {
+            filters.drinking = 'No';
         }
 
         // --- Keyword / Hobby Extraction ---
         const hobbyKeywords = [
-            'hiking', 'travel', 'cooking', 'reading', 'music', 'dance', 'yoga',
-            'cricket', 'sports', 'gym', 'fitness', 'photography', 'art', 'pets',
-            'movies', 'gaming', 'cycling', 'swimming', 'gardening', 'volunteering',
-            'meditation', 'startup', 'entrepreneurship', 'serious', 'family-oriented'
+            'hiking', 'trekking', 'travel', 'travelling', 'traveling', 'cooking', 'baking', 'foodie',
+            'reading', 'books', 'music', 'singing', 'dance', 'dancing', 'yoga', 'meditation',
+            'cricket', 'sports', 'badminton', 'tennis', 'running', 'gym', 'fitness',
+            'photography', 'art', 'painting', 'writing', 'poetry', 'pets', 'dogs', 'cats',
+            'movies', 'coffee', 'gaming', 'cycling', 'swimming', 'gardening', 'volunteering',
+            'startup', 'entrepreneurship', 'serious', 'family-oriented', 'ambitious', 'caring'
         ];
         filters.keywords = hobbyKeywords.filter(k => lower.includes(k));
 
@@ -361,7 +416,15 @@ export class AIService {
             !filters.location &&
             !filters.exactProfileId &&
             !filters.motherTongue &&
-            !filters.religion
+            !filters.religion &&
+            !filters.zodiacSign &&
+            !filters.nakshatra &&
+            !filters.manglik &&
+            !filters.maritalStatus &&
+            !filters.diet &&
+            !filters.smoking &&
+            !filters.drinking &&
+            !(filters.keywords && filters.keywords.length > 0)
         ) {
             const candidate = candidateWords.join(' ').trim();
             if (candidate.length >= 2 && !/^(any|all|anyone|everyone|someone|please|show|get|near|nearby)$/i.test(candidate)) {
@@ -470,61 +533,96 @@ export class AIService {
         return { score, reason, icebreaker };
     }
 
+    /**
+     * Generates a deterministic 384-dimensional L2-normalized semantic feature vector
+     * using word unigrams, bigrams, and stemmed domain tokens so pgvector ordering
+     * remains meaningful even without external embedding API latency/failures.
+     */
+    public buildLocalSemanticVector(text: string): number[] {
+        const vec = new Array(384).fill(0);
+        const cleaned = String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim();
+        if (!cleaned) return vec;
+
+        const rawTokens = cleaned.split(/\s+/).filter(t => t.length >= 2);
+        const normalizedTokens = rawTokens.map(tok => {
+            if (tok === 'veg' || tok.startsWith('vegetarian')) return 'vegetarian';
+            if (tok.startsWith('travel')) return 'travel';
+            if (tok.startsWith('read') || tok === 'books') return 'reading';
+            if (tok.startsWith('cook') || tok === 'foodie') return 'cooking';
+            if (tok === 'bengaluru' || tok === 'bangalore') return 'bangalore';
+            if (tok === 'singing' || tok === 'music') return 'music';
+            if (tok === 'gym' || tok === 'fitness' || tok === 'workout') return 'fitness';
+            if (tok.startsWith('hike') || tok.startsWith('trek')) return 'hiking';
+            return tok;
+        });
+
+        const hashToIndex = (token: string, salt: number): number => {
+            let h = 2166136261 ^ salt;
+            for (let i = 0; i < token.length; i++) {
+                h ^= token.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return Math.abs(h) % 384;
+        };
+
+        for (let i = 0; i < normalizedTokens.length; i++) {
+            const tok = normalizedTokens[i];
+            vec[hashToIndex(tok, 17)] += 1.0;
+            vec[hashToIndex(tok, 53)] += 0.65;
+            if (i + 1 < normalizedTokens.length) {
+                const bigram = `${tok}_${normalizedTokens[i + 1]}`;
+                vec[hashToIndex(bigram, 97)] += 0.85;
+            }
+        }
+
+        const mag = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
+        return mag > 0 ? vec.map(v => v / mag) : vec;
+    }
+
     async generateEmbedding(text: string): Promise<number[]> {
         if (!text || text.trim().length === 0) {
             return new Array(384).fill(0);
         }
 
-        // Try Gemini text-embedding-004 API (free tier: 1500 req/day)
-        // This fixes the core issue where all embeddings were zero-vectors,
-        // making pgvector AI search return random/useless ordering.
         const apiKey = process.env.GEMINI_API_KEY;
         if (apiKey && !apiKey.includes('your_') && apiKey.length > 10) {
-            try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: 'models/text-embedding-004',
-                            content: { parts: [{ text: text.substring(0, 2048) }] },
-                            taskType: 'SEMANTIC_SIMILARITY'
-                        }),
-                        signal: AbortSignal.timeout(5000) // 5s timeout — never block profile save
+            for (const modelName of ['gemini-embedding-001', 'text-embedding-004']) {
+                try {
+                    const bodyPayload: any = {
+                        model: `models/${modelName}`,
+                        content: { parts: [{ text: text.substring(0, 2048) }] },
+                        taskType: 'SEMANTIC_SIMILARITY'
+                    };
+                    if (modelName === 'gemini-embedding-001') {
+                        bodyPayload.outputDimensionality = 384;
                     }
-                );
+                    const response = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:embedContent?key=${apiKey}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(bodyPayload),
+                            signal: AbortSignal.timeout(5000)
+                        }
+                    );
 
-                if (response.ok) {
-                    const data: any = await response.json();
-                    const fullVector: number[] = data?.embedding?.values || [];
-
-                    if (fullVector.length > 0) {
-                        // Gemini text-embedding-004 returns 768 dims.
-                        // Our pgvector column is 384 dims — take first 384 and re-normalize.
-                        const truncated = fullVector.slice(0, 384);
-                        const magnitude = Math.sqrt(truncated.reduce((sum, v) => sum + v * v, 0));
-                        const normalized = magnitude > 0 ? truncated.map(v => v / magnitude) : truncated;
-                        console.log(`✅ Gemini embedding generated for: "${text.substring(0, 40)}..."`);
-                        return normalized;
+                    if (response.ok) {
+                        const data: any = await response.json();
+                        const fullVector: number[] = data?.embedding?.values || [];
+                        if (fullVector.length > 0) {
+                            const truncated = fullVector.slice(0, 384);
+                            const magnitude = Math.sqrt(truncated.reduce((sum, v) => sum + v * v, 0));
+                            const normalized = magnitude > 0 ? truncated.map(v => v / magnitude) : truncated;
+                            return normalized;
+                        }
                     }
-                } else {
-                    const errText = await response.text();
-                    console.warn(`[Gemini Embedding] API error ${response.status}: ${errText.substring(0, 100)}`);
+                } catch {
+                    // Try next model or deterministic local semantic vector below
                 }
-            } catch (e: any) {
-                console.warn(`[Gemini Embedding] Request failed: ${e.message}`);
-            }
-        } else if (!apiKey) {
-            // Only log once, not every time
-            if (!(this as any)._embeddingWarnLogged) {
-                console.warn('[AIService] GEMINI_API_KEY not set — embeddings will be zero vectors. AI search ordering will be random.');
-                (this as any)._embeddingWarnLogged = true;
             }
         }
 
-        // Fallback: zero vector (search will still work, just won't be semantically ordered)
-        return new Array(384).fill(0);
+        return this.buildLocalSemanticVector(text);
     }
 
     // --- AI Compatibility, Couple Scenarios & Multimodal Analysis ---

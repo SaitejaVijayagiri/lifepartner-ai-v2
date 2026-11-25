@@ -258,11 +258,23 @@ export class AstrologyService {
         };
     }
 
-    public calculateCompatibility(inputA: any, inputB: any): { score: number, total: number, verdict?: string, astroA?: any, astroB?: any, details: any[] } {
+    public calculateCompatibility(inputA: any, inputB: any): { score: number, total: number, verdict?: string, astroA?: any, astroB?: any, manglikCompatible?: boolean, gothraCompatible?: boolean | null, hasExplicitData?: boolean, details: any[] } {
         let i1: number;
         let i2: number;
         let astroA: UserAstrologyProfile | null = null;
         let astroB: UserAstrologyProfile | null = null;
+        const hasExplicitA = Boolean(
+            typeof inputA === 'object' && inputA && (
+                inputA.nakshatra || inputA.zodiacSign || inputA.dob || inputA.date_of_birth ||
+                inputA.horoscope?.nakshatra || inputA.horoscope?.zodiacSign || inputA.horoscope?.dob
+            )
+        );
+        const hasExplicitB = Boolean(
+            typeof inputB === 'object' && inputB && (
+                inputB.nakshatra || inputB.zodiacSign || inputB.dob || inputB.date_of_birth ||
+                inputB.horoscope?.nakshatra || inputB.horoscope?.zodiacSign || inputB.horoscope?.dob
+            )
+        );
 
         if (typeof inputA === 'string' && this.getNakshatraIndex(inputA) !== -1) {
             i1 = this.getNakshatraIndex(inputA);
@@ -604,12 +616,33 @@ export class AstrologyService {
             verdict = "Auspicious Match (Uttama Guna Milan)";
         }
 
+        const normManglik = (val: any): 'yes' | 'no' | 'unknown' => {
+            const s = String(val || '').trim().toLowerCase();
+            if (!s || s.includes('know') || s === 'any' || s === 'none') return 'unknown';
+            if (s === 'no' || s.startsWith('non')) return 'no';
+            if (s === 'yes' || s.includes('anshik') || s.includes('manglik')) return 'yes';
+            return 'unknown';
+        };
+        const mA = normManglik(astroA?.manglik);
+        const mB = normManglik(astroB?.manglik);
+        const manglikCompatible = !(
+            (mA === 'yes' && mB === 'no') ||
+            (mA === 'no' && mB === 'yes')
+        );
+
+        const gA = typeof inputA === 'object' && inputA ? String(inputA.gothra || inputA.religion?.gothra || inputA.horoscope?.gothra || '').trim().toLowerCase() : '';
+        const gB = typeof inputB === 'object' && inputB ? String(inputB.gothra || inputB.religion?.gothra || inputB.horoscope?.gothra || '').trim().toLowerCase() : '';
+        const gothraCompatible = (gA && gB) ? (gA !== gB) : null;
+
         return {
             score: totalScore,
             total: 36,
             verdict,
             astroA,
             astroB,
+            manglikCompatible,
+            gothraCompatible,
+            hasExplicitData: hasExplicitA && hasExplicitB,
             details: debug
         };
     }

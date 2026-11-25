@@ -728,7 +728,7 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
                     }
                 }
             },
-            take: 120
+            take: 250
         });
 
         if (candidates.length === 0) {
@@ -748,7 +748,8 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         });
         const candidatePool = validPhotoCandidates.length >= 3 ? validPhotoCandidates : genderMatchedCandidates;
 
-        // Score all candidates using AIMatchEngine
+        // Score all candidates using AIMatchEngine + verified trust signals
+        const approvedPerfectIds = await getApprovedVerificationUserIds(candidatePool.map(c => c.id));
         const scoredCandidates: Array<{ candidate: any; analysis: any; score: number }> = [];
 
         for (const candidate of candidatePool) {
@@ -758,6 +759,10 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
             if (tier >= 2) total += 5;
             else if (tier >= 1) total += 2;
             if (candidate.avatar_url && !candidate.avatar_url.includes('dicebear')) {
+                total += 4;
+            }
+            const cMeta = (candidate.profiles?.metadata as any) || {};
+            if (approvedPerfectIds.has(candidate.id) || hasMetadataIdVerification(cMeta)) {
                 total += 4;
             }
             scoredCandidates.push({
@@ -1191,7 +1196,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 }
             }
 
-            if (meMeta.lifestyle?.diet && meta.lifestyle?.diet && meMeta.lifestyle.diet === meta.lifestyle.diet) {
+            const normDietMe = AIMatchEngine.normalizeDiet(meMeta.lifestyle?.diet);
+            const normDietCand = AIMatchEngine.normalizeDiet(meta.lifestyle?.diet);
+            if (normDietMe && normDietCand && normDietMe === normDietCand) {
                 score += 10;
                 reasons.push("Same diet");
             }
@@ -1203,6 +1210,12 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 reasons.push("Career Match");
             }
 
+            // Boost ID-verified profiles for safety & trust
+            if (isIdVerified) {
+                score += 5;
+                reasons.push("🛡️ ID Verified");
+            }
+
             // Photo quality penalty — users with NO photo at all (null or DiceBear placeholder)
             // are ranked last. base64 users are NOT penalized: their photos render fine in the
             // browser (data URIs are inline) and passed face moderation when uploaded.
@@ -1211,8 +1224,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             }
 
             // Age Priority improvements:
-            // 1. Deprioritize male candidates whose age is greater than 40
-            if (c.gender && c.gender.toLowerCase() === 'male' && c.age && c.age > 40) {
+            // Respect explicit age preference when set; otherwise deprioritize male > 40 slightly
+            const explicitAgePref = AIMatchEngine.parseAgeRange(meMeta.partnerPreferences?.ageRange);
+            const inExplicitAgePref = Boolean(explicitAgePref && c.age && c.age >= explicitAgePref.min && c.age <= explicitAgePref.max);
+            if (!inExplicitAgePref && c.gender && c.gender.toLowerCase() === 'male' && c.age && c.age > 40) {
                 score -= 15;
             }
 
@@ -1503,20 +1518,25 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 return (b.score || 0) - (a.score || 0);
             });
         } else {
-            // Multiple Photos Priority: Profiles with multiple uploaded photos strictly get top priority
+            // Smart Compatibility + Photo Quality Ranking:
+            // Keep profiles WITH real photos strictly above profiles WITHOUT photos (Tier 0),
+            // then rank by composite compatibility + photo tier + verified + online bonuses so
+            // high-compatibility matches across age, astrology, location, expectations & hobbies lead.
             matches.sort((a, b) => {
-                // 1. Multiple Photos Tier Priority (Tier 3 >= 3 photos > Tier 2 = 2 photos > Tier 1 = 1 photo > Tier 0 = 0 photos)
                 const tierA = getPhotoTier(a);
                 const tierB = getPhotoTier(b);
-                if (tierA !== tierB) {
-                    return tierB - tierA; // Higher tier first
+                const hasPhotoA = tierA > 0 ? 1 : 0;
+                const hasPhotoB = tierB > 0 ? 1 : 0;
+                if (hasPhotoA !== hasPhotoB) {
+                    return hasPhotoB - hasPhotoA;
                 }
 
-                // 2. Live Online Priority within the same photo tier
-                if (a.isOnline && !b.isOnline) return -1;
-                if (!a.isOnline && b.isOnline) return 1;
+                const rankA = (a.score || 0) + (tierA >= 3 ? 6 : tierA === 2 ? 3 : 0) + (a.isOnline ? 3 : 0) + (a.isVerified ? 2 : 0);
+                const rankB = (b.score || 0) + (tierB >= 3 ? 6 : tierB === 2 ? 3 : 0) + (b.isOnline ? 3 : 0) + (b.isVerified ? 2 : 0);
+                if (rankB !== rankA) {
+                    return rankB - rankA;
+                }
 
-                // 3. Compatibility score
                 return (b.score || 0) - (a.score || 0);
             });
         }
@@ -1706,6 +1726,23 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             conditions.push(Prisma.sql`p.metadata->>'motherTongue' ILIKE ${`%${filters.motherTongue}%`}`);
         }
 
+        // Religion, Zodiac, Nakshatra, Manglik, Marital Status
+        if (filters.religion) {
+            conditions.push(Prisma.sql`(p.metadata->'religion'->>'religion' ILIKE ${`%${filters.religion}%`} OR p.metadata->'religion'->>'faith' ILIKE ${`%${filters.religion}%`})`);
+        }
+        if (filters.zodiacSign) {
+            conditions.push(Prisma.sql`p.metadata->'horoscope'->>'zodiacSign' ILIKE ${`%${filters.zodiacSign}%`}`);
+        }
+        if (filters.nakshatra) {
+            conditions.push(Prisma.sql`p.metadata->'horoscope'->>'nakshatra' ILIKE ${`%${filters.nakshatra}%`}`);
+        }
+        if (filters.manglik) {
+            conditions.push(Prisma.sql`COALESCE(p.metadata->'horoscope'->>'manglik', 'No') ILIKE ${`%${filters.manglik}%`}`);
+        }
+        if (filters.maritalStatus) {
+            conditions.push(Prisma.sql`p.metadata->>'maritalStatus' ILIKE ${`%${filters.maritalStatus}%`}`);
+        }
+
         const whereSql = Prisma.join(conditions, ' AND ');
 
         // Validate vector: must be an array of exactly 384 floats
@@ -1755,8 +1792,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
                 Prisma.sql`u.gender IS NOT NULL`
             ];
-            if (targetGender === 'Female') relaxedConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
-            else if (targetGender === 'Male') relaxedConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
+            if (targetGenderCanonical === 'female') relaxedConditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('female', 'woman', 'women', 'f')`);
+            else if (targetGenderCanonical === 'male') relaxedConditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('male', 'man', 'men', 'm')`);
 
             const relaxedSql = Prisma.join(relaxedConditions, ' AND ');
 
@@ -1870,9 +1907,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 }
             }
 
-            // Scoring Logic
-            let score = 70;
-            const reasons: string[] = [];
+            // Multi-Dimensional Base Score via AIMatchEngine + Search Criteria Boost
+            const aiEngineResult = AIMatchEngine.computeMatch(me, c);
+            let score = Math.round((aiEngineResult.score * 0.65) + 25);
+            const reasons: string[] = [...aiEngineResult.reasons];
 
             // Profession
             if (filters.profession) {
@@ -1915,14 +1953,41 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 reasons.push("Smoker (Mismatch)");
             }
 
-            // Keyword/Appearance
+            // Astrology & Diet Search Filter Boosts
+            if (filters.zodiacSign && String(meta.horoscope?.zodiacSign || '').toLowerCase() === filters.zodiacSign.toLowerCase()) {
+                score += 12;
+                reasons.push(`♈ ${filters.zodiacSign}`);
+            }
+            if (filters.nakshatra && String(meta.horoscope?.nakshatra || '').toLowerCase().includes(filters.nakshatra.toLowerCase())) {
+                score += 12;
+                reasons.push(`⭐ ${filters.nakshatra}`);
+            }
+            if (filters.manglik) {
+                const candManglik = String(meta.horoscope?.manglik || 'No').toLowerCase();
+                if ((filters.manglik === 'No' && candManglik === 'no') || (filters.manglik === 'Yes' && candManglik === 'yes')) {
+                    score += 10;
+                }
+            }
+            if (filters.diet) {
+                const normFilterDiet = AIMatchEngine.normalizeDiet(filters.diet);
+                const normCandDiet = AIMatchEngine.normalizeDiet(meta.lifestyle?.diet);
+                if (normFilterDiet && normCandDiet && normFilterDiet === normCandDiet) {
+                    score += 10;
+                    reasons.push("🥗 Diet Match");
+                }
+            }
+            if (filters.drinking === 'No' && String(meta.lifestyle?.drinking || meta.lifestyle?.drink || '').toLowerCase() === 'yes') {
+                score -= 20;
+            }
+
+            // Keyword/Hobby Search Boost (reads interests[], meta.hobbies[], and lifestyle.hobbies string)
             if (filters.keywords && filters.keywords.length > 0) {
-                const bio = ((c.profiles?.raw_prompt || "") + " " + (meta.aboutMe || "")).toLowerCase();
-                const hobbies = Array.isArray(meta.hobbies) ? meta.hobbies.map((h: string) => h.toLowerCase()) : [];
+                const bio = ((c.profiles?.raw_prompt || "") + " " + (meta.aboutMe || "") + " " + (meta.expectations || "")).toLowerCase();
+                const candHobbies = AIMatchEngine.extractHobbies(meta).map(h => h.key + " " + h.label.toLowerCase());
                 let keyMatchCount = 0;
                 filters.keywords.forEach((k: string) => {
                     const kw = k.toLowerCase();
-                    if (bio.includes(kw) || hobbies.some((h: string) => h.includes(kw))) keyMatchCount++;
+                    if (bio.includes(kw) || candHobbies.some((h: string) => h.includes(kw))) keyMatchCount++;
                 });
                 if (keyMatchCount > 0) {
                     score += (keyMatchCount * 10);
@@ -2030,8 +2095,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 photoCount: candidatePhotoCount,
                 hasValidPhoto: candidateHasPhoto,
                 score: Math.max(1, Math.min(score, 99)),
-                match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
-                analysis: { emotional: 80, vision: 85 },
+                match_reasons: Array.from(new Set(reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"])),
+                analysis: {
+                    emotional: aiEngineResult.dimensions.personality,
+                    vision: aiEngineResult.dimensions.values,
+                    lifestyle: aiEngineResult.dimensions.lifestyle,
+                    cosmic: aiEngineResult.dimensions.cosmic,
+                    overall: aiEngineResult.dimensions.overall
+                },
+                ai_icebreaker: aiEngineResult.icebreaker,
+                ai_strengths: aiEngineResult.strengths,
                 isOnline: isUserOnline(c.id),
                 last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null, // Fixed ID issue
                 summary: generateSmartSummary(
@@ -2104,12 +2177,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Final Output - Return all scored matches (up to 500)
         const finalMatches = scoredMatches.map((m: any) => ({
             ...m,
-            // Only add Online status (AI Score is already populated by DB `ai_similarity`)
             isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
-            // Map Postgres `ai_similarity` (0-1) to UI percentages (0-100)
             analysis: {
-                emotional: Math.round((m.ai_similarity || 0.5) * 100),
-                vision: Math.round((m.ai_similarity || 0.5) * 100)
+                emotional: m.analysis?.emotional || Math.round((typeof m.ai_similarity === 'number' && m.ai_similarity > 0 ? m.ai_similarity : 0.72) * 100),
+                vision: m.analysis?.vision || Math.round((typeof m.ai_similarity === 'number' && m.ai_similarity > 0 ? m.ai_similarity : 0.75) * 100)
             }
         }));
 

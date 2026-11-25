@@ -5,7 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { Notifications, isNativePlatform, getNativeBridge } from '@/lib/notifications';
 
-function persistAuthenticatedSession(data: { token: string; userId?: string; user?: any }) {
+function persistAuthenticatedSession(data: { token: string; userId?: string; user?: any; isNewUser?: boolean }) {
+    try {
+        const prevUserId = localStorage.getItem('userId');
+        const nextUserId = data.userId || data.user?.id;
+        if (data.isNewUser || (prevUserId && nextUserId && prevUserId !== nextUserId)) {
+            localStorage.removeItem('lifepartner_onboarding_data');
+            localStorage.removeItem('lifepartner_onboarding_step');
+            localStorage.removeItem('matches_cache_v2');
+        }
+    } catch (_) {}
     if (data.userId) localStorage.setItem('userId', data.userId);
     localStorage.setItem('token', data.token);
     if (data.user) {

@@ -629,7 +629,8 @@ function RegisterForm() {
                                 if (selectedAge) {
                                     localStorage.setItem('pendingUserAge', selectedAge);
                                 }
-                                startGoogleOAuthFlow({ gender: selectedGender, age: selectedAge });
+                                const selectedCountry = localStorage.getItem('pendingUserCountry') || '';
+                                startGoogleOAuthFlow({ gender: selectedGender, age: selectedAge, intent: intentParam, country: selectedCountry });
                             }}
                             className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"
                         >

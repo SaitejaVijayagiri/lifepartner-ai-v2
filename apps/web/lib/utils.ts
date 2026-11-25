@@ -210,7 +210,10 @@ export function isPlaceholderPhoto(url: any): boolean {
     const u = url.trim().toLowerCase();
     if (!u) return true;
     if (u.includes('dicebear.com')) return true;
+    if (u.includes('ui-avatars.com')) return true;
     if (u.includes('avatar-fallback')) return true;
+    if (u.includes('default-avatar')) return true;
+    if (u.startsWith('data:image/svg')) return true;
     if (u === '/avatar-fallback.svg') return true;
     return false;
 }

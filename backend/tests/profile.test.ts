@@ -161,7 +161,7 @@ describe('Profile Routes', () => {
                     avatar_url: 'https://api.dicebear.com/7.x/initials/svg?seed=NP',
                     location_name: 'Pune',
                     profiles: {
-                        photos: ['https://api.dicebear.com/7.x/initials/svg?seed=NP'],
+                        photos: ['https://api.dicebear.com/7.x/initials/svg?seed=NP', '/uploads/ephemeral-dead.jpg'],
                         metadata: { photo_privacy: 'public' }
                     }
                 }

@@ -503,13 +503,19 @@ router.get('/public/featured', async (req, res) => {
         const basePublicWhere = {
             is_verified: true,
             age: { not: null },
+            avatar_url: { not: null },
             is_banned: false,
             OR: [
                 { is_deactivated: false },
                 { is_deactivated: null },
                 { deactivated_until: { lt: new Date() } }
             ],
-            NOT: { OR: excludeConditions }
+            NOT: {
+                OR: [
+                    ...excludeConditions,
+                    { avatar_url: { contains: 'dicebear', mode: 'insensitive' as const } }
+                ]
+            }
         };
 
         // Fetch balanced real female & male pools in parallel so both girls and boys always appear
@@ -519,7 +525,7 @@ router.get('/public/featured', async (req, res) => {
                     ...basePublicWhere,
                     gender: { equals: 'Female', mode: 'insensitive' as const }
                 },
-                take: 45,
+                take: 80,
                 include: { profiles: true },
                 orderBy: { created_at: 'desc' }
             }),
@@ -528,7 +534,7 @@ router.get('/public/featured', async (req, res) => {
                     ...basePublicWhere,
                     gender: { equals: 'Male', mode: 'insensitive' as const }
                 },
-                take: 45,
+                take: 80,
                 include: { profiles: true },
                 orderBy: { created_at: 'desc' }
             })
@@ -550,12 +556,39 @@ router.get('/public/featured', async (req, res) => {
         const isPlaceholderUrl = (url: any): boolean => {
             if (!url || typeof url !== 'string') return true;
             const u = url.trim().toLowerCase();
-            return !u || u.includes('dicebear.com') || u.includes('avatar-fallback') || u === '/avatar-fallback.svg';
+            return (
+                !u ||
+                u.includes('dicebear.com') ||
+                u.includes('ui-avatars.com') ||
+                u.includes('avatar-fallback') ||
+                u.includes('default-avatar') ||
+                u.includes('/uploads/') ||
+                u.startsWith('data:image/svg') ||
+                u === '/avatar-fallback.svg'
+            );
+        };
+
+        const isProfileBlurredOrPrivate = (user: any, meta: any): boolean => {
+            const privacyMode = String(
+                meta?.photo_privacy ||
+                meta?.photoPrivacy ||
+                user?.profiles?.photo_privacy ||
+                ''
+            ).toLowerCase();
+            return Boolean(
+                isPhotoPrivacyShieldEnabled(meta) ||
+                meta?.isBlurred ||
+                meta?.blur ||
+                meta?.blurPhotos ||
+                privacyMode.includes('blur') ||
+                privacyMode.includes('private') ||
+                privacyMode.includes('hidden')
+            );
         };
 
         const formatCandidate = (user: any) => {
             const meta = (user.profiles?.metadata as any) || {};
-            if (isPhotoPrivacyShieldEnabled(meta)) {
+            if (isProfileBlurredOrPrivate(user, meta)) {
                 return null;
             }
 

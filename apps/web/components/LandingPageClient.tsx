@@ -18,6 +18,7 @@ import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/ui/Toast';
 import { api, getApiUrl } from '@/lib/api';
+import { hasUserUploadedPhoto, isPlaceholderPhoto, isProfilePhotoBlurred } from '@/lib/utils';
 import { detectVisitorGeo, VisitorGeo } from '@/lib/geoDetect';
 import { isNativePlatform, Notifications } from '@/lib/notifications';
 import NativeAppGate from '@/components/NativeAppGate';
@@ -30,6 +31,7 @@ export default function LandingPageClient() {
 
   const [topRow, setTopRow] = useState<any[]>([]);
   const [bottomRow, setBottomRow] = useState<any[]>([]);
+  const [hiddenMarqueeIds, setHiddenMarqueeIds] = useState<Record<string, true>>({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [isNativeApp, setIsNativeApp] = useState(false);
@@ -956,46 +958,81 @@ export default function LandingPageClient() {
         </div>
       </section>
 
-      {/* --- LIVE REAL COMMUNITY PROFILES (BOYS & GIRLS WITH MULTIPLE PHOTOS) --- */}
-      {(topRow.length > 0 || bottomRow.length > 0) && (
-        <section className="py-16 bg-slate-950 text-white border-y border-slate-800/80 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-pink-300 mb-2">
-                <ShieldCheck size={14} className="text-emerald-400" /> Real Community Profiles
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-heading font-black text-white">
-                Meet Real Brides &amp; Grooms on LifePartner AI
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Explore real women and men with multiple profile photos — flip through photos on each card, with family-managed badges clearly shown.
-              </p>
+      {/* --- LIVE REAL COMMUNITY PROFILES (ONLY REAL UNBLURRED PHOTOS, BOYS & GIRLS) --- */}
+      {(() => {
+        const isEligibleMarqueeProfile = (p: any) => {
+          if (!p || (p.id && hiddenMarqueeIds[String(p.id)])) return false;
+          if (isProfilePhotoBlurred(p)) return false;
+          if (!hasUserUploadedPhoto(p)) return false;
+          const candidateUrls = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos : [p.photoUrl || p.avatar_url];
+          return candidateUrls.some((url: any) => typeof url === 'string' && !isPlaceholderPhoto(url));
+        };
+        const buildLoopRow = (items: any[]) => {
+          if (items.length === 0) return [];
+          const minBase = items.length >= 6 ? items : Array.from({ length: Math.ceil(6 / items.length) }, () => items).flat();
+          return [...minBase, ...minBase];
+        };
+        const visibleTopRow = topRow.filter(isEligibleMarqueeProfile);
+        const visibleBottomRow = bottomRow.filter(isEligibleMarqueeProfile);
+        if (visibleTopRow.length === 0 && visibleBottomRow.length === 0) return null;
+
+        const handleUnavailableCard = (id: string) => {
+          if (!id) return;
+          setHiddenMarqueeIds(prev => (prev[id] ? prev : { ...prev, [id]: true }));
+        };
+
+        return (
+          <section className="py-16 bg-slate-950 text-white border-y border-slate-800/80 overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-pink-300 mb-2">
+                  <ShieldCheck size={14} className="text-emerald-400" /> Real Community Profiles
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-heading font-black text-white">
+                  Meet Real Brides &amp; Grooms on LifePartner AI
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Explore active women and men with verified clear profile photos — click arrows to flip through photos on each card.
+                </p>
+              </div>
+              <Link
+                href="/matrimony"
+                className="text-xs font-bold text-indigo-300 hover:text-indigo-200 underline shrink-0"
+              >
+                Browse by City &amp; Community →
+              </Link>
             </div>
-            <Link
-              href="/matrimony"
-              className="text-xs font-bold text-indigo-300 hover:text-indigo-200 underline shrink-0"
-            >
-              Browse by City &amp; Community →
-            </Link>
-          </div>
-          <div className="space-y-6">
-            {topRow.length > 0 && (
-              <div className="flex gap-6 px-6 w-max animate-scroll hover:[animation-play-state:paused]">
-                {[...topRow, ...topRow].map((profile, idx) => (
-                  <PublicMatchCard key={`top-${profile.id || 'member'}-${idx}`} match={profile} />
-                ))}
-              </div>
-            )}
-            {bottomRow.length > 0 && (
-              <div className="flex gap-6 px-6 w-max animate-scroll-reverse hover:[animation-play-state:paused]">
-                {[...bottomRow, ...bottomRow].map((profile, idx) => (
-                  <PublicMatchCard key={`bottom-${profile.id || 'member'}-${idx}`} match={profile} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+            <div className="space-y-6">
+              {visibleTopRow.length > 0 && (
+                <div className="flex gap-6 px-6 w-max animate-scroll hover:[animation-play-state:paused]">
+                  {buildLoopRow(visibleTopRow).map((profile, idx) => (
+                    <PublicMatchCard
+                      key={`top-${profile.id || 'member'}-${idx}`}
+                      match={profile}
+                      hideIfNoPhoto={true}
+                      hideIfBlurred={true}
+                      onImageUnavailable={handleUnavailableCard}
+                    />
+                  ))}
+                </div>
+              )}
+              {visibleBottomRow.length > 0 && (
+                <div className="flex gap-6 px-6 w-max animate-scroll-reverse hover:[animation-play-state:paused]">
+                  {buildLoopRow(visibleBottomRow).map((profile, idx) => (
+                    <PublicMatchCard
+                      key={`bottom-${profile.id || 'member'}-${idx}`}
+                      match={profile}
+                      hideIfNoPhoto={true}
+                      hideIfBlurred={true}
+                      onImageUnavailable={handleUnavailableCard}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* --- GLOBAL OVERVIEW & 3-FACT INFOGRAPHIC --- */}
       <GlobalOverviewBanner />

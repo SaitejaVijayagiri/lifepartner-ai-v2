@@ -8,25 +8,36 @@ import { trackImageFailure } from '@/lib/analytics';
 
 interface PublicMatchCardProps {
     match: any;
+    hideIfNoPhoto?: boolean;
+    hideIfBlurred?: boolean;
+    onImageUnavailable?: (matchId: string) => void;
 }
 
-export default function PublicMatchCard({ match }: PublicMatchCardProps) {
+export default function PublicMatchCard({
+    match,
+    hideIfNoPhoto = false,
+    hideIfBlurred = false,
+    onImageUnavailable,
+}: PublicMatchCardProps) {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [brokenUrls, setBrokenUrls] = useState<string[]>([]);
     const isPhotoBlurred = isProfilePhotoBlurred(match);
 
-    // Photos Array (prefer real uploaded photos without placeholder URLs)
+    // Photos Array (prefer real uploaded photos without placeholder or broken URLs)
     const fallbackAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
     const rawList = (Array.isArray(match.photos) && match.photos.length > 0)
         ? match.photos
         : [match.photoUrl || match.avatar_url || fallbackAvatar];
     const cleanStrings = Array.from(new Set(rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0))) as string[];
-    const realPhotoList = cleanStrings.filter((p) => !isPlaceholderPhoto(p));
-    const photos = realPhotoList.length > 0 ? realPhotoList : (cleanStrings.length > 0 ? cleanStrings : [fallbackAvatar]);
+    const realPhotoList = cleanStrings.filter((p) => !isPlaceholderPhoto(p) && !brokenUrls.includes(p));
+    const photos = realPhotoList.length > 0
+        ? realPhotoList
+        : (hideIfNoPhoto ? [] : (cleanStrings.length > 0 ? cleanStrings : [fallbackAvatar]));
 
     const hasUploadedPhoto = useMemo(() => {
-        return realPhotoList.length > 0 || hasUserUploadedPhoto(match);
-    }, [match, realPhotoList.length]);
+        return realPhotoList.length > 0 || (!hideIfNoPhoto && hasUserUploadedPhoto(match));
+    }, [match, realPhotoList.length, hideIfNoPhoto]);
 
     const displayName = useMemo(() => {
         if (typeof match?.name === 'string') return match.name;
@@ -90,6 +101,10 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
 
         return () => clearInterval(interval);
     }, [photos.length, isHovered, hasUploadedPhoto]);
+
+    if ((hideIfBlurred && isPhotoBlurred) || (hideIfNoPhoto && (!hasUploadedPhoto || photos.length === 0))) {
+        return null;
+    }
 
     return (
         <div 
@@ -214,7 +229,18 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                         decoding="async"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            trackImageFailure(target.src, 'PublicMatchCard', match.id);
+                            const failedSrc = photos[currentPhotoIndex] || photos[0] || target.src;
+                            trackImageFailure(failedSrc, 'PublicMatchCard', match.id);
+                            if (hideIfNoPhoto) {
+                                const nextBroken = brokenUrls.includes(failedSrc) ? brokenUrls : [...brokenUrls, failedSrc];
+                                const remaining = cleanStrings.filter((p) => !isPlaceholderPhoto(p) && !nextBroken.includes(p));
+                                setBrokenUrls(nextBroken);
+                                setCurrentPhotoIndex(0);
+                                if (remaining.length === 0 && onImageUnavailable && match?.id) {
+                                    onImageUnavailable(String(match.id));
+                                }
+                                return;
+                            }
                             target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
                             target.src = fallbackAvatar;
                         }}

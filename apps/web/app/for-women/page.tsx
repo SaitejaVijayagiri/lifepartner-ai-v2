@@ -280,7 +280,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">5. Verified Career Professionals</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Every user is verified via OTP and optional ID verification. Meet genuine software engineers, doctors, entrepreneurs, and professionals who share your relationship intent—whether serious dating or marriage.
+                Every user is verified via OTP and optional live selfie review. Meet genuine software engineers, doctors, entrepreneurs, and professionals who share your relationship intent—whether serious dating or marriage.
               </p>
             </div>
 
@@ -403,7 +403,7 @@ export default function ForWomenPage() {
             <div className="p-6 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
               <h3 className="font-bold text-base mb-2">Q. How are profiles verified?</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Every account passes email verification and AI photo face-check before appearing in matches, and members who submit a live selfie/ID check receive a distinct Identity Verified badge after review.
+                Every account passes email verification and AI photo face-check before appearing in matches, and members who submit a live selfie review receive a distinct Selfie Verified badge after approval.
               </p>
             </div>
           </div>

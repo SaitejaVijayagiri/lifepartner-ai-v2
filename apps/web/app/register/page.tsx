@@ -14,7 +14,7 @@ import { growthTracker } from '@/lib/growthTracker';
 
 const TESTIMONIALS = [
     { quote: "Women-first safety with blurred-photo privacy and zero telemarketer spam.", author: "Women-First Matrimony Protection" },
-    { quote: "Selfie & Govt ID verification kept clearly separate from email confirmation.", author: "Transparent Identity Standards" },
+    { quote: "Selfie verification is kept clearly separate from email confirmation — no Govt ID required.", author: "Transparent Identity Standards" },
     { quote: "Direct audio and video calling without disclosing personal mobile numbers.", author: "Masked Contact Security" }
 ];
 
@@ -511,7 +511,7 @@ function RegisterForm() {
                             {form.gender === 'Female' && (
                                 <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-[11px] text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200 mt-1.5">
                                     <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
-                                    <span><strong>Queen VIP Safety Active:</strong> Free unlimited direct chat (after photo or ID check), blurred-photo lock, and masked phone number.</span>
+                                    <span><strong>Queen VIP Safety Active:</strong> Free unlimited direct chat (after photo &amp; selfie check), blurred-photo lock, and masked phone number.</span>
                                 </div>
                             )}
                         </div>

@@ -559,7 +559,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 });
                 if (Number(recentInterests || 0) >= 25) {
                     return res.status(429).json({
-                        error: 'Daily outreach limit reached for unverified profiles. Complete free selfie/ID verification to unlock higher outreach.',
+                        error: 'Daily outreach limit reached for unverified profiles. Complete free selfie verification to unlock higher outreach.',
                         requiresIdVerification: true
                     });
                 }

@@ -52,8 +52,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Dynamic Blog Posts (merge static + backend daily SEO posts up to 500)
+    const normalizeTitle = (title: string) =>
+        String(title || '')
+            .replace(/\s*\|\s*LifePartner AI$/i, '')
+            .replace(/[^a-z0-9\u00C0-\uFFFF]+/gi, ' ')
+            .trim()
+            .toLowerCase();
+
     let posts = BLOG_POSTS.map(post => ({
         slug: post.slug,
+        title: post.title,
         date: post.date
     }));
 
@@ -66,14 +74,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (res.ok) {
             const data = await res.json();
             if (data.posts && data.posts.length > 0) {
-                const uniquePostsMap = new Map();
-                posts.forEach(p => uniquePostsMap.set(p.slug, p));
-                data.posts.forEach((p: any) => {
-                    uniquePostsMap.set(p.slug, {
+                const uniquePostsMap = new Map<string, { slug: string; title: string; date: string }>();
+                const seenTitles = new Set<string>();
+                // Prefer live API posts first, then fill unique static slugs/titles
+                for (const p of data.posts) {
+                    const slugKey = String(p.slug || '').trim().toLowerCase();
+                    const titleKey = normalizeTitle(p.title || '');
+                    if (!slugKey || uniquePostsMap.has(slugKey) || (titleKey && seenTitles.has(titleKey))) continue;
+                    uniquePostsMap.set(slugKey, {
                         slug: p.slug,
+                        title: p.title || p.slug,
                         date: p.created_at || new Date().toISOString()
                     });
-                });
+                    if (titleKey) seenTitles.add(titleKey);
+                }
+                for (const p of posts) {
+                    const slugKey = String(p.slug || '').trim().toLowerCase();
+                    const titleKey = normalizeTitle(p.title || '');
+                    if (!slugKey || uniquePostsMap.has(slugKey) || (titleKey && seenTitles.has(titleKey))) continue;
+                    uniquePostsMap.set(slugKey, p);
+                    if (titleKey) seenTitles.add(titleKey);
+                }
                 posts = Array.from(uniquePostsMap.values());
             }
         }
@@ -118,7 +139,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'privacy-first-matrimony-india',
         'no-phone-number-leak-matrimony',
         'no-telemarketer-matrimony-app',
-        'id-verified-matrimony-profiles',
+        'selfie-verified-matrimony-profiles',
         'women-safety-first-matrimony',
         'ai-compatibility-matrimony-for-women',
         'nri-matrimony-for-indian-women',

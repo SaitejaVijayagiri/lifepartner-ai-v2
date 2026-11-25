@@ -164,7 +164,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     <div className="flex items-center gap-2">
                         <h2 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">{profile.name}, {profile.age}</h2>
                         {Boolean(profile.isIdVerified ?? profile.isVerified) && (
-                            <span className="bg-blue-500 text-white p-0.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center w-4 h-4 shadow-md shadow-blue-500/30" title="Identity Verified">
+                            <span className="bg-blue-500 text-white p-0.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center w-4 h-4 shadow-md shadow-blue-500/30" title="Selfie Verified">
                                 ✓
                             </span>
                         )}
@@ -224,7 +224,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         )}
                         {Boolean(profile.isIdVerified ?? profile.isVerified) && (
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
-                                <Shield size={10} className="fill-blue-600" /> ID Verified
+                                <Shield size={10} className="fill-blue-600" /> Selfie Verified
                             </span>
                         )}
                     </div>

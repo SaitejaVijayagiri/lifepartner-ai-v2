@@ -6,11 +6,11 @@ import NativeAppGate from '@/components/NativeAppGate';
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
   title: 'LifePartner AI | Privacy-First Free Matrimony & Women-Safe Matchmaking',
-  description: "Privacy-first AI matrimony and serious matchmaking built for women and families in India & NRI hubs worldwide. Control blurred photos until accepted, verify real Govt IDs & selfies, stop telemarketer spam, and chat free with mutual matches.",
+  description: "Privacy-first AI matrimony and serious matchmaking built for women and families in India & NRI hubs worldwide. Control blurred photos until accepted, verify profiles with live selfies, stop telemarketer spam, and chat free with mutual matches.",
   keywords: [
     "Privacy-First Matrimony", "Safe Matrimony App for Women", "Zero Telemarketer Matrimony",
     "Free Mutual Match Matrimony", "NRI Matrimony India USA UK Canada Australia UAE",
-    "ID Verified Matrimony Profiles", "Family-Safe Biodata Link", "Blur Photo Matrimony",
+    "Selfie Verified Matrimony Profiles", "Family-Safe Biodata Link", "Blur Photo Matrimony",
     "Women First Matchmaking", "AI Anti-Creep Shield", "AI Anti-Scam Matrimony",
     "Telugu Matrimony Free", "Tamil Matrimony Free", "Hindi Matrimony Free",
     "Kannada Matrimony Free", "Malayalam Matrimony Free", "Marathi Matrimony Free",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'LifePartner AI | Privacy-First Free Matrimony & Safe Matchmaking',
-    description: "Built for women and serious families across India & NRI hubs worldwide. Zero telemarketer calls, blurred-photo privacy controls, Govt ID verification, and free mutual-match chat.",
+    description: "Built for women and serious families across India & NRI hubs worldwide. Zero telemarketer calls, blurred-photo privacy controls, live selfie verification, and free mutual-match chat.",
     url: 'https://www.lifepartnerai.in',
     siteName: 'LifePartner AI',
     locale: 'en_US',
@@ -103,7 +103,7 @@ export default function LandingPage({
       "https://www.instagram.com/lifepartnerai.in",
       "https://www.youtube.com/@lifepartnerai"
     ],
-    "description": "Privacy-first AI matrimony and serious matchmaking platform with zero telemarketer spam, blurred-photo controls, Govt ID & selfie verification, AI anti-scam protection, and free mutual-match chat.",
+    "description": "Privacy-first AI matrimony and serious matchmaking platform with zero telemarketer spam, blurred-photo controls, live selfie verification, AI anti-scam protection, and free mutual-match chat.",
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Hyderabad",
@@ -200,7 +200,7 @@ export default function LandingPage({
         "itemOffered": {
           "@type": "Service",
           "name": "Women-First Safety & Anti-Scam Shield",
-          "description": "AI harassment and romance-scam masking, selfie + Govt ID review, masked calling, and Safe Meetup Angel Timer alerts."
+          "description": "AI harassment and romance-scam masking, live selfie review, masked calling, and Safe Meetup Angel Timer alerts."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -235,7 +235,7 @@ export default function LandingPage({
         "name": "How is LifePartner AI different from traditional matrimony websites?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "We never sell user phone numbers to telemarketer call centers, clearly separate basic email confirmation from Govt ID & selfie verification, let women keep photos blurred until accepted, and offer read-only family biodata links."
+          "text": "We never sell user phone numbers to telemarketer call centers, clearly separate basic email confirmation from live selfie verification, let women keep photos blurred until accepted, and offer read-only family biodata links."
         }
       },
       {
@@ -243,7 +243,7 @@ export default function LandingPage({
         "name": "How does LifePartner AI protect women's privacy and block scams?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Every profile has masked contact info, optional blurred photos, an AI Anti-Creep & Anti-Scam Shield that flags and masks harassment or financial requests, repeat-reporter auto-quarantine, and Photo/ID verification requirements for unlimited Women VIP messaging."
+          "text": "Every profile has masked contact info, optional blurred photos, an AI Anti-Creep & Anti-Scam Shield that flags and masks harassment or financial requests, repeat-reporter auto-quarantine, and live selfie verification requirements for unlimited Women VIP messaging."
         }
       },
       {

@@ -48,7 +48,7 @@ export default function WomenSafetyBanner() {
           </h2>
 
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Matrimony and serious matchmaking shouldn&apos;t mean unwanted telemarketer calls, stolen photos, or harassment. On LifePartner AI, women control photo visibility, ID verification filters, and every conversation.
+            Matrimony and serious matchmaking shouldn&apos;t mean unwanted telemarketer calls, stolen photos, or harassment. On LifePartner AI, women control photo visibility, selfie verification filters, and every conversation.
           </p>
         </div>
 

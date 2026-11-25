@@ -132,7 +132,7 @@ export default function Footer() {
                         <li><Link href="/safety" className="text-emerald-400 hover:text-emerald-300 transition-colors">🛡️ Women&apos;s Safety Kit</Link></li>
                         <li><Link href="/matrimony/intent/safe-matrimony-for-women" className="hover:text-indigo-400 transition-colors">Safe Matrimony for Women</Link></li>
                         <li><Link href="/matrimony/intent/privacy-first-matrimony-india" className="hover:text-indigo-400 transition-colors">Privacy-First Matrimony</Link></li>
-                        <li><Link href="/matrimony/intent/id-verified-matrimony-profiles" className="hover:text-indigo-400 transition-colors">ID-Verified Profiles</Link></li>
+                        <li><Link href="/matrimony/intent/selfie-verified-matrimony-profiles" className="hover:text-indigo-400 transition-colors">Selfie-Verified Profiles</Link></li>
                         <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony</Link></li>
                         <li><Link href="/matrimony/intent/free-matrimony-chat-without-payment" className="hover:text-indigo-400 transition-colors">Free Direct Chat</Link></li>
                     </ul>

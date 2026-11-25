@@ -315,7 +315,7 @@ export default function LandingPageClient() {
   const handleShareMatrimony = async () => {
     const shareData = {
       title: 'LifePartner AI | Privacy-First Matrimony & Serious Matchmaking',
-      text: 'Find your life partner on LifePartner AI Matrimony! ID-verified profiles, zero telemarketer spam, free mutual-match chat, and Women-First privacy controls.',
+      text: 'Find your life partner on LifePartner AI Matrimony! Selfie-verified profiles, zero telemarketer spam, free mutual-match chat, and Women-First privacy controls.',
       url: 'https://www.lifepartnerai.in/matrimony'
     };
     if (typeof navigator !== 'undefined' && navigator.share) {
@@ -667,7 +667,7 @@ export default function LandingPageClient() {
                         <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-pink-50 via-rose-50 to-purple-50 dark:from-pink-950/50 dark:via-purple-950/40 dark:to-gray-900 border border-pink-200 dark:border-pink-800 text-[11px] text-pink-900 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200">
                           <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
                           <span>
-                            <strong>Queen VIP Safety Active:</strong> Free Unlimited Mutual &amp; Direct Chat (with photo or ID check) • Blurred-Photo Lock • AI Anti-Creep &amp; Scam Shield.
+                            <strong>Queen VIP Safety Active:</strong> Free Unlimited Mutual &amp; Direct Chat (with photo &amp; selfie check) • Blurred-Photo Lock • AI Anti-Creep &amp; Scam Shield.
                           </span>
                         </div>
                       )}
@@ -904,7 +904,7 @@ export default function LandingPageClient() {
               </span>
               <span>No sold phone numbers</span>
               <span className="text-gray-300 dark:text-gray-700">•</span>
-              <span>Email confirmation is never shown as Govt ID Verified</span>
+              <span>Email confirmation is separate from Blue Badge Selfie Verification</span>
               <span className="text-gray-300 dark:text-gray-700">•</span>
               <Link href="/safety" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
                 Read Safety Standards →
@@ -1086,8 +1086,8 @@ export default function LandingPageClient() {
             />
             <FeatureCard
               icon={<Shield size={32} className="text-blue-500" />}
-              title="Selfie &amp; Govt ID Review"
-              desc="Free optional Govt ID + selfie spoof check unlocks your Identity Verified badge — clearly distinct from email confirmation."
+              title="Selfie Verification"
+              desc="Free optional live selfie review by our safety team unlocks your Selfie Verified badge — clearly distinct from email confirmation."
             />
             <FeatureCard
               icon={<Lock size={32} className="text-purple-500" />}
@@ -1214,7 +1214,7 @@ export default function LandingPageClient() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 text-[11px] font-bold text-gray-600">
-                        <Users size={11} className="text-indigo-500" /> ID-Checked RSVPs
+                        <Users size={11} className="text-indigo-500" /> Verified RSVPs
                       </span>
                       <Link href={isLoggedIn ? '/dashboard?tab=events' : '/register?new=true'} className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md hover:brightness-110 transition-all">
                         View Events
@@ -1281,7 +1281,7 @@ export default function LandingPageClient() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block py-1 px-3 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">Privacy-First Matrimony</span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Built on Verified Identity, Safety &amp; Zero Spam</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Built on Selfie-Verified Trust, Privacy &amp; Zero Spam</h2>
             <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">No telemarketer harassment, no hidden pay-to-chat walls for mutual matches, and active scam shielding with blurred-photo privacy controls.</p>
           </div>
 
@@ -1329,7 +1329,7 @@ export default function LandingPageClient() {
 
           <div className="grid md:grid-cols-4 gap-8">
             <StepCard step="01" title="Create Profile" desc="Sign up and build your smart biodata with photo privacy toggles." />
-            <StepCard step="02" title="Selfie &amp; Govt ID Check" desc="Optional free ID + selfie check unlocks your Identity Verified badge." />
+            <StepCard step="02" title="Selfie Verification" desc="Optional free live selfie review unlocks your blue Selfie Verified badge." />
             <StepCard step="03" title="Get Matched" desc="Receive daily curated matches based on your preferences." />
             <StepCard step="04" title="Connect" desc="Chat, video call, and meet your future partner." />
           </div>
@@ -1378,7 +1378,7 @@ export default function LandingPageClient() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={13} className="text-indigo-500 shrink-0" />
-                    <span>Zero storage bloat • Full Family Biodata &amp; ID check tools</span>
+                    <span>Zero storage bloat • Full Family Biodata &amp; selfie verification tools</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={13} className="text-indigo-500 shrink-0" />
@@ -1460,7 +1460,7 @@ export default function LandingPageClient() {
 
           <div className="text-center py-20 px-6 relative z-10">
             <h2 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">Ready for <br />Privacy-First Matrimony?</h2>
-            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join for free, control who sees your photos, verify real IDs, and chat without telemarketer spam.</p>
+            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join for free, control who sees your photos, get selfie-verified, and chat without telemarketer spam.</p>
 
             <Link href="/register?new=true">
               <button className="group relative px-12 py-6 rounded-full bg-white dark:bg-gray-950 text-indigo-900 font-bold text-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)]">

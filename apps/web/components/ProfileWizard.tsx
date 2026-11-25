@@ -623,7 +623,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         {data.gender === 'Female' && (
                                             <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-xs text-pink-800 dark:text-pink-200 flex items-center gap-2">
                                                 <span>👑</span>
-                                                <span><strong>Queen VIP Safety Active:</strong> Free Unlimited Direct Chat (with photo or ID check) + Blurred-Photo Lock + Masked Phone Number.</span>
+                                                <span><strong>Queen VIP Safety Active:</strong> Free Unlimited Direct Chat (with photo &amp; selfie check) + Blurred-Photo Lock + Masked Phone Number.</span>
                                             </div>
                                         )}
                                     </div>
@@ -1288,10 +1288,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-0.5">
                                     <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-blue-900 dark:text-blue-200">
                                         <ShieldCheck size={16} className="text-blue-600 dark:text-blue-400" />
-                                        <span>Optional: Get Blue ID Verified Seal</span>
+                                        <span>Optional: Get Blue Selfie Verified Badge</span>
                                     </div>
                                     <p className="text-[11px] text-blue-800/80 dark:text-blue-300/80">
-                                        Submit a quick selfie or Govt ID (reviewed privately, never shown publicly) or verify anytime from your Dashboard.
+                                        Submit a quick live selfie (reviewed privately by our safety team, never shown publicly) or verify anytime from your Dashboard.
                                     </p>
                                 </div>
                                 <div className="shrink-0">

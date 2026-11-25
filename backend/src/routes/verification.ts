@@ -18,7 +18,7 @@ router.post('/request', authenticateToken, async (req: any, res) => {
         const { documentUrl } = req.body || {};
 
         if (!documentUrl || typeof documentUrl !== 'string' || !documentUrl.trim() || documentUrl.includes('example.com/mock')) {
-            return res.status(400).json({ error: 'Please upload a clear selfie or identity document photo to request verification.' });
+            return res.status(400).json({ error: 'Please capture or upload a clear live selfie photo to request verification.' });
         }
 
         const cleanDoc = documentUrl.trim();

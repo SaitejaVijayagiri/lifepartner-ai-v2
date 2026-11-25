@@ -99,7 +99,7 @@ export default function GlobalOverviewBanner() {
             </p>
           </div>
 
-          {/* Card 3: Selfie & Govt ID Verification */}
+          {/* Card 3: Selfie Verification */}
           <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-200/80 dark:border-gray-800 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <ShieldCheck size={28} />
@@ -108,10 +108,10 @@ export default function GlobalOverviewBanner() {
               Anti-Catfish &amp; Scam Shield
             </span>
             <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-              Govt ID &amp; Selfie Verification
+              Selfie Verification
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Basic email OTP confirmation is never shown as Govt ID Verified. Filter specifically for ID-verified profiles backed by anti-spoof screening and repeat-report auto-quarantine.
+              Email OTP is never shown as Selfie Verified. Submit a live selfie for our safety team to review — verified profiles earn the blue badge and appear higher in matches.
             </p>
           </div>
 

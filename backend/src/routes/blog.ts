@@ -3,14 +3,21 @@ import { prisma } from '../prisma';
 
 const router = express.Router();
 
-// Get list of blog posts (Paginated)
+const normalizeBlogTitle = (title: string) =>
+    String(title || '')
+        .replace(/\s*\|\s*LifePartner AI$/i, '')
+        .replace(/[^a-z0-9\u00C0-\uFFFF]+/gi, ' ')
+        .trim()
+        .toLowerCase();
+
+// Get list of blog posts (Paginated & deduplicated by slug/title)
 router.get('/', async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page as string) || 1);
         const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 500);
         const skip = (page - 1) * limit;
 
-        const posts = await prisma.blog_posts.findMany({
+        const allPosts = await prisma.blog_posts.findMany({
             select: {
                 id: true,
                 slug: true,
@@ -22,11 +29,24 @@ router.get('/', async (req, res) => {
             orderBy: {
                 created_at: 'desc'
             },
-            skip,
-            take: limit
+            take: Math.min(1000, Math.max(limit * 3, 250))
         });
 
-        const total = await prisma.blog_posts.count();
+        const seenSlugs = new Set<string>();
+        const seenTitles = new Set<string>();
+        const deduped = allPosts.filter((p) => {
+            const slugKey = String(p.slug || '').trim().toLowerCase();
+            const titleKey = normalizeBlogTitle(p.title);
+            if (!slugKey || seenSlugs.has(slugKey) || (titleKey && seenTitles.has(titleKey))) {
+                return false;
+            }
+            seenSlugs.add(slugKey);
+            if (titleKey) seenTitles.add(titleKey);
+            return true;
+        });
+
+        const posts = deduped.slice(skip, skip + limit);
+        const total = deduped.length;
 
         res.json({
             posts,

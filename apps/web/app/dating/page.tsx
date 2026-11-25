@@ -59,7 +59,7 @@ const DATING_INTENTS = [
   { name: 'Anti-Harassment Matchmaking Platform', slug: 'anti-harassment-dating-app' },
   { name: 'Safe Matrimony for Indian & NRI Women', slug: 'safe-matrimony-for-women' },
   { name: 'Privacy-First Matchmaking in India', slug: 'privacy-first-matrimony-india' },
-  { name: 'ID-Verified Profiles & AI Compatibility', slug: 'id-verified-matrimony-profiles' },
+  { name: 'Selfie-Verified Profiles & AI Compatibility', slug: 'selfie-verified-matrimony-profiles' },
 ];
 
 export default function DatingHubPage() {

@@ -159,8 +159,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     <ShieldCheck size={18} />
                                 </div>
                                 <div>
-                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100">ID-Verified Profiles Only</div>
-                                    <div className="text-[11px] text-gray-500 dark:text-gray-400">Show only members who passed selfie/ID review</div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Selfie-Verified Profiles Only</div>
+                                    <div className="text-[11px] text-gray-500 dark:text-gray-400">Show only members who passed live selfie review</div>
                                 </div>
                             </div>
                             <input

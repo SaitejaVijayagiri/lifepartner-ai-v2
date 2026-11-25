@@ -313,7 +313,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                 <div className="flex flex-wrap items-center gap-2">
                                     {Boolean(profile.isVerified || profile.isIdVerified) ? (
                                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider border border-blue-200 dark:border-blue-800">
-                                            <Shield size={14} /> Identity Verified
+                                            <Shield size={14} /> Selfie Verified
                                         </div>
                                     ) : (
                                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-700">

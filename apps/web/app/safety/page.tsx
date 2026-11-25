@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
     title: 'Matrimony & Matchmaking Safety Standards | LifePartner AI',
-    description: 'Learn how LifePartner AI protects women and serious matches with selfie-to-ID verification, real-time scam shielding, zero telemarketer calls, and the Women Safety Kit.',
+    description: 'Learn how LifePartner AI protects women and serious matches with live selfie verification, real-time scam shielding, zero telemarketer calls, and the Women Safety Kit.',
     keywords: ['matrimony safety', 'safe matchmaking India', 'verified matrimony profiles', 'anti scam matrimony'],
     alternates: {
         canonical: 'https://www.lifepartnerai.in/safety',
@@ -17,7 +17,7 @@ export default function SafetyPage() {
             <div className="max-w-3xl mx-auto px-4 py-16">
                 <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Matrimony &amp; Matchmaking Safety Standards</h1>
                 <p className="text-xl text-gray-600 mb-12">
-                    Your privacy and safety come first. Unlike legacy portals, we clearly distinguish Email OTP confirmation from real Govt ID &amp; Selfie verification, automatically shield chats against financial scams, and never sell your phone number to telemarketers.
+                    Your privacy and safety come first. Unlike legacy portals, we clearly distinguish Email OTP confirmation from live Selfie verification, automatically shield chats against financial scams, and never sell your phone number to telemarketers.
                 </p>
 
                 <div className="mb-16 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-900/10 rounded-3xl p-8 border border-rose-100 dark:border-rose-900">

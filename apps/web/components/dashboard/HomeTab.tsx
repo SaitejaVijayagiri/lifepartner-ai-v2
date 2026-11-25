@@ -250,11 +250,11 @@ export default function HomeTab({
                 onEditProfile={() => onNavigateTab('profile_edit')}
             />
 
-            {/* Get Blue ID Verified Seal — shown for unverified users */}
+            {/* Get Blue Selfie Verified Badge — shown for unverified users */}
             {currentUser && !currentUser.isVerified && (
                 <div className="mx-1 mt-1 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center gap-4">
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Get Your Blue ID Verified Seal 🛡️</p>
+                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Get Your Blue Selfie Verified Badge 🛡️</p>
                         <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Verified profiles get 3× more connection requests and appear above unverified matches.</p>
                     </div>
                     <RequestVerificationButton />

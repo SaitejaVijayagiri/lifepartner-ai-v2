@@ -105,8 +105,8 @@ export default function NativeAppGate() {
           </div>
           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
             <div className="text-base mb-1">⭐</div>
-            <div className="text-[11px] font-bold text-white leading-tight">Verified ID</div>
-            <div className="text-[9px] text-purple-300/70">Govt ID check</div>
+            <div className="text-[11px] font-bold text-white leading-tight">Selfie Check</div>
+            <div className="text-[9px] text-purple-300/70">Selfie verified</div>
           </div>
         </div>
       </div>

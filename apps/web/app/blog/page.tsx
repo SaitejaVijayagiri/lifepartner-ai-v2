@@ -33,6 +33,31 @@ const staticPosts: BlogPost[] = BLOG_POSTS.map((p, i) => ({
     created_at: p.date,
 }));
 
+const normalizeBlogTitle = (title: string) =>
+    String(title || '')
+        .replace(/\s*\|\s*LifePartner AI$/i, '')
+        .replace(/[^a-z0-9\u00C0-\uFFFF]+/gi, ' ')
+        .trim()
+        .toLowerCase();
+
+function deduplicateBlogPosts(items: BlogPost[]): BlogPost[] {
+    const seenSlugs = new Set<string>();
+    const seenTitles = new Set<string>();
+    const result: BlogPost[] = [];
+    for (const post of items) {
+        if (!post?.slug || !post?.title) continue;
+        const slugKey = post.slug.trim().toLowerCase();
+        const titleKey = normalizeBlogTitle(post.title);
+        if (seenSlugs.has(slugKey) || (titleKey && seenTitles.has(titleKey))) {
+            continue;
+        }
+        seenSlugs.add(slugKey);
+        if (titleKey) seenTitles.add(titleKey);
+        result.push(post);
+    }
+    return result;
+}
+
 async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
     try {
         const rawApi = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -50,14 +75,10 @@ async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
         }
 
         const data = await res.json();
-        let fetchedPosts: BlogPost[] = data.posts?.length ? data.posts : staticPosts;
-        // Deduplicate by slug — API posts take priority, then fill gaps with static
-        if (data.posts?.length) {
-            const apiSlugs = new Set(fetchedPosts.map((p: BlogPost) => p.slug));
-            const extraStatic = staticPosts.filter(sp => !apiSlugs.has(sp.slug));
-            fetchedPosts = [...fetchedPosts, ...extraStatic];
-        }
-        return { posts: fetchedPosts };
+        const apiPosts: BlogPost[] = Array.isArray(data.posts) ? data.posts : [];
+        // Combine API posts first, then fill gaps with unique static posts (dedup by both slug & title)
+        const combined = apiPosts.length ? deduplicateBlogPosts([...apiPosts, ...staticPosts]) : staticPosts;
+        return { posts: combined };
     } catch (error: any) {
         console.error("Failed to fetch blog posts:", error.message, "- Using static fallback");
         return { posts: staticPosts };

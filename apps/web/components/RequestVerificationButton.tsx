@@ -81,7 +81,7 @@ export default function RequestVerificationButton() {
 
     const handleSubmit = async () => {
         if (!previewDataUrl) {
-            toast.error('Please capture or upload a clear selfie or ID photo first.');
+            toast.error('Please capture or upload a clear selfie photo first.');
             return;
         }
         setSubmitting(true);
@@ -104,7 +104,7 @@ export default function RequestVerificationButton() {
     if (status === 'PENDING') {
         return (
             <Button variant="outline" size="sm" disabled className="gap-2 text-amber-600 border-amber-200 bg-amber-50">
-                <Clock size={16} /> ID Verification Pending
+                <Clock size={16} /> Selfie Verification Pending
             </Button>
         );
     }
@@ -117,7 +117,7 @@ export default function RequestVerificationButton() {
                 </Button>
             ) : (
                 <Button onClick={() => setModalOpen(true)} variant="outline" size="sm" className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50">
-                    <BadgeCheck size={16} /> Get ID Verified
+                    <BadgeCheck size={16} /> Get Selfie Verified
                 </Button>
             )}
 
@@ -130,8 +130,8 @@ export default function RequestVerificationButton() {
                                     <ShieldCheck size={22} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white text-base">Identity Verification</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Private review only — never shown publicly</p>
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-base">Selfie Verification</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Private review by our safety team — never shown publicly</p>
                                 </div>
                             </div>
                             <button
@@ -144,7 +144,7 @@ export default function RequestVerificationButton() {
                         </div>
 
                         <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                            Upload a clear live selfie (or selfie holding your Government/Work ID with sensitive numbers covered). Verified profiles earn the blue Identity Verified badge and higher trust from matches.
+                            Take or upload a clear, well-lit selfie showing your face. Our safety team manually reviews each submission. Approved profiles earn the blue Verified badge and get higher visibility in matches.
                         </p>
 
                         <input
@@ -174,7 +174,7 @@ export default function RequestVerificationButton() {
                                 className="w-full py-10 border-2 border-dashed border-blue-300 dark:border-blue-800 rounded-xl flex flex-col items-center justify-center gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
                             >
                                 <Upload size={26} />
-                                <span className="text-sm font-bold">Take Selfie or Upload ID Photo</span>
+                                <span className="text-sm font-bold">Take or Upload a Clear Selfie</span>
                                 <span className="text-[11px] text-gray-500">JPG, PNG, or WebP</span>
                             </button>
                         )}

@@ -186,7 +186,7 @@ export const HIGH_VALUE_SEO_TOPICS: SeoTopicItem[] = [
     {
         topic: "How Identity & Photo Verification Stops Fake Matrimony Profiles Before They Reach You",
         category: "safety",
-        keywords: ["id verified matrimony", "verified matrimony profiles india", "anti catfish matrimony"]
+        keywords: ["selfie verified matrimony", "verified matrimony profiles india", "anti catfish matrimony"]
     }
 ];
 
@@ -209,7 +209,7 @@ const EVERGREEN_ANGLES: Array<{
     {
         titleTemplate: (loc) => `How Women in ${loc} Can Verify Genuine Matches & Avoid Scams`,
         category: "safety",
-        keywords: (loc) => [`verified matrimony ${loc}`, `matrimony safety tips ${loc}`, "id verified profiles", "LifePartner AI"]
+        keywords: (loc) => [`verified matrimony ${loc}`, `matrimony safety tips ${loc}`, "selfie verified profiles", "LifePartner AI"]
     },
     {
         titleTemplate: (loc) => `Values-First AI Matchmaking for Serious Singles in ${loc}`,
@@ -270,7 +270,7 @@ function buildFallbackArticleContent(
         'safety': `<h3>Essential Verification &amp; Meetup Safeguards</h3>
 <p>Before moving a conversation offline or getting families involved, follow a structured verification routine:</p>
 <ul>
-    <li><strong>Prefer ID-Verified Profiles:</strong> Prioritize members who have completed identity &amp; selfie review rather than relying on email-only accounts.</li>
+    <li><strong>Prefer Selfie-Verified Profiles:</strong> Prioritize members who have completed live selfie review rather than relying on email-only accounts.</li>
     <li><strong>Have a Short In-App Video Call First:</strong> Verify tone, warmth, and consistency directly inside the app without exposing WhatsApp or phone numbers.</li>
     <li><strong>Use Safe Public Venues &amp; Share Check-Ins:</strong> Schedule your first meetup during daylight in a public cafe and use LifePartner AI's Angel Timer &amp; emergency contact check-in.</li>
 </ul>`,
@@ -406,14 +406,22 @@ export async function generateBlogPost(topicInput?: string): Promise<boolean> {
         let selectedTopicObj = HIGH_VALUE_SEO_TOPICS.find(t => t.topic === topicInput);
 
         const existingPosts = await prisma.blog_posts.findMany({
-            select: { slug: true }
+            select: { slug: true, title: true }
         });
         const existingSlugs = new Set(existingPosts.map(p => p.slug));
+        const normalizeTitle = (t: string) =>
+            String(t || '')
+                .replace(/\s*\|\s*LifePartner AI$/i, '')
+                .replace(/[^a-z0-9]+/gi, ' ')
+                .trim()
+                .toLowerCase();
+        const existingTitles = new Set(existingPosts.map(p => normalizeTitle(p.title)));
 
         if (!selectedTopicObj && !topicInput) {
             for (const item of HIGH_VALUE_SEO_TOPICS) {
                 const slugCandidate = buildSlug(item.topic);
-                if (!existingSlugs.has(slugCandidate)) {
+                const titleCandidate = normalizeTitle(item.topic);
+                if (!existingSlugs.has(slugCandidate) && !existingTitles.has(titleCandidate)) {
                     selectedTopicObj = item;
                     break;
                 }
@@ -422,6 +430,9 @@ export async function generateBlogPost(topicInput?: string): Promise<boolean> {
 
         if (!selectedTopicObj && !topicInput) {
             selectedTopicObj = generateDynamicWomenSeoTopic(existingSlugs) || undefined;
+            if (selectedTopicObj && existingTitles.has(normalizeTitle(selectedTopicObj.topic))) {
+                selectedTopicObj = undefined;
+            }
         }
 
         const topic = selectedTopicObj
@@ -434,6 +445,10 @@ export async function generateBlogPost(topicInput?: string): Promise<boolean> {
 
         let slug = buildSlug(topic);
         if (existingSlugs.has(slug)) {
+            if (!topicInput) {
+                console.log(`ℹ️ Skipping duplicate SEO topic/slug: ${slug}`);
+                return false;
+            }
             slug = `${slug}-${new Date().toISOString().slice(0, 10)}`;
         }
         if (existingSlugs.has(slug)) {

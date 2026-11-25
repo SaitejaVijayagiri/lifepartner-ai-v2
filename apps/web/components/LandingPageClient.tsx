@@ -965,7 +965,10 @@ export default function LandingPageClient() {
           if (isProfilePhotoBlurred(p)) return false;
           if (!hasUserUploadedPhoto(p)) return false;
           const candidateUrls = Array.isArray(p.photos) && p.photos.length > 0 ? p.photos : [p.photoUrl || p.avatar_url];
-          return candidateUrls.some((url: any) => typeof url === 'string' && !isPlaceholderPhoto(url));
+          return candidateUrls.some((url: any) => {
+            if (typeof url !== 'string' || isPlaceholderPhoto(url)) return false;
+            return !url.toLowerCase().includes('googleusercontent.com');
+          });
         };
         const buildLoopRow = (items: any[]) => {
           if (items.length === 0) return [];

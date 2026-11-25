@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
 import { EmailService } from '../services/email';
 import { matchCache } from './matches';
+import { clearFeaturedCache } from './profile';
 
 const router = express.Router();
 
@@ -136,6 +137,7 @@ router.post('/moderate-photo', async (req, res) => {
 
             await prisma.users.update({ where: { id: userId }, data: { avatar_url: null } });
             matchCache.clear();
+            clearFeaturedCache();
             if (user.profiles) {
                 await prisma.profiles.update({ where: { user_id: userId }, data: { photos: [], metadata } });
             }

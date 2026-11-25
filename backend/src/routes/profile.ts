@@ -484,6 +484,10 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 
 let featuredCache: { data: any, timestamp: number } | null = null;
 
+export const clearFeaturedCache = () => {
+    featuredCache = null;
+};
+
 // Get Featured Public Profiles (For Landing Page - Balanced Boys & Girls, Multi-Photo First)
 router.get('/public/featured', async (req, res) => {
     try {
@@ -560,6 +564,7 @@ router.get('/public/featured', async (req, res) => {
                 !u ||
                 u.includes('dicebear.com') ||
                 u.includes('ui-avatars.com') ||
+                u.includes('googleusercontent.com') ||
                 u.includes('avatar-fallback') ||
                 u.includes('default-avatar') ||
                 u.includes('/uploads/') ||

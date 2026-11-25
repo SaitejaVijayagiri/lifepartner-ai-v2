@@ -164,6 +164,18 @@ describe('Profile Routes', () => {
                         photos: ['https://api.dicebear.com/7.x/initials/svg?seed=NP', '/uploads/ephemeral-dead.jpg'],
                         metadata: { photo_privacy: 'public' }
                     }
+                },
+                {
+                    id: 'girl-google-oauth-only',
+                    full_name: 'Google Icon Only',
+                    age: 25,
+                    gender: 'Female',
+                    avatar_url: 'https://lh3.googleusercontent.com/a/ACg8oc-default=s96-c',
+                    location_name: 'Mumbai',
+                    profiles: {
+                        photos: ['https://lh3.googleusercontent.com/a/ACg8oc-default=s96-c'],
+                        metadata: { photo_privacy: 'public' }
+                    }
                 }
             ];
 
@@ -196,6 +208,7 @@ describe('Profile Routes', () => {
             expect(returnedIds).toContain('boy-multi-1');
             expect(returnedIds).not.toContain('girl-blurred');
             expect(returnedIds).not.toContain('girl-dicebear-only');
+            expect(returnedIds).not.toContain('girl-google-oauth-only');
             const girlCard = allReturned.find((p: any) => p.id === 'girl-multi-1');
             const boyCard = allReturned.find((p: any) => p.id === 'boy-multi-1');
             expect(girlCard.photos.length).toBe(3);

@@ -30,7 +30,11 @@ export default function PublicMatchCard({
         ? match.photos
         : [match.photoUrl || match.avatar_url || fallbackAvatar];
     const cleanStrings = Array.from(new Set(rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0))) as string[];
-    const realPhotoList = cleanStrings.filter((p) => !isPlaceholderPhoto(p) && !brokenUrls.includes(p));
+    const realPhotoList = cleanStrings.filter((p) => {
+        if (isPlaceholderPhoto(p) || brokenUrls.includes(p)) return false;
+        if (hideIfNoPhoto && p.toLowerCase().includes('googleusercontent.com')) return false;
+        return true;
+    });
     const photos = realPhotoList.length > 0
         ? realPhotoList
         : (hideIfNoPhoto ? [] : (cleanStrings.length > 0 ? cleanStrings : [fallbackAvatar]));

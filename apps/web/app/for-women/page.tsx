@@ -5,19 +5,19 @@ import Footer from '@/components/Footer';
 import { ShieldCheck, Heart, Sparkles, MessageCircle, Music, Camera, CheckCircle2, ArrowRight, Star, Lock, Users, Globe2, Crown, EyeOff, UserCheck, Flame } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'LifePartner AI for Women | #1 Safe, 100% Free Dating & Matrimony for Women Worldwide',
-  description: 'The world\'s #1 women-first dating and matrimony platform. 100% Free Lifetime VIP for women, AI Anti-Creep Shield, anti-screenshot disappearing snaps, masked contact protection, and verified gentlemen from 50+ countries.',
+  title: 'LifePartner AI for Women | Safe, Privacy-First Matrimony & Matchmaking',
+  description: 'A women-first matrimony and matchmaking platform built around privacy, respect, and real verification. 100% Free Lifetime VIP for women, AI Anti-Creep Shield, anti-screenshot snaps, masked contacts, and zero telemarketer spam.',
   keywords: [
+    'safe matrimony for women',
     'safe dating app for women',
-    'free dating app for women',
-    'women first dating app',
-    'bumble alternative free',
-    'safe matrimony app',
-    'anti harassment dating app',
-    'verified singles for women',
-    'dating app without paywalls for women',
-    'international dating safe for women',
-    'screenshot proof dating app'
+    'women first matrimony app',
+    'privacy first matrimony india',
+    'free matrimony for women',
+    'anti harassment matrimony app',
+    'verified matrimony profiles for women',
+    'matrimony without spam calls',
+    'nri matrimony safe for women',
+    'screenshot proof matchmaking app'
   ],
   alternates: {
     canonical: 'https://www.lifepartnerai.in/for-women',
@@ -151,16 +151,15 @@ export default function ForWomenPage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight max-w-5xl mx-auto leading-tight sm:leading-tight">
-            Dating on your terms.<br />
+            Matchmaking on your terms.<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-purple-600">
-              Zero creeps. Real connections. Verified profiles.
+              Zero creeps. Privacy first. Real verification.
             </span>
           </h1>
 
           <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
-            Tired of aggressive DMs, unwanted phone number requests, and paywalls?
-            LifePartner AI is built to give women complete privacy, respect, and control.
-            Connect with verified, career-focused professionals across 50+ countries with zero forced subscriptions.
+            Tired of aggressive DMs, unwanted phone number leaks, telemarketer spam, and paywalls?
+            LifePartner AI is designed to give women complete privacy, respect, and control while meeting serious, values-aligned partners.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -172,10 +171,10 @@ export default function ForWomenPage() {
               <ArrowRight size={18} />
             </Link>
             <Link
-              href="/chat-with-boys"
+              href="/safety"
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-pink-50 dark:bg-pink-950/40 border border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300 font-bold hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-all text-center flex items-center justify-center gap-2"
             >
-              <span>💬 Chat with Cute Boys Safely</span>
+              <span>🛡️ Explore Women&apos;s Safety Kit</span>
             </Link>
             <Link
               href="/login"
@@ -259,7 +258,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">3. Screenshot-Proof Disappearing Snaps</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Want to share a spontaneous moment without it remaining on someone else's camera roll? Send photos that vanish after 1 view. Screenshot prevention safeguards your personal moments.
+                Want to share a spontaneous moment without it remaining on someone else&apos;s camera roll? Send photos that vanish after 1 view. Screenshot prevention safeguards your personal moments.
               </p>
             </div>
 
@@ -270,7 +269,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">4. Music Vibe & Spotify Connection</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Skip superficial resumes and boring biodatas. Share your favorite Spotify anthems and listen to music together during live chat. Music reveals someone's true personality effortlessly.
+                Skip superficial resumes and boring biodatas. Share your favorite Spotify anthems and listen to music together during live chat. Music reveals someone&apos;s true personality effortlessly.
               </p>
             </div>
 
@@ -318,7 +317,7 @@ export default function ForWomenPage() {
                 ))}
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 italic mb-4">
-                "The Anti-Creep Shield is a breath of fresh air. Nobody was able to spam my phone number or send nasty stuff. I found a truly wonderful guy here who respects my time and values."
+                &ldquo;The Anti-Creep Shield is a breath of fresh air. Nobody was able to spam my phone number or send nasty stuff. I found a truly wonderful guy here who respects my time and values.&rdquo;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/50 text-pink-600 flex items-center justify-center font-bold text-sm">
@@ -338,7 +337,7 @@ export default function ForWomenPage() {
                 ))}
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 italic mb-4">
-                "I was skeptical about dating apps because of paywalls and aggressive users. But LifePartner AI is 100% free for women and the vanishing snaps keep my photos safe. Very classy crowd."
+                &ldquo;I was skeptical about dating apps because of paywalls and aggressive users. But LifePartner AI is 100% free for women and the vanishing snaps keep my photos safe. Very classy crowd.&rdquo;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 flex items-center justify-center font-bold text-sm">
@@ -358,7 +357,7 @@ export default function ForWomenPage() {
                 ))}
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 italic mb-4">
-                "Finding someone who shares both my career ambitions and traditional values was so easy. The Queen VIP perks and music vibe matching made chatting feel natural from day one."
+                &ldquo;Finding someone who shares both my career ambitions and traditional values was so easy. The Queen VIP perks and music vibe matching made chatting feel natural from day one.&rdquo;
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 flex items-center justify-center font-bold text-sm">
@@ -402,9 +401,9 @@ export default function ForWomenPage() {
             </div>
 
             <div className="p-6 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800">
-              <h3 className="font-bold text-base mb-2">Q. Are male profiles real and verified?</h3>
+              <h3 className="font-bold text-base mb-2">Q. How are profiles verified?</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Yes. All users must pass mandatory email OTP verification to log in, and optional ID badge checks confirm identity. This eliminates fake accounts and bot networks.
+                Every account passes email verification and AI photo face-check before appearing in matches, and members who submit a live selfie/ID check receive a distinct Identity Verified badge after review.
               </p>
             </div>
           </div>
@@ -416,7 +415,7 @@ export default function ForWomenPage() {
             <div className="relative z-10">
               <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/20 text-white text-xs font-bold mb-6 backdrop-blur-md">
                 <Crown size={14} className="fill-amber-300 text-amber-300" />
-                <span>Join Over 10,000+ Verified Singles Worldwide</span>
+                <span>Women-First Safety • 100% Privacy Control</span>
               </div>
               <h2 className="text-3xl sm:text-5xl font-extrabold mb-4">
                 Your Safety. Your Peace. Your Love Story.

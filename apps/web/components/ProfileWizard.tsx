@@ -304,7 +304,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                 <div className="z-10 mb-4 lg:mb-0">
                     <h2 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4 capitalize animate-in slide-in-from-left duration-700 key={stepId}">{STEPS[currentStep].title}</h2>
-                    <p className="text-sm lg:text-lg text-white/90 leading-relaxed font-light italic">"{QUOTES[stepId as keyof typeof QUOTES]}"</p>
+                    <p className="text-sm lg:text-lg text-white/90 leading-relaxed font-light italic">&ldquo;{QUOTES[stepId as keyof typeof QUOTES]}&rdquo;</p>
                 </div>
 
                 <div className="z-10 hidden lg:flex gap-2">
@@ -333,7 +333,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             <span>{data.gender === 'Female' ? 'Queen VIP Account Active!' : 'Basic Details Saved!'}</span>
                                         </p>
                                         <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                                            Proceed to Step 2 to upload your photo, earn +50 Bonus Coins, and start matching!
+                                            Proceed to Step 2 to upload a clear photo, configure privacy blur, and start matching!
                                         </p>
                                     </div>
                                     <Button
@@ -341,7 +341,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         onClick={handleNext}
                                         className="bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2 h-9 rounded-xl shrink-0 shadow-sm"
                                     >
-                                        Next: Upload Photos (+50 Coins) →
+                                        Next: Upload Photos →
                                     </Button>
                                 </div>
                             )}
@@ -435,7 +435,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         {data.gender === 'Female' && (
                                             <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-xs text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in">
                                                 <span>👑</span>
-                                                <span><strong>Queen VIP Active:</strong> 100 Free Coins + Unlimited Free Direct Chat + Private Masked Phone Number.</span>
+                                                <span><strong>Queen VIP Safety Active:</strong> Free Unlimited Direct Chat (with photo or ID check) + Blurred-Photo Lock + Masked Phone Number.</span>
                                             </div>
                                         )}
                                         {data.gender === 'Male' && (
@@ -575,8 +575,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     >
                                         <option value="High School">High School</option>
                                         <option value="Diploma">Diploma</option>
-                                        <option value="Bachelor's">Bachelor's</option>
-                                        <option value="Master's">Master's</option>
+                                        <option value="Bachelor's">Bachelor&apos;s</option>
+                                        <option value="Master's">Master&apos;s</option>
                                         <option value="Doctorate / PhD">Doctorate / PhD</option>
                                         <option value="Other">Other</option>
                                     </select>
@@ -695,7 +695,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upload Your Best Photos</h3>
                                 <p className="text-gray-500 dark:text-gray-400 mt-2">Profiles with photos get 10x more matches.</p>
                                 <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 rounded-xl text-amber-600 dark:text-amber-300 text-xs font-extrabold shadow-sm animate-pulse">
-                                    <span className="text-base">🎁</span> <span>Bonus Reward: Upload at least 1 photo to earn +50 FREE coins instantly!</span>
+                                    <span className="text-base">🛡️</span> <span>Tip: Upload a clear photo + verify your Govt ID later to unlock full Women VIP DM &amp; trust badges!</span>
                                 </div>
                                 <div className="mt-4 p-3 bg-indigo-50/70 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/40 max-w-sm">
                                     <p className="text-indigo-700 dark:text-indigo-300 text-xs font-medium">

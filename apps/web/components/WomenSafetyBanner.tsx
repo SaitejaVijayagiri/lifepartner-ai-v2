@@ -8,23 +8,23 @@ export default function WomenSafetyBanner() {
   const safetyFeatures = [
     {
       icon: <Crown className="text-amber-400 fill-amber-400/20" size={22} />,
-      title: "100% Free Lifetime VIP",
-      desc: "Every woman receives unlimited direct messaging, audio notes, and HD video calls with zero subscriptions forever."
+      title: "Free Safety & Unlimited Chat",
+      desc: "Verified women receive unlimited direct messaging and voice/video calls inside the app without forced subscriptions or exposed phone numbers."
     },
     {
       icon: <ShieldCheck className="text-pink-400" size={22} />,
-      title: "AI Anti-Creep Shield",
-      desc: "Intelligent real-time filtering actively blocks unsolicited numbers, external links, and inappropriate harassment."
+      title: "AI Anti-Creep & Scam Shield",
+      desc: "Real-time screening masks explicit harassment and financial/UPI/crypto scam solicitation while auto-quarantining repeat offenders."
     },
     {
       icon: <Lock className="text-purple-400" size={22} />,
-      title: "Screenshot-Proof Snaps",
-      desc: "Disappearing ephemeral photos vanish after viewing and actively block screenshots to safeguard your privacy."
+      title: "Photo Blur Until Accepted",
+      desc: "Keep your profile photos blurred for strangers until you accept an interest, and share disappearing view-once snaps inside trusted chats."
     },
     {
       icon: <EyeOff className="text-indigo-400" size={22} />,
-      title: "Ghost Mode & Blur Control",
-      desc: "Hide your profile from contacts and relatives, or keep photos blurred until you approve a suitor's request."
+      title: "Zero Telemarketers & Angel Timer",
+      desc: "Your number is never sold to call centers. Plus Safe Meetup check-ins, Fake Call exit, and ?family=1 read-only biodata links."
     }
   ];
 
@@ -44,11 +44,11 @@ export default function WomenSafetyBanner() {
           </div>
 
           <h2 className="text-3xl sm:text-5xl font-heading font-black tracking-tight text-white mb-4">
-            Built for Women. <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-300 to-purple-400">Zero Creeps. 100% Free VIP.</span>
+            Built for Women. <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-300 to-purple-400">Zero Spam. Real Privacy.</span>
           </h2>
 
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Online dating and matrimony shouldn't be an exhausting hurdle of unsolicited messages or forced paywalls. On LifePartner AI, women are protected, cherished, and empowered with complete privacy control.
+            Matrimony and serious matchmaking shouldn&apos;t mean unwanted telemarketer calls, stolen photos, or harassment. On LifePartner AI, women control photo visibility, ID verification filters, and every conversation.
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export default function WomenSafetyBanner() {
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={15} fill="currentColor" />
               ))}
-              <span className="text-xs font-bold text-slate-200 ml-2">Rated 4.9/5 by 40,000+ Women</span>
+              <span className="text-xs font-bold text-slate-200 ml-2">Built Around Women&apos;s Privacy, Respect &amp; Safety</span>
             </div>
             <h4 className="text-xl sm:text-2xl font-black text-white">
               Ready to meet verified gentlemen safely?
@@ -102,7 +102,7 @@ export default function WomenSafetyBanner() {
 
             <Link href="/for-women" className="w-full sm:w-auto">
               <button className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                <span>Safety Guide & FAQ</span>
+                <span>Safety Guide &amp; FAQ</span>
               </button>
             </Link>
           </div>

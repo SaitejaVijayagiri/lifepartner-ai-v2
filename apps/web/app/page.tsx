@@ -5,33 +5,17 @@ import NativeAppGate from '@/components/NativeAppGate';
 
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
-  title: 'LifePartner AI | #1 Free AI Matrimony, Worldwide Dating & Safe Matchmaking App',
-  description: "The world's #1 AI-powered 100% free matrimony and worldwide dating platform. Connect & chat with verified singles across India, USA, UK, Canada, Australia, UAE, Singapore, Japan, Korea & 190+ countries with zero subscription paywalls and Women-First privacy protection.",
+  title: 'LifePartner AI | Privacy-First Free Matrimony & Women-Safe Matchmaking',
+  description: "Privacy-first AI matrimony and serious matchmaking built for women and families in India & NRI hubs worldwide. Control blurred photos until accepted, verify real Govt IDs & selfies, stop telemarketer spam, and chat free with mutual matches.",
   keywords: [
-    // Global & Multi-Country Target Keywords
-    "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking App", "NRI Dating App", "Free Dating App Worldwide",
-    "Safe Dating App for Women", "Women First Dating App", "Free VIP Dating for Women", "Verified Single Profiles",
-    "USA Dating App", "UK Dating App", "Canada Dating App", "Australia Dating App", "UAE Dating App", "Singapore Dating App",
-    "Japan Dating App", "Tokyo Matchmaking", "South Korea Dating App", "Seoul Matchmaking",
-    "Philippines Dating App", "Indonesia Dating App", "Aplikasi Cari Jodoh Gratis",
-    "Malaysia Dating App", "Vietnam Dating App", "App Hẹn Hò Miễn Phí",
-    "Russia Dating App", "Знакомства в России", "Brazil Dating App", "Germany Dating App", "France Dating App",
-    
-    // Snaps, Stories & Music Features
-    "Instant Photo Snaps Dating", "24h Stories Dating App", "Music Match Dating App", "Spotify Playlist Dating",
-    "Screenshot Proof Snaps", "AI Anti-Creep Shield",
-    
-    // Matrimony & Marriage Keywords
-    "Free Matrimony App", "Global Matrimony", "NRI Matrimony", "Telugu Matrimony Free", "Tamil Matrimony Free", "Hindi Matrimony Free", "Kannada Matrimony Free", "Malayalam Matrimony Free", "Marathi Matrimony Free", "Bengali Matrimony Free", "Punjabi Matrimony Free", "Gujarati Matrimony Free", "Best Matchmaking Site",
-    "AI Dating App", "Free Chat Matrimony", "Jeevansathi Alternative", "Shaadi Alternative", "Bumble Alternative",
-    "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating",
-    "Safe Matrimony App for Women", "Career Women Matrimony", "Anti Harassment Matrimonial App",
-    "NRI Matrimony USA", "NRI Matrimony UK", "NRI Matrimony Canada", "NRI Matrimony Australia", "NRI Matrimony Dubai",
-    "Free Kundali Matching Online", "Guna Milan 36 Points",
-    
-    // Multilingual & Multi-region Terms
-    "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
-    "Знакомства Онлайн", "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "App de Rencontres Gratuite"
+    "Privacy-First Matrimony", "Safe Matrimony App for Women", "Zero Telemarketer Matrimony",
+    "Free Mutual Match Matrimony", "NRI Matrimony India USA UK Canada Australia UAE",
+    "ID Verified Matrimony Profiles", "Family-Safe Biodata Link", "Blur Photo Matrimony",
+    "Women First Matchmaking", "AI Anti-Creep Shield", "AI Anti-Scam Matrimony",
+    "Telugu Matrimony Free", "Tamil Matrimony Free", "Hindi Matrimony Free",
+    "Kannada Matrimony Free", "Malayalam Matrimony Free", "Marathi Matrimony Free",
+    "Bengali Matrimony Free", "Punjabi Matrimony Free", "Gujarati Matrimony Free",
+    "Free Kundali Matching Online", "Guna Milan 36 Points", "Intentional Matchmaking India"
   ],
   alternates: {
     canonical: 'https://www.lifepartnerai.in',
@@ -56,11 +40,11 @@ export const metadata: Metadata = {
       'pt-BR': 'https://www.lifepartnerai.in/brazil',
       'de-DE': 'https://www.lifepartnerai.in/germany',
       'fr-FR': 'https://www.lifepartnerai.in/france'
-}
+    }
   },
   openGraph: {
-    title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
-    description: "Connect & chat with verified singles globally on LifePartner AI. 100% Free Direct Chat, AI Compatibility, and Women-First Privacy Protection across India, USA, UK, Canada, Australia, Japan, Korea & worldwide.",
+    title: 'LifePartner AI | Privacy-First Free Matrimony & Safe Matchmaking',
+    description: "Built for women and serious families across India & NRI hubs worldwide. Zero telemarketer calls, blurred-photo privacy controls, Govt ID verification, and free mutual-match chat.",
     url: 'https://www.lifepartnerai.in',
     siteName: 'LifePartner AI',
     locale: 'en_US',
@@ -70,7 +54,7 @@ export const metadata: Metadata = {
         url: 'https://www.lifepartnerai.in/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'LifePartner AI - #1 Free Worldwide Dating & Matrimony Platform',
+        alt: 'LifePartner AI - Privacy-First Matrimony & Women-Safe Matchmaking',
       },
       {
         url: 'https://www.lifepartnerai.in/og-image.jpg',
@@ -82,8 +66,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
-    description: 'Join verified singles finding love globally on LifePartner AI. Featuring 100% Free Direct Chat, AI Matchmaking, Snaps, Stories & Women-First Safety.',
+    title: 'LifePartner AI | Privacy-First Matrimony & Women-Safe Matchmaking',
+    description: 'Zero telemarketer spam, blurred-photo lock until accepted, AI Anti-Scam & Anti-Creep Shield, and free mutual-match chat for serious matchmaking.',
     images: ['https://www.lifepartnerai.in/opengraph-image', 'https://www.lifepartnerai.in/og-image.jpg'],
   }
 };
@@ -106,7 +90,8 @@ export default function LandingPage({
   if (isNativeApp) {
     return <NativeAppGate />;
   }
-  // 3. JSON-LD SCHEMA (Structured Data for Search Crawlers)
+
+  // Structured Data for Search Crawlers
   const jsonLdOrg = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -118,7 +103,7 @@ export default function LandingPage({
       "https://www.instagram.com/lifepartnerai.in",
       "https://www.youtube.com/@lifepartnerai"
     ],
-    "description": "The world's #1 AI-powered worldwide dating & matrimony platform offering 100% free direct chat, AI compatibility matching, Women-First safety protection, Snaps, 24h Stories, and Music Vibe matching with zero paywalls.",
+    "description": "Privacy-first AI matrimony and serious matchmaking platform with zero telemarketer spam, blurred-photo controls, Govt ID & selfie verification, AI anti-scam protection, and free mutual-match chat.",
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Hyderabad",
@@ -131,7 +116,7 @@ export default function LandingPage({
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "LifePartner AI",
-    "alternateName": ["LifePartner AI Matrimony", "LifePartner AI Dating"],
+    "alternateName": ["LifePartner AI Matrimony", "LifePartner AI Safe Matchmaking"],
     "url": "https://www.lifepartnerai.in"
   };
 
@@ -141,12 +126,12 @@ export default function LandingPage({
     "name": "LifePartner AI",
     "url": "https://www.lifepartnerai.in",
     "applicationCategory": "SocialNetworkingApplication",
-    "operatingSystem": "Web, Android, iOS",
+    "operatingSystem": "Web, Android",
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD",
-      "description": "100% Free Registration, Direct Chat, and Lifetime Queen VIP for Female Users"
+      "priceCurrency": "INR",
+      "description": "Free registration, free mutual-match chat, and Women-First safety protections."
     }
   };
 
@@ -163,13 +148,13 @@ export default function LandingPage({
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "For Women (100% Free VIP & Safety)",
+        "name": "For Women (Free VIP & Safety Shield)",
         "item": "https://www.lifepartnerai.in/for-women"
       },
       {
         "@type": "ListItem",
         "position": 3,
-        "name": "Matchmaking & Relationship Guides",
+        "name": "Matrimony Guides & Safety Blog",
         "item": "https://www.lifepartnerai.in/blog"
       }
     ]
@@ -178,14 +163,14 @@ export default function LandingPage({
   const jsonLdOfferCatalog = {
     "@context": "https://schema.org",
     "@type": "OfferCatalog",
-    "name": "Free Matrimony & Matchmaking Services",
+    "name": "Privacy-First Matrimony & Matchmaking Features",
     "itemListElement": [
       {
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "100% Free Direct Chat Matrimony",
-          "description": "Send unlimited direct messages and chat with verified matrimony matches without paying forced subscription fees."
+          "name": "Free Mutual-Match Matrimony Chat",
+          "description": "Chat freely inside the app with mutual matches without paying unlock walls or exposing your personal mobile number."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -194,8 +179,8 @@ export default function LandingPage({
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "Screenshot Protected Ephemeral Snaps",
-          "description": "Share photo snaps with screenshot protection and watermarks for complete female privacy and safety."
+          "name": "Blurred-Photo Privacy & Family-Safe Biodata",
+          "description": "Keep profile photos blurred until an interest is accepted and share read-only family biodata links without leaking contact details."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -204,8 +189,8 @@ export default function LandingPage({
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "NRI & Worldwide Matchmaking",
-          "description": "Connect with verified Indian singles, NRI professionals, and international singles in USA, UK, Canada, Australia, and worldwide."
+          "name": "India & NRI Worldwide Matchmaking",
+          "description": "Connect with serious Indian and NRI matches across India, USA, UK, Canada, Australia, UAE, and Singapore."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -214,8 +199,8 @@ export default function LandingPage({
         "@type": "Offer",
         "itemOffered": {
           "@type": "Service",
-          "name": "100% Free Lifetime Queen VIP for Women",
-          "description": "Exclusive privacy protections, AI Anti-Creep filter, masked contact information, and unlimited free messaging and video calls for women."
+          "name": "Women-First Safety & Anti-Scam Shield",
+          "description": "AI harassment and romance-scam masking, selfie + Govt ID review, masked calling, and Safe Meetup Angel Timer alerts."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -225,7 +210,7 @@ export default function LandingPage({
         "itemOffered": {
           "@type": "Service",
           "name": "Vedic Kundali Milan & AI Compatibility",
-          "description": "Free 36 Gunas Vedic astrology compatibility combined with deep psychological personality matching."
+          "description": "Free 36 Gunas Vedic astrology compatibility paired with lifestyle and values matching."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -239,58 +224,50 @@ export default function LandingPage({
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "Is LifePartner AI 100% free for matrimony chat and matchmaking without payment?",
+        "name": "Does LifePartner AI allow free chat for matrimony without forced paywalls?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! LifePartner AI is 100% free with zero paywalls. You can register, browse verified single profiles, send direct messages, share voice notes, and make HD video calls without forced subscriptions or credit card requirements."
+          "text": "Yes. Mutual matches can message and call inside the app for free without paying subscription unlock fees or exposing their private phone numbers."
         }
       },
       {
         "@type": "Question",
-        "name": "How is LifePartner AI better than traditional matrimony sites like Jeevansathi or Shaadi?",
+        "name": "How is LifePartner AI different from traditional matrimony websites?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Traditional matrimony platforms charge thousands of rupees just to unlock contact numbers and are flooded with unverified agent profiles. LifePartner AI provides 100% free messaging, human + AI identity verification, screenshot-proof Snaps, and Spotify music vibe matching."
+          "text": "We never sell user phone numbers to telemarketer call centers, clearly separate basic email confirmation from Govt ID & selfie verification, let women keep photos blurred until accepted, and offer read-only family biodata links."
         }
       },
       {
         "@type": "Question",
-        "name": "How does LifePartner AI protect female privacy and prevent screenshots?",
+        "name": "How does LifePartner AI protect women's privacy and block scams?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI provides every female member with 100% Free Lifetime Queen VIP status, an AI Anti-Creep harassment filter, masked contact details, and disappearing Snaps with built-in screenshot protection."
+          "text": "Every profile has masked contact info, optional blurred photos, an AI Anti-Creep & Anti-Scam Shield that flags and masks harassment or financial requests, repeat-reporter auto-quarantine, and Photo/ID verification requirements for unlimited Women VIP messaging."
         }
       },
       {
         "@type": "Question",
-        "name": "Can NRI singles in USA, UK, Canada, and Australia find matrimony and dating matches for free?",
+        "name": "Can NRI singles in the USA, UK, Canada, UAE, and Australia use LifePartner AI?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! LifePartner AI supports NRI and worldwide matchmaking across 190+ countries including USA, UK, Canada, Australia, UAE, Singapore, Japan, Korea, and Europe with multi-language support."
+          "text": "Yes. LifePartner AI supports NRI and global matchmaking across 190+ countries including USA, UK, Canada, Australia, UAE, and Singapore with natural-language partner search."
         }
       },
       {
         "@type": "Question",
-        "name": "How does the AI Wingman and Cosmic Matching work?",
+        "name": "How does AI Compatibility and Vedic Kundali matching work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Our context-aware AI analyzes deep personal values, lifestyle habits, Vedic astrology compatibility, and shared music tastes to suggest the highest quality soulmate matches."
+          "text": "Our AI evaluates shared values, lifestyle, profession, education, and optional 36-Guna Vedic compatibility to highlight serious long-term matches."
         }
       },
       {
         "@type": "Question",
-        "name": "Why is LifePartner AI safer for Indian women than traditional matrimony apps?",
+        "name": "Does LifePartner AI support Indian and global languages?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI grants 100% Lifetime Queen VIP status to all women with 100 free coins, proactive AI anti-creep message filtering that blocks vulgar language and unsolicited phone numbers, masked contact info, and screenshot-protected disappearing snaps."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "Does LifePartner AI support regional Indian languages like Telugu, Tamil, and Hindi?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, LifePartner AI is fully localized in Telugu, Tamil, Hindi, Kannada, Malayalam, Marathi, Bengali, and Punjabi, as well as English, Japanese, Korean, Russian, and Arabic for global users."
+          "text": "Yes. The interface supports Hindi, Telugu, Tamil, English, and major international languages for families and global NRI users."
         }
       }
     ]

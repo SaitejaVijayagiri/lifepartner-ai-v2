@@ -3,11 +3,11 @@ import { Shield, Eye, Lock, MapPin } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Dating Safety Tips | LifePartner AI',
-    description: 'Prioritize your safety with our dating tips and verify your matches using our 100% human-verified system.',
-    keywords: ['dating safety', 'safe matrimony', 'anti catfish dating'],
+    title: 'Matrimony & Matchmaking Safety Standards | LifePartner AI',
+    description: 'Learn how LifePartner AI protects women and serious matches with selfie-to-ID verification, real-time scam shielding, zero telemarketer calls, and the Women Safety Kit.',
+    keywords: ['matrimony safety', 'safe matchmaking India', 'verified matrimony profiles', 'anti scam matrimony'],
     alternates: {
-        canonical: 'https://lifepartnerai.in/safety',
+        canonical: 'https://www.lifepartnerai.in/safety',
     }
 };
 
@@ -15,9 +15,9 @@ export default function SafetyPage() {
     return (
         <StaticPageLayout>
             <div className="max-w-3xl mx-auto px-4 py-16">
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Dating Safety Tips</h1>
+                <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Matrimony &amp; Matchmaking Safety Standards</h1>
                 <p className="text-xl text-gray-600 mb-12">
-                    Your safety is our top priority. Please read these guidelines to stay safe while interacting with others.
+                    Your privacy and safety come first. Unlike legacy portals, we clearly distinguish Email OTP confirmation from real Govt ID &amp; Selfie verification, automatically shield chats against financial scams, and never sell your phone number to telemarketers.
                 </p>
 
                 <div className="mb-16 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/20 dark:to-pink-900/10 rounded-3xl p-8 border border-rose-100 dark:border-rose-900">
@@ -25,31 +25,31 @@ export default function SafetyPage() {
                         <Shield size={16} />
                         Flagship Feature
                     </div>
-                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">The Women's Safety Kit 🛡️</h2>
+                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">The Women&apos;s Safety Kit 🛡️</h2>
                     <p className="text-lg text-gray-700 dark:text-gray-300 mb-8">
-                        We are the only matchmaking platform that protects you *during* your offline dates. When you schedule a date through our app, we automatically activate an end-to-end safety protocol to ensure your peace of mind.
+                        We are built to protect you before and during your offline meetups. When you schedule a meetup through our app, we automatically activate an end-to-end safety protocol to ensure your peace of mind.
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FeatureCard 
                             icon="💬"
-                            title="1. Schedule a Safe Date"
-                            desc="Tap the Calendar icon in your chat to propose a date. By logging it in the app, our backend servers securely track your meetup time and location."
+                            title="1. Schedule a Safe Meetup"
+                            desc="Tap the Calendar icon in your chat to propose a meetup. By logging it in the app, our backend servers securely track your meetup time and location."
                         />
                         <FeatureCard 
                             icon="🚨"
                             title="2. The Safety Overlay"
-                            desc="During your date, a discreet red shield appears on your screen. Tap it to access emergency tools like 'Fake a Call' or 'WhatsApp SOS'."
+                            desc="During your meetup, a discreet red shield appears on your screen. Tap it to access emergency tools like &apos;Fake a Call&apos; or &apos;WhatsApp SOS&apos;."
                         />
                         <FeatureCard 
                             icon="📱"
                             title="3. Fake a Call"
-                            desc="If your date is going poorly or you feel uncomfortable, press this button. In 10 seconds, your phone will ring loudly, giving you the perfect excuse to leave safely."
+                            desc="If your meetup feels uncomfortable, press this button. In 10 seconds, your phone will ring loudly, giving you the perfect excuse to leave safely."
                         />
                         <FeatureCard 
                             icon="⏱️"
-                            title="4. Angel Timer & Escalation"
-                            desc="Exactly 45 minutes into your date, we send a notification asking 'Are you safe?'. If you don't respond, we instantly email your GPS location to your Emergency Contact."
+                            title="4. Angel Timer &amp; Escalation"
+                            desc="Exactly 45 minutes into your meetup, we send a notification asking &apos;Are you safe?&apos;. If you don&apos;t respond, we instantly alert your Emergency Contact."
                         />
                     </div>
                 </div>

@@ -21,7 +21,8 @@ export type GrowthEventName =
     | 'user_active'
     | 'account_deleted'
     | 'user_reported'
-    | 'user_blocked';
+    | 'user_blocked'
+    | 'safety_shield_triggered';
 
 let isTableInitialized = false;
 

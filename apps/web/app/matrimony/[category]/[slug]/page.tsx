@@ -34,10 +34,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         openGraph: {
             title,
             description,
-            images: ['https://lifepartnerai.in/og-image.jpg'],
+            images: ['https://www.lifepartnerai.in/og-image.jpg'],
         },
         alternates: {
-            canonical: `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
+            canonical: `https://www.lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
         }
     };
 }
@@ -63,13 +63,13 @@ export default async function SEOPage({ params }: PageProps) {
         "@type": "CollectionPage",
         "name": `${displayValue} Matrimony Profiles`,
         "description": `Browse verified matrimonial profiles in ${displayValue}.`,
-        "url": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
+        "url": `https://www.lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
         "numberOfItems": matches.length,
         "itemListElement": matches.map((m: any, index: number) => ({
             "@type": "Person",
             "position": index + 1,
             "name": m.name,
-            "url": `https://lifepartnerai.in/register`
+            "url": `https://www.lifepartnerai.in/register`
         }))
     };
 
@@ -81,25 +81,25 @@ export default async function SEOPage({ params }: PageProps) {
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Home",
-                "item": "https://lifepartnerai.in"
+                "item": "https://www.lifepartnerai.in"
             },
             {
                 "@type": "ListItem",
                 "position": 2,
                 "name": "Matrimony",
-                "item": "https://lifepartnerai.in/matrimony"
+                "item": "https://www.lifepartnerai.in/matrimony"
             },
             {
                 "@type": "ListItem",
                 "position": 3,
                 "name": displayCategory,
-                "item": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}`
+                "item": `https://www.lifepartnerai.in/matrimony/${category.toLowerCase()}`
             },
             {
                 "@type": "ListItem",
                 "position": 4,
                 "name": displayValue,
-                "item": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`
+                "item": `https://www.lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`
             }
         ]
     };
@@ -145,7 +145,7 @@ export default async function SEOPage({ params }: PageProps) {
                         <ShareButton
                             title={`Find matches in ${displayValue}`}
                             text={`Check out verified matches in ${displayValue} on LifePartner AI!`}
-                            url={`https://lifepartnerai.in/matrimony/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=matrimony_seo`}
+                            url={`https://www.lifepartnerai.in/matrimony/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=matrimony_seo`}
                         />
                     </div>
                 </div>
@@ -250,7 +250,7 @@ export default async function SEOPage({ params }: PageProps) {
                     <div className="grid md:grid-cols-2 gap-8">
                         <div>
                             <h4 className="font-bold text-gray-900 mb-2">✨ AI-Powered Matching</h4>
-                            <p className="text-sm">Our algorithm understands that a "Doctor in {displayValue}" might prefer another medical professional, or a "Software Engineer" might want someone who understands tech hours.</p>
+                            <p className="text-sm">Our algorithm understands that a &ldquo;Doctor in {displayValue}&rdquo; might prefer another medical professional, or a &ldquo;Software Engineer&rdquo; might want someone who understands tech hours.</p>
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 mb-2">🔒 Secure & Private</h4>
@@ -272,7 +272,7 @@ export default async function SEOPage({ params }: PageProps) {
                     </Button>
                 </Link>
                 <p className="mt-6 text-xs text-gray-500">
-                    Trusted by 10,000+ Indians
+                    100% Privacy-First • Zero Telemarketer Spam • Family-Safe Matrimony
                 </p>
             </div>
         </div>

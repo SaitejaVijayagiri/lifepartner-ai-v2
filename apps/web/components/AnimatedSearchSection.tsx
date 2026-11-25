@@ -6,38 +6,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
 const PROMPTS = [
-    "Software engineer in Hyderabad who loves hiking",
-    "Doctor in Mumbai looking for a serious relationship",
-    "Product designer in Tokyo who loves art and music",
-    "Finance manager in New York seeking a life partner",
-    "Creative architect in London who loves travel",
+    "Software engineer in Hyderabad who values empathy & family",
+    "Pediatrician in Mumbai looking for serious matrimony",
+    "Product designer in Bengaluru open to NRI relocation",
+    "Finance manager in New York seeking a caring life partner",
+    "Creative architect in London who loves travel & culture",
     "Life partner whose gothra is Bharadwaja and vegetarian"
 ];
 
 const MOCK_RESULTS = [
     [
-        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad, India", match: "98%", img: "https://randomuser.me/api/portraits/men/32.jpg" },
-        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad, India", match: "95%", img: "https://randomuser.me/api/portraits/men/44.jpg" }
+        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad, India", match: "Sample", img: "/images/avatars/user-2.jpg" },
+        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad, India", match: "Sample", img: "/images/avatars/user-4.jpg" }
     ],
     [
-        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai, India", match: "99%", img: "https://randomuser.me/api/portraits/women/44.jpg" },
-        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai, India", match: "94%", img: "https://randomuser.me/api/portraits/men/22.jpg" }
+        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai, India", match: "Sample", img: "/images/avatars/user-1.jpg" },
+        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai, India", match: "Sample", img: "/images/avatars/user-2.jpg" }
     ],
     [
-        { name: "Kenji T.", role: "UI/UX Designer", loc: "Tokyo, Japan", match: "97%", img: "https://randomuser.me/api/portraits/men/52.jpg" },
-        { name: "Yumi S.", role: "Art Director", loc: "Tokyo, Japan", match: "96%", img: "https://randomuser.me/api/portraits/women/53.jpg" }
+        { name: "Karthik N.", role: "UI/UX Designer", loc: "Bengaluru, India", match: "Sample", img: "/images/avatars/user-4.jpg" },
+        { name: "Divya M.", role: "Product Designer", loc: "Bengaluru, India", match: "Sample", img: "/images/avatars/user-3.jpg" }
     ],
     [
-        { name: "Sarah L.", role: "Portfolio Manager", loc: "New York, USA", match: "98%", img: "https://randomuser.me/api/portraits/women/28.jpg" },
-        { name: "David M.", role: "Fintech Lead", loc: "New York, USA", match: "93%", img: "https://randomuser.me/api/portraits/men/68.jpg" }
+        { name: "Sarah L.", role: "Portfolio Manager", loc: "New York, USA", match: "Sample", img: "/images/avatars/user-1.jpg" },
+        { name: "David M.", role: "Fintech Lead", loc: "New York, USA", match: "Sample", img: "/images/avatars/user-2.jpg" }
     ],
     [
-        { name: "Liam C.", role: "Principal Architect", loc: "London, UK", match: "96%", img: "https://randomuser.me/api/portraits/men/36.jpg" },
-        { name: "Emma W.", role: "Design Consultant", loc: "London, UK", match: "95%", img: "https://randomuser.me/api/portraits/women/36.jpg" }
+        { name: "Liam C.", role: "Principal Architect", loc: "London, UK", match: "Sample", img: "/images/avatars/user-4.jpg" },
+        { name: "Meera W.", role: "Design Consultant", loc: "London, UK", match: "Sample", img: "/images/avatars/user-3.jpg" }
     ],
     [
-        { name: "Kavya P.", role: "Data Scientist", loc: "Bengaluru, India", match: "99%", img: "https://randomuser.me/api/portraits/women/65.jpg" },
-        { name: "Rahul V.", role: "Product Manager", loc: "Hyderabad, India", match: "94%", img: "https://randomuser.me/api/portraits/men/75.jpg" }
+        { name: "Kavya P.", role: "Data Scientist", loc: "Bengaluru, India", match: "Sample", img: "/images/avatars/user-1.jpg" },
+        { name: "Rahul V.", role: "Product Manager", loc: "Hyderabad, India", match: "Sample", img: "/images/avatars/user-2.jpg" }
     ]
 ];
 
@@ -119,10 +119,10 @@ export default function AnimatedSearchSection() {
                         <Sparkles size={14} className="text-indigo-500" /> AI Matchmaker
                     </div>
                     <h2 className="text-3xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4 tracking-tight leading-tight">
-                        Just tell us what<br className="md:hidden" /> you're looking for.
+                        Just describe who<br className="md:hidden" /> you&apos;re looking for.
                     </h2>
                     <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-medium px-2">
-                        Our AI translates natural language into deep-filtered matches instantly. Try it right here.
+                        Our AI translates natural language into structured profession, city, lifestyle, and value filters.
                     </p>
                 </div>
 
@@ -276,14 +276,14 @@ export default function AnimatedSearchSection() {
                                                 <Lock size={26} />
                                             </div>
                                             <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-gray-100 mb-2">
-                                                We found 8 matches! 🎉
+                                                AI Filters Ready! ✨
                                             </h3>
                                             <p className="text-gray-500 mb-5 text-sm leading-relaxed">
-                                                Join LifePartner AI for free to view their full profiles and send a message.
+                                                Create a free account in 10 seconds to browse live profiles matching &ldquo;{userInput}&rdquo;.
                                             </p>
                                             <Link href="/register" className="block">
                                                 <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg active:scale-95 transition-all">
-                                                    Unlock My Matches →
+                                                    Browse Live Matches →
                                                 </button>
                                             </Link>
                                         </div>

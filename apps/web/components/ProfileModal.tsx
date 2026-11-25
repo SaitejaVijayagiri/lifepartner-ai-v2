@@ -145,6 +145,35 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }
     };
 
+    const [hasRequestedPhoto, setHasRequestedPhoto] = useState(false);
+    const [requestingPhoto, setRequestingPhoto] = useState(false);
+
+    // Safe derived values so hooks always execute in identical order
+    const safePhotosList: string[] = Array.isArray(profile?.photos) && profile.photos.length > 0
+        ? profile.photos
+        : (profile?.photoUrl ? [profile.photoUrl] : []);
+    const hasUploadedPhotoEarly = Boolean(profile) && hasUserUploadedPhoto(profile) && safePhotosList.some(p => !isPlaceholderPhoto(p));
+
+    // Auto-Slide Effect (disabled while Privacy Shield is active or when photo not uploaded)
+    useEffect(() => {
+        if (!profile || !hasUploadedPhotoEarly || safePhotosList.length <= 1 || isPhotoBlurred) return;
+
+        const interval = setInterval(() => {
+            if (Date.now() - lastInteracted > 4000) {
+                setCurrentPhotoIndex(prev => (prev + 1) % safePhotosList.length);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [profile, safePhotosList.length, lastInteracted, isPhotoBlurred, hasUploadedPhotoEarly]);
+
+    // TRACK PROFILE VIEW
+    useEffect(() => {
+        if (currentUser && profile?.id && profile.id !== currentUser.id) {
+            api.interactions.recordView(profile.id).catch(err => console.error("Failed to track profile view", err));
+        }
+    }, [profile?.id, currentUser]);
+
     if (!profile) return null;
 
     // 🛡️ Data Sanitization: Ensure all nested objects exist to prevent crashes
@@ -165,8 +194,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
     const hasUploadedPhoto = hasUserUploadedPhoto(profile) && photos.some(p => !isPlaceholderPhoto(p));
-    const [hasRequestedPhoto, setHasRequestedPhoto] = useState(false);
-    const [requestingPhoto, setRequestingPhoto] = useState(false);
 
     const handleRequestPhoto = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -184,27 +211,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
             setRequestingPhoto(false);
         }
     };
-
-    // Auto-Slide Effect (disabled while Privacy Shield is active or when photo not uploaded)
-    useEffect(() => {
-        if (!hasUploadedPhoto || photos.length <= 1 || isPhotoBlurred) return;
-
-        const interval = setInterval(() => {
-            // Only slide if user hasn't interacted in the last 4 seconds
-            if (Date.now() - lastInteracted > 4000) {
-                setCurrentPhotoIndex(prev => (prev + 1) % photos.length);
-            }
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, [photos.length, lastInteracted, isPhotoBlurred, hasUploadedPhoto]);
-
-    // TRACK PROFILE VIEW
-    useEffect(() => {
-        if (currentUser && profile.id && profile.id !== currentUser.id) {
-            api.interactions.recordView(profile.id).catch(err => console.error("Failed to track profile view", err));
-        }
-    }, [profile.id, currentUser?.id]);
 
 
     // Helper for safe Date parsing
@@ -537,7 +543,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 {profile.name}{profile.age ? `, ${profile.age}` : ''}
                                 {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">👑</span>}
                             </h2>
-                            {profile.isVerified !== false && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
+                            {Boolean(profile.isVerified) && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
                         </div>
                         <p className="text-gray-200 text-xs font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5 drop-shadow-md">
                             <span>{profile.career?.profession || "-"}</span>
@@ -888,7 +894,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <h3 className="font-bold text-indigo-900 dark:text-indigo-100">AI Compatibility Analysis</h3>
                                     </div>
                                     <p className="text-indigo-800/80 dark:text-indigo-300 italic text-sm leading-relaxed border-l-4 border-indigo-400 dark:border-indigo-500 pl-4 py-1">
-                                        "{safeProfile.summary || "Strong compatibility based on shared values like lifestyle, career expectations, and background compatibility."}"
+                                        &ldquo;{safeProfile.summary || "Strong compatibility based on shared values like lifestyle, career expectations, and background compatibility."}&rdquo;
                                     </p>
 
                                     {/* Match Reasons (AI Similarity Badges) */}
@@ -1173,7 +1179,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             <span className="text-xl">💭</span> Expectations
                                         </h3>
                                         <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
-                                            "{exp}"
+                                            &ldquo;{exp}&rdquo;
                                         </p>
                                     </div>
                                     ) : null;

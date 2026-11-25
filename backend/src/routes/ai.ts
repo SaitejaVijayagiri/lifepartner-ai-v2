@@ -5,6 +5,7 @@ import { getIO } from '../socket';
 import axios from 'axios';
 import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
 import { AIMatchEngine } from '../services/aiMatchEngine';
+import { callGeminiGenerate, isGeminiConfigured } from '../utils/geminiClient';
 
 const router = express.Router();
 
@@ -134,9 +135,43 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
         candidates.push(`Quick question ${firstName}: What's one passion or hobby not listed on your profile that you love talking about? 🌸`);
         candidates.push(`Hey ${firstName}! Great to connect. Are you more of a spontaneous weekend explorer or chill coffee person? ☕`);
 
-        // Shuffle and pick top 3
-        const shuffled = candidates.sort(() => 0.5 - Math.random());
-        const finalSuggestions = shuffled.slice(0, 3);
+        // Try AI-generated respectful personalized icebreakers first (outside test runner)
+        let finalSuggestions: string[] | null = null;
+        if (isGeminiConfigured() && !process.env.JEST_WORKER_ID) {
+            try {
+                const callerMeta = (caller?.profiles?.metadata as any) || {};
+                const aiRes = await callGeminiGenerate({
+                    systemInstruction: 'You write warm, respectful, thoughtful first messages for a serious matrimony & relationship platform. Never sound cheesy, creepy, or invasive.',
+                    prompt: `Write 3 short, specific conversation starters for ${caller?.full_name?.split(' ')[0] || 'me'} to message ${firstName}.
+Target context: city=${city || 'unknown'}, profession=${profession || 'unknown'}, interests=${interests.join(', ') || 'none listed'}, diet=${diet || 'unknown'}.
+Caller interests: ${(callerMeta.interests || []).join(', ') || 'none listed'}.
+Return JSON ONLY: { "suggestions": ["msg1", "msg2", "msg3"] }`,
+                    temperature: 0.8,
+                    maxOutputTokens: 320,
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'OBJECT',
+                        properties: {
+                            suggestions: { type: 'ARRAY', items: { type: 'STRING' } }
+                        },
+                        required: ['suggestions']
+                    },
+                    timeoutMs: 4500
+                });
+                if (aiRes.text) {
+                    const parsed = JSON.parse(aiRes.text);
+                    if (Array.isArray(parsed?.suggestions) && parsed.suggestions.length > 0) {
+                        finalSuggestions = parsed.suggestions.slice(0, 3).map((s: any) => String(s));
+                    }
+                }
+            } catch {}
+        }
+
+        if (!finalSuggestions) {
+            // Shuffle and pick top 3 curated fallbacks
+            const shuffled = candidates.sort(() => 0.5 - Math.random());
+            finalSuggestions = shuffled.slice(0, 3);
+        }
 
         res.json({
             suggestions: finalSuggestions,
@@ -173,40 +208,30 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
         let reply = guruResponse(message, name, history || []);
 
         // TIER 2: Gemini AI — fires only when the expert system doesn't match
-        if (!reply && process.env.GEMINI_API_KEY) {
+        if (!reply && isGeminiConfigured()) {
             try {
                 const systemPrompt = `You are "Guru", a warm and wise relationship and matrimony coach on the LifePartner AI platform. Your role is to help Indian users navigate dating, marriage, and relationships with cultural sensitivity. The user's name is ${name}. Keep responses concise (2-3 sentences), conversational, and encouraging. Never give medical/legal advice.`;
 
                 // Build conversation history for Gemini
                 const geminiHistory = (history || []).slice(-6).map((h: any) => ({
-                    role: h.role === 'user' ? 'user' : 'model',
+                    role: (h.role === 'user' ? 'user' : 'model') as 'user' | 'model',
                     parts: [{ text: h.content }]
                 }));
 
-                const geminiResponse = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            system_instruction: { parts: [{ text: systemPrompt }] },
-                            contents: [
-                                ...geminiHistory,
-                                { role: 'user', parts: [{ text: message }] }
-                            ],
-                            generationConfig: { maxOutputTokens: 1500, temperature: 0.8 }
-                        }),
-                        signal: AbortSignal.timeout(8000)
-                    }
-                );
+                const geminiRes = await callGeminiGenerate({
+                    systemInstruction: systemPrompt,
+                    contents: [
+                        ...geminiHistory,
+                        { role: 'user', parts: [{ text: message }] }
+                    ],
+                    maxOutputTokens: 1500,
+                    temperature: 0.8,
+                    timeoutMs: 8000
+                });
 
-                if (geminiResponse.ok) {
-                    const data: any = await geminiResponse.json();
-                    const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (geminiText) {
-                        reply = geminiText.trim();
-                        console.log(`[AI Guru] Answered via Gemini AI.`);
-                    }
+                if (geminiRes.text) {
+                    reply = geminiRes.text;
+                    console.log(`[AI Guru] Answered via Gemini (${geminiRes.modelUsed}).`);
                 }
             } catch (geminiErr: any) {
                 console.warn(`[AI Guru] Gemini fallback failed: ${geminiErr.message}`);
@@ -278,38 +303,28 @@ Output strict JSON with EXACTLY these keys and types — no deviations:
 IMPORTANT: 'score' MUST be a plain integer (e.g. 6), NOT a string. Do NOT wrap in quotes.
 DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw JSON.`;
 
-        // ─── TIER 1: Try Gemini Flash ────────────────────────────────────────
+        // ─── TIER 1: Try Gemini (gemini-4-hydrogen -> gemini-2.5-flash) ─────
         let roastText: string | null = null;
 
-        try {
-            const geminiResponse = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: { parts: [{ text: systemPrompt }] },
-                        contents: [
-                            { role: 'user', parts: [{ text: JSON.stringify(analysisData) }] }
-                        ],
-                        generationConfig: { maxOutputTokens: 2000, temperature: 0.9 }
-                    }),
-                    signal: AbortSignal.timeout(12000)
-                }
-            );
+        if (isGeminiConfigured()) {
+            try {
+                const geminiRes = await callGeminiGenerate({
+                    systemInstruction: systemPrompt,
+                    prompt: JSON.stringify(analysisData),
+                    maxOutputTokens: 2000,
+                    temperature: 0.9,
+                    timeoutMs: 12000
+                });
 
-            if (geminiResponse.ok) {
-                const data: any = await geminiResponse.json();
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    roastText = text;
-                    console.log('[profile-roast] Answered via Gemini Flash ✅');
+                if (geminiRes.text) {
+                    roastText = geminiRes.text;
+                    console.log(`[profile-roast] Answered via Gemini (${geminiRes.modelUsed}) ✅`);
+                } else {
+                    console.warn('[profile-roast] Gemini unavailable — falling back to NVIDIA Gemma');
                 }
-            } else {
-                console.warn(`[profile-roast] Gemini returned ${geminiResponse.status} — falling back to NVIDIA Gemma`);
+            } catch (geminiErr: any) {
+                console.warn(`[profile-roast] Gemini failed: ${geminiErr.message} — falling back to NVIDIA Gemma`);
             }
-        } catch (geminiErr: any) {
-            console.warn(`[profile-roast] Gemini failed: ${geminiErr.message} — falling back to NVIDIA Gemma`);
         }
 
         // ─── TIER 2: NVIDIA Gemma-4-31B Fallback ─────────────────────────────
@@ -434,30 +449,18 @@ IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wra
         let compatibilityText: string | null = null;
 
         // ─── TIER 1: Gemini ────────────────────────────────────────
-        if (process.env.GEMINI_API_KEY) {
+        if (isGeminiConfigured()) {
             try {
-                const geminiResponse = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            system_instruction: { parts: [{ text: systemPrompt }] },
-                            contents: [
-                                { role: 'user', parts: [{ text: JSON.stringify({ Person1: dataA, Person2: dataB }) }] }
-                            ],
-                            generationConfig: { maxOutputTokens: 2000, temperature: 0.8 }
-                        }),
-                        signal: AbortSignal.timeout(10000)
-                    }
-                );
-                if (geminiResponse.ok) {
-                    const data: any = await geminiResponse.json();
-                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        compatibilityText = text;
-                        console.log('[compatibility] Answered via Gemini ✅');
-                    }
+                const geminiRes = await callGeminiGenerate({
+                    systemInstruction: systemPrompt,
+                    prompt: JSON.stringify({ Person1: dataA, Person2: dataB }),
+                    maxOutputTokens: 2000,
+                    temperature: 0.8,
+                    timeoutMs: 10000
+                });
+                if (geminiRes.text) {
+                    compatibilityText = geminiRes.text;
+                    console.log(`[compatibility] Answered via Gemini (${geminiRes.modelUsed}) ✅`);
                 }
             } catch (err: any) {
                 console.warn(`[compatibility] Gemini failed: ${err.message}`);

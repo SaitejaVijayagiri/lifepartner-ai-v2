@@ -7,6 +7,7 @@ import { trackGrowthEvent } from '../services/growthAnalytics';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline, getOnlineUserIds } from '../socket';
 import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, redactStoriesIfBlurred, getBlockedUserIdSet, getConnectedUserIdSet, resolveMatchStatus } from '../utils/photoUrl';
+import { getApprovedVerificationUserIds, hasMetadataIdVerification, isUserIdVerified } from '../utils/idVerification';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 import { AIMatchEngine } from '../services/aiMatchEngine';
 
@@ -600,6 +601,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
         }
 
         const eligibleOnlineUsers = onlineUsersDB.filter(u => isCandidateOfTargetGender(u, targetGender));
+        const approvedOnlineIds = await getApprovedVerificationUserIds(eligibleOnlineUsers.map(u => u.id));
         const onlineMembers = eligibleOnlineUsers.map(u => {
             const meta = (u.profiles?.metadata as any) || {};
             const photo = sanitizePhotoUrl(u.avatar_url || (u.profiles?.photos as any)?.[0] || meta.photos?.[0], u.full_name || u.id);
@@ -611,6 +613,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 name: u.full_name || 'Member',
                 age: u.age,
                 gender: u.gender,
+                isVerified: approvedOnlineIds.has(u.id) || hasMetadataIdVerification(meta),
                 photoUrl: photo,
                 avatar_url: photo,
                 location: [meta.location?.city || u.city, meta.location?.state || u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
@@ -806,6 +809,7 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         ]);
         const bestMatchStatus = resolveMatchStatus(sentBestReq?.status, receivedBestReq?.status);
         const bestShieldOn = isPhotoPrivacyShieldEnabled(meta);
+        const bestIsVerified = await isUserIdVerified(bestCandidate.id, meta);
 
         const locParts = [meta.location?.city || bestCandidate.city, meta.location?.state || bestCandidate.state].filter(Boolean);
         const locationStr = locParts.length > 0 ? locParts.join(', ') : 'Verified Member';
@@ -835,6 +839,7 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
             growthTip: bestAnalysis.growthTip,
             icebreaker: bestAnalysis.icebreaker,
             isOnline: isUserOnline(bestCandidate.id),
+            isVerified: bestIsVerified,
             match_status: bestMatchStatus,
             photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
             isBlurred: bestShieldOn && bestMatchStatus !== 'accepted' && bestMatchStatus !== 'connected' && bestCandidate.id !== userId,
@@ -1165,9 +1170,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         // Strictly filter candidates to guarantee 0% opposite gender leakage
         const strictlyFilteredCandidates = shuffledCandidates.filter(c => isCandidateOfTargetGender(c, expectedCandidateGender));
+        const approvedRecIds = await getApprovedVerificationUserIds(strictlyFilteredCandidates.map(c => c.id));
 
         const matches = await Promise.all(strictlyFilteredCandidates.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
+            const isIdVerified = approvedRecIds.has(c.id) || hasMetadataIdVerification(meta);
             const aiEngineResult = AIMatchEngine.computeMatch(me, c);
             let score = aiEngineResult.score;
             let reasons: string[] = [...aiEngineResult.reasons];
@@ -1312,7 +1319,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
             const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
             const matchStatus = resolveMatchStatus(sentRequest?.status, receivedRequest?.status);
-            const completeness = calculateProfileCompleteness(c, meta, (c.profiles?.photos as any[]) || meta.photos || []);
+            const completeness = calculateProfileCompleteness(c, meta, (c.profiles?.photos as any[]) || meta.photos || [], isIdVerified);
             if (completeness.completenessScore >= 80) {
                 score += 15;
             } else if (completeness.completenessScore < 50) {
@@ -1427,6 +1434,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 total_gifts: giftMap.get(c.id) || 0,
                 match_status: matchStatus,
                 is_liked: matchRecord?.is_liked || false,
+                isVerified: isIdVerified,
                 isPremium: c.is_premium || false,
                 isOnline: isUserOnline(c.id),
                 last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null,
@@ -1808,8 +1816,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         );
 
         const strictlyFilteredRows = rows.filter(c => isCandidateOfTargetGender(c, targetGenderCanonical));
+        const approvedSearchIds = await getApprovedVerificationUserIds(strictlyFilteredRows.map(c => c.id));
         const scoredMatchesArray = await Promise.all(strictlyFilteredRows.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
+            const isIdVerified = approvedSearchIds.has(c.id) || hasMetadataIdVerification(meta);
             // ... [Logic reused from original, copied below] ...
             // Safe Location Access
             let metaLoc = meta.location;
@@ -2081,6 +2091,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
                     { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
                 ),
+                isVerified: isIdVerified,
                 isPremium: c.is_premium || false,
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred,
@@ -2103,8 +2114,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         }));
 
         // Map Direct Exact Candidates (ID / Name / Handle Match)
+        const approvedExactIds = await getApprovedVerificationUserIds(exactCandidates.map(c => c.id));
         const mappedExact = exactCandidates.map(c => {
             const meta = (c.profiles?.metadata as any) || {};
+            const isIdVerified = approvedExactIds.has(c.id) || hasMetadataIdVerification(meta);
             const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
             const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
             const rawPhotoList = extractPhotosList(c.profiles, meta, c.avatar_url);
@@ -2181,6 +2194,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 stories: redactStoriesIfBlurred(mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []), isBlurred),
                 match_status: matchStatus,
                 is_liked: matchRecord?.is_liked || false,
+                isVerified: isIdVerified,
                 isPremium: c.is_premium || false,
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,

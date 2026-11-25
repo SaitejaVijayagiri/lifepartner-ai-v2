@@ -4,6 +4,10 @@ import StrangerChatLandingPage from '../stranger-chat/page';
 export const metadata: Metadata = {
     title: "Best Free Omegle Alternative 2026 - Random Video Chat with Strangers | LifePartner AI",
     description: "Looking for a safe Omegle alternative? LifePartner AI offers free random video chat with verified singles worldwide, zero subscription fees, and active AI safety filters.",
+    robots: {
+        index: false,
+        follow: false,
+    },
     keywords: [
         "omegle alternative",
         "best omegle alternative free",

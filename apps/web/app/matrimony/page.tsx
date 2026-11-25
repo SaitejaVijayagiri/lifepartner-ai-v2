@@ -20,12 +20,12 @@ export const metadata: Metadata = {
     'bharat matrimony alternative free'
   ],
   alternates: {
-    canonical: 'https://lifepartnerai.in/matrimony',
+    canonical: 'https://www.lifepartnerai.in/matrimony',
   },
   openGraph: {
     title: 'LifePartner AI Matrimony | #1 Free Verified Matrimony Worldwide',
     description: 'Find verified brides and grooms globally with zero subscription paywalls, direct chat, and Women-First safety.',
-    url: 'https://lifepartnerai.in/matrimony',
+    url: 'https://www.lifepartnerai.in/matrimony',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
@@ -88,7 +88,7 @@ export default function MatrimonyHubPage() {
     '@type': 'DatingService',
     'name': 'LifePartner AI Matrimony',
     'description': 'The world\'s #1 AI-powered 100% free matrimony platform connecting verified brides and grooms globally.',
-    'url': 'https://lifepartnerai.in/matrimony',
+    'url': 'https://www.lifepartnerai.in/matrimony',
     'areaServed': 'Worldwide',
     'offers': {
       '@type': 'Offer',
@@ -138,7 +138,7 @@ export default function MatrimonyHubPage() {
               href="/for-women"
               className="w-full sm:w-auto px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold rounded-2xl transition-all text-center flex items-center justify-center gap-2"
             >
-              <span>👑 Women's Safety & Free VIP</span>
+              <span>👑 Women&apos;s Safety &amp; Free VIP</span>
             </Link>
           </div>
         </div>

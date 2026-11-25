@@ -1225,6 +1225,9 @@ function DashboardContent() {
             // Safe Location search across multiple fields
             const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
 
+            // 0. ID-Verified Only Safety Filter
+            if (activeFilters.verifiedOnly && !match.isVerified && !match.isIdVerified) return false;
+
             // 1. Age Filter
             if (activeFilters.ageRange && Array.isArray(activeFilters.ageRange) && activeFilters.ageRange.length >= 2) {
                 if (age > 0 && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) return false;

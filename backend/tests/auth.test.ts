@@ -89,5 +89,63 @@ describe('Auth Routes (Integration)', () => {
             expect(res.body).toHaveProperty('error', 'Please use a valid, non-disposable email address.');
             expect(prisma.users.create).not.toHaveBeenCalled();
         });
+
+        it('rejects password overwrite on existing unverified user with non-matching password', async () => {
+            (prisma.users.findFirst as jest.Mock).mockResolvedValue({
+                id: 'unverified-123',
+                is_verified: false,
+                is_banned: false,
+                password_hash: '$2b$10$someStoredBcryptHashThatWillNotMatch1234567890123456'
+            });
+
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'victim@example.com',
+                    password: 'attackerPassword'
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toContain('User already exists');
+            expect(prisma.users.update).not.toHaveBeenCalled();
+        });
+
+        it('uppercases referral codes and stores default matrimony intent on signup', async () => {
+            (prisma.users.findFirst as jest.Mock).mockResolvedValue(null);
+            (prisma.users.findUnique as jest.Mock).mockResolvedValueOnce({ id: 'ref-user-1' });
+            (prisma.users.create as jest.Mock).mockResolvedValue({
+                id: 'user-456',
+                full_name: 'Priya Sharma',
+                gender: 'Female',
+                age: 26,
+                is_premium: true,
+                coins: 100
+            });
+
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'priya@example.com',
+                    password: 'password123',
+                    full_name: 'Priya Sharma',
+                    age: 26,
+                    gender: 'Female',
+                    referralCode: ' adit1234 '
+                });
+
+            expect(res.status).toBe(200);
+            expect(prisma.users.findUnique).toHaveBeenCalledWith({
+                where: { referral_code: 'ADIT1234' }
+            });
+            expect(prisma.profiles.create).toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.objectContaining({
+                    metadata: expect.objectContaining({
+                        intent: 'matrimony',
+                        gender: 'Female',
+                        age: 26
+                    })
+                })
+            }));
+        });
     });
 });

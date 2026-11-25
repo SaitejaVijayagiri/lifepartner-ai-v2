@@ -79,7 +79,7 @@ export async function generateMetadata(
             publishedTime: post.created_at,
         },
         alternates: {
-            canonical: `https://lifepartnerai.in/blog/${params.slug}`,
+            canonical: `https://www.lifepartnerai.in/blog/${params.slug}`,
         }
     };
 }
@@ -96,24 +96,24 @@ export default async function BlogPostPage({ params }: Props) {
         "@type": "BlogPosting",
         "headline": post.title,
         "description": post.excerpt || post.meta_description,
-        "image": (post as any).image || "https://lifepartnerai.in/og-image.jpg",
+        "image": (post as any).image || "https://www.lifepartnerai.in/og-image.jpg",
         "datePublished": post.created_at,
         "dateModified": post.created_at,
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": `https://lifepartnerai.in/blog/${params.slug}`
+            "@id": `https://www.lifepartnerai.in/blog/${params.slug}`
         },
         "author": {
             "@type": "Organization",
             "name": "LifePartner AI Editorial",
-            "url": "https://lifepartnerai.in"
+            "url": "https://www.lifepartnerai.in"
         },
         "publisher": {
             "@type": "Organization",
             "name": "LifePartner AI",
             "logo": {
                 "@type": "ImageObject",
-                "url": "https://lifepartnerai.in/icon-512x512.png"
+                "url": "https://www.lifepartnerai.in/icon-512x512.png"
             }
         }
     };
@@ -126,19 +126,19 @@ export default async function BlogPostPage({ params }: Props) {
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Home",
-                "item": "https://lifepartnerai.in"
+                "item": "https://www.lifepartnerai.in"
             },
             {
                 "@type": "ListItem",
                 "position": 2,
                 "name": "Blog & Guides",
-                "item": "https://lifepartnerai.in/blog"
+                "item": "https://www.lifepartnerai.in/blog"
             },
             {
                 "@type": "ListItem",
                 "position": 3,
                 "name": post.title,
-                "item": `https://lifepartnerai.in/blog/${params.slug}`
+                "item": `https://www.lifepartnerai.in/blog/${params.slug}`
             }
         ]
     };
@@ -194,7 +194,30 @@ export default async function BlogPostPage({ params }: Props) {
                             dangerouslySetInnerHTML={{ __html: post.content }}
                         />
 
-                        <div className="mt-16 pt-8 border-t border-gray-100 dark:border-gray-800">
+                        <div className="mt-12 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-pink-50 via-rose-50 to-indigo-50 dark:from-pink-950/30 dark:via-rose-950/20 dark:to-indigo-950/30 border border-pink-200 dark:border-pink-900/50 text-center">
+                            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-2">
+                                Safe, Privacy-First Matchmaking Built for Women
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl mx-auto mb-5">
+                                Masked phone numbers, blur-until-accept photos, AI Anti-Creep Shield, and 100% free lifetime messaging for verified women.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-3">
+                                <a
+                                    href="/register?gender=Female"
+                                    className="px-6 py-2.5 rounded-full bg-pink-600 hover:bg-pink-700 text-white text-sm font-bold shadow-sm transition-colors"
+                                >
+                                    Join Free as Female →
+                                </a>
+                                <a
+                                    href="/for-women"
+                                    className="px-6 py-2.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm font-bold hover:border-pink-300 transition-colors"
+                                >
+                                    How We Protect Women
+                                </a>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800">
                             <GoogleAdBanner format="rectangle" />
                         </div>
                     </div>

@@ -100,7 +100,7 @@ export default function ConnectionWorkflowSection() {
               {/* Bottom Decorative Indicator */}
               <div className="mt-6 pt-4 border-t border-gray-200/60 dark:border-gray-800 flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 gap-1.5">
                 <CheckCircle2 size={14} />
-                <span>Verified Seamless Step</span>
+                <span>Privacy-Protected Step</span>
               </div>
             </div>
           ))}

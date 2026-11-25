@@ -20,12 +20,12 @@ export const metadata: Metadata = {
     'music match dating app'
   ],
   alternates: {
-    canonical: 'https://lifepartnerai.in/dating',
+    canonical: 'https://www.lifepartnerai.in/dating',
   },
   openGraph: {
     title: 'LifePartner AI Dating | #1 Free Worldwide Dating App',
     description: 'Meet verified singles worldwide with zero subscription paywalls, direct chat, stories, snaps, and Women-First safety.',
-    url: 'https://lifepartnerai.in/dating',
+    url: 'https://www.lifepartnerai.in/dating',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
@@ -52,19 +52,14 @@ const DATING_LOCATIONS = [
 ];
 
 const DATING_INTENTS = [
-  { name: 'Date Handsome Korean Boys (BTS & K-Culture)', slug: 'date-handsome-korean-boys' },
-  { name: 'Meet Korean Oppa Singles Worldwide', slug: 'meet-korean-oppa-singles' },
-  { name: 'Handsome German Men & European Bachelors', slug: 'handsome-german-men-dating' },
-  { name: 'German Gentlemen Matrimony & Dating', slug: 'german-gentlemen-matrimony' },
-  { name: 'Meet Handsome International Guys', slug: 'meet-handsome-international-guys' },
-  { name: 'Safe Dating App for Women (Anti-Creep)', slug: 'safe-dating-app-for-women' },
-  { name: 'Women-First Dating App', slug: 'women-first-dating-app' },
-  { name: 'Free VIP Dating for Women', slug: 'free-vip-dating-for-women' },
+  { name: 'Safe Matchmaking App for Women (Anti-Creep)', slug: 'safe-dating-app-for-women' },
+  { name: 'Women-First Serious Matchmaking', slug: 'women-first-dating-app' },
+  { name: 'Free VIP Access for Women', slug: 'free-vip-dating-for-women' },
   { name: 'Global Chat with Verified Singles', slug: 'global-chat-with-verified-singles' },
-  { name: 'Anti-Harassment Dating App', slug: 'anti-harassment-dating-app' },
-  { name: 'Online Chat with International Singles', slug: 'chat-with-international-guys' },
-  { name: 'Online Chat with Strangers (Safe Alternative)', slug: 'online-chat-with-strangers' },
-  { name: 'Free Random Video Chat (Moderated)', slug: 'free-random-video-chat' },
+  { name: 'Anti-Harassment Matchmaking Platform', slug: 'anti-harassment-dating-app' },
+  { name: 'Safe Matrimony for Indian & NRI Women', slug: 'safe-matrimony-for-women' },
+  { name: 'Privacy-First Matchmaking in India', slug: 'privacy-first-matrimony-india' },
+  { name: 'ID-Verified Profiles & AI Compatibility', slug: 'id-verified-matrimony-profiles' },
 ];
 
 export default function DatingHubPage() {
@@ -73,7 +68,7 @@ export default function DatingHubPage() {
     '@type': 'DatingService',
     'name': 'LifePartner AI Dating',
     'description': 'The world\'s #1 AI-powered 100% free dating platform for serious, intentional singles worldwide.',
-    'url': 'https://lifepartnerai.in/dating',
+    'url': 'https://www.lifepartnerai.in/dating',
     'areaServed': 'Worldwide',
     'offers': {
       '@type': 'Offer',

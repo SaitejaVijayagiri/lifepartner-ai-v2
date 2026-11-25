@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, Star, CheckCircle, Shield, Share2, Trash2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ interface ProfileClientProps {
 
 export default function ProfileClient({ initialProfile, profileId }: ProfileClientProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const isFamilyView = searchParams?.get('family') === '1';
     const [profile, setProfile] = useState<any>(initialProfile);
     const [loading, setLoading] = useState(false);
     const toast = useToast();
@@ -210,6 +212,21 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
             </div>
 
             <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
+                {isFamilyView && (
+                    <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                                <Shield size={18} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-indigo-950 dark:text-indigo-100">Family-Safe Read-Only Biodata</p>
+                                <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80">
+                                    Curated for parents &amp; family review. Private phone numbers, email, and direct chats remain protected.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* 1. Hero Card (Biodata Style) */}
                 <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors">
@@ -289,14 +306,20 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                         <div className="p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-gray-800 relative transition-colors">
                             {/* Ornamental Corner */}
                             <div className="absolute top-0 right-0 p-4 opacity-10 dark:opacity-5 pointer-events-none">
-                                <img src="https://www.svgrepo.com/show/486228/ornamental-design.svg" className="w-32 h-32" />
+                                <img src="https://www.svgrepo.com/show/486228/ornamental-design.svg" alt="" className="w-32 h-32" />
                             </div>
 
                             <div className="space-y-6 relative z-10">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wider border border-green-200 dark:border-green-800">
-                                        <Shield size={14} /> ID Verified
-                                    </div>
+                                    {Boolean(profile.isVerified || profile.isIdVerified) ? (
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider border border-blue-200 dark:border-blue-800">
+                                            <Shield size={14} /> Identity Verified
+                                        </div>
+                                    ) : (
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider border border-slate-200 dark:border-slate-700">
+                                            <CheckCircle size={14} /> Email Verified
+                                        </div>
+                                    )}
                                     {displayProfileId && (
                                         <button
                                             type="button"
@@ -347,6 +370,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         </div>
                                     )}
                                 </div>
+                                 {!isFamilyView && (
                                  <div className="pt-8 flex gap-4 w-full">
                                     {user ? (
                                         <>
@@ -393,6 +417,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         <Share2 size={20} />
                                     </Button>
                                 </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -626,8 +651,8 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                 <div className="grid grid-cols-2 gap-y-3 gap-x-8">
                                     {profile.family.type && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Family Type</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.type}</p></div>}
                                     {profile.family.values && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Family Values</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.values}</p></div>}
-                                    {profile.family.fatherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Father's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.fatherOccupation}</p></div>}
-                                    {profile.family.motherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Mother's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.motherOccupation}</p></div>}
+                                    {profile.family.fatherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Father&apos;s Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.fatherOccupation}</p></div>}
+                                    {profile.family.motherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Mother&apos;s Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.motherOccupation}</p></div>}
                                     {(profile.family.brothers !== undefined && profile.family.brothers !== '') && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Brothers</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.brothers}</p></div>}
                                     {(profile.family.sisters !== undefined && profile.family.sisters !== '') && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Sisters</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.sisters}</p></div>}
                                     {profile.family.nativePlace && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Native Place</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.nativePlace}</p></div>}
@@ -755,7 +780,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                                     <div className="bg-white/70 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 dark:border-gray-700 shadow-sm">
                                         <p className="text-indigo-950 dark:text-indigo-100 text-xl leading-relaxed font-medium">
-                                            "{profile.summary}"
+                                            &ldquo;{profile.summary}&rdquo;
                                         </p>
                                     </div>
 

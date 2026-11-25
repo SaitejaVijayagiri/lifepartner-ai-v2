@@ -1,3 +1,5 @@
+import { callGeminiGenerate, isGeminiConfigured } from '../utils/geminiClient';
+
 /**
  * ModerationService — AI-Powered Photo Validation with Gemini Vision
  * 
@@ -5,9 +7,8 @@
  * uploaded photos for faces. However, this caused catastrophic Out-Of-Memory crashes
  * on the Render free tier (512MB RAM limit).
  * 
- * CURRENT: Uses Gemini Vision API (gemini-2.5-flash) for face detection via a 
- * pure HTTP call — zero local RAM overhead. Falls back gracefully if the API
- * is unavailable to avoid blocking legitimate user onboarding.
+ * CURRENT: Uses Gemini Vision API (gemini-4-hydrogen -> gemini-2.5-flash) for face & safety
+ * detection via pure HTTP calls — zero local RAM overhead.
  */
 
 export class ModerationService {
@@ -121,9 +122,7 @@ export class ModerationService {
     private static async detectFaceWithGemini(
         base64Data: string
     ): Promise<{ hasFace: boolean; isProhibited?: boolean; apiUnavailable?: boolean; reason?: string }> {
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        if (!apiKey || apiKey.includes('your_') || apiKey.length < 10) {
+        if (!isGeminiConfigured()) {
             console.warn('[ModerationService] GEMINI_API_KEY not configured — skipping face detection.');
             return { hasFace: true }; // Soft pass if API key is not set
         }
@@ -160,67 +159,40 @@ You MUST REJECT (return hasFace: false, isProhibited: false) ONLY if the image c
 
 If you reject or flag it, provide a short, polite reason.`;
 
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inlineData: { mimeType, data: rawB64 } }
-                            ]
-                        }],
-                        generationConfig: {
-                            temperature: 0,
-                            maxOutputTokens: 120,
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "OBJECT",
-                                properties: {
-                                    hasFace: { 
-                                        type: "BOOLEAN", 
-                                        description: "True if a real human person/face is visible, False otherwise." 
-                                    },
-                                    isProhibited: {
-                                        type: "BOOLEAN",
-                                        description: "True if image contains nudity, sexual content, violence, or prohibited material."
-                                    },
-                                    reason: { 
-                                        type: "STRING", 
-                                        description: "If hasFace is false or isProhibited is true, a polite reason why." 
-                                    }
-                                },
-                                required: ["hasFace", "isProhibited"]
-                            }
+            const geminiRes = await callGeminiGenerate({
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType, data: rawB64 } }
+                    ]
+                }],
+                temperature: 0,
+                maxOutputTokens: 160,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: 'OBJECT',
+                    properties: {
+                        hasFace: {
+                            type: 'BOOLEAN',
+                            description: 'True if a real human person/face is visible, False otherwise.'
+                        },
+                        isProhibited: {
+                            type: 'BOOLEAN',
+                            description: 'True if image contains nudity, sexual content, violence, or prohibited material.'
+                        },
+                        reason: {
+                            type: 'STRING',
+                            description: 'If hasFace is false or isProhibited is true, a polite reason why.'
                         }
-                    }),
-                    signal: AbortSignal.timeout(10000) // 10s timeout
-                }
-            );
+                    },
+                    required: ['hasFace', 'isProhibited']
+                },
+                timeoutMs: 10000
+            });
 
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error(`[ModerationService] Gemini API error ${response.status}: ${errText.substring(0, 200)}`);
-                // If Gemini rejected due to safety filters, do NOT soft-pass!
-                if (errText.includes('SAFETY') || errText.includes('HARM_CATEGORY')) {
-                    return {
-                        hasFace: false,
-                        isProhibited: true,
-                        reason: 'Photo rejected due to safety policy violation.'
-                    };
-                }
-                return { hasFace: false, apiUnavailable: true };
-            }
-
-            const data: any = await response.json();
-            
-            // Check for Gemini Safety block
-            const blockReason = data?.promptFeedback?.blockReason;
-            const finishReason = data?.candidates?.[0]?.finishReason;
-            if (blockReason === 'SAFETY' || finishReason === 'SAFETY') {
-                console.warn(`🚨 [ModerationService] Gemini safety filter triggered: blockReason=${blockReason}, finishReason=${finishReason}`);
+            if (geminiRes.blockedBySafety) {
+                console.warn('🚨 [ModerationService] Gemini safety filter triggered.');
                 return {
                     hasFace: false,
                     isProhibited: true,
@@ -228,28 +200,26 @@ If you reject or flag it, provide a short, polite reason.`;
                 };
             }
 
-            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!rawText) {
-                console.error('[ModerationService] Empty response from Gemini.');
+            if (!geminiRes.text) {
+                console.error('[ModerationService] Empty/unavailable response from Gemini.');
                 return { hasFace: false, apiUnavailable: true };
             }
 
             let result;
             try {
-                result = JSON.parse(rawText);
-            } catch (err) {
-                console.error('[ModerationService] Failed to parse Gemini structured JSON:', rawText);
+                result = JSON.parse(geminiRes.text);
+            } catch {
+                console.error('[ModerationService] Failed to parse Gemini structured JSON:', geminiRes.text);
                 return { hasFace: false, apiUnavailable: true };
             }
 
-            console.log(`[ModerationService] Gemini check result:`, result);
-            
+            console.log(`[ModerationService] Gemini (${geminiRes.modelUsed}) check result:`, result);
+
             return {
                 hasFace: result.hasFace === true,
                 isProhibited: result.isProhibited === true,
                 reason: result.reason ? `Photo rejected: ${result.reason}` : undefined
             };
-
         } catch (e: any) {
             console.error('[ModerationService] Gemini Vision call failed or timed out:', e.message);
             return { hasFace: false, apiUnavailable: true };

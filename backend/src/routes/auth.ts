@@ -49,6 +49,7 @@ router.post('/register', async (req, res) => {
         const parsedAge = age ? parseInt(String(age), 10) : undefined;
         const validAge = (parsedAge && !isNaN(parsedAge) && parsedAge >= 18 && parsedAge <= 99) ? parsedAge : undefined;
         const cleanGender = gender ? (String(gender).trim().toLowerCase() === 'female' ? 'Female' : 'Male') : undefined;
+        const cleanIntent = req.body?.intent && String(req.body.intent).trim().toLowerCase() === 'dating' ? 'dating' : 'matrimony';
 
         // 1. Validation
         if ((!email && !phone) || !password) {
@@ -88,12 +89,12 @@ router.post('/register', async (req, res) => {
                 : false;
 
             // Self-Healing / Idempotent Retry Logic:
-            // If user was previously unverified OR retried signup with the exact same password (e.g. mobile double-tap / slow network retry),
-            // update their demographic fields and log them in seamlessly instead of blocking with an error!
-            if ((existingUser.is_verified === false || isMatchingPassword) && !existingUser.is_banned) {
+            // Only activate & log in an existing account when the submitted password matches the stored hash
+            // (prevents unauthorized password overwrite on unverified accounts).
+            if (isMatchingPassword && !existingUser.is_banned) {
                 console.log(`♻️ Self-Healing / Idempotent Registration for user: ${email || phone}`);
 
-                const passwordHash = isMatchingPassword ? existingUser.password_hash : await bcrypt.hash(password, 10);
+                const passwordHash = existingUser.password_hash;
                 const resolvedGender = cleanGender || existingUser.gender || null;
                 const resolvedAge = validAge || existingUser.age || null;
                 const isFemale = resolvedGender === 'Female';
@@ -129,6 +130,7 @@ router.post('/register', async (req, res) => {
                             metadata: {
                                 ...(resolvedGender ? { gender: resolvedGender } : {}),
                                 ...(resolvedAge ? { age: resolvedAge } : {}),
+                                intent: cleanIntent,
                                 onboarding_completed: Boolean(resolvedGender && resolvedAge)
                             },
                             photos: [],
@@ -140,6 +142,7 @@ router.post('/register', async (req, res) => {
                                 ...prevMeta,
                                 ...(resolvedGender ? { gender: resolvedGender } : {}),
                                 ...(resolvedAge ? { age: resolvedAge } : {}),
+                                intent: prevMeta.intent || cleanIntent,
                                 onboarding_completed: Boolean(prevMeta.onboarding_completed || (resolvedGender && resolvedAge))
                             }
                         }
@@ -180,9 +183,10 @@ router.post('/register', async (req, res) => {
         const newUser = await prisma.$transaction(async (tx: any) => {
             // Referral Logic
             let referredByUserId = null;
-            if (req.body.referralCode) {
+            const cleanRefCode = req.body.referralCode ? String(req.body.referralCode).trim().toUpperCase() : '';
+            if (cleanRefCode) {
                 const referrer = await tx.users.findUnique({
-                    where: { referral_code: req.body.referralCode }
+                    where: { referral_code: cleanRefCode }
                 });
                 if (referrer) {
                     referredByUserId = referrer.id;
@@ -225,6 +229,7 @@ router.post('/register', async (req, res) => {
                     metadata: {
                         ...(cleanGender ? { gender: cleanGender } : {}),
                         ...(validAge ? { age: validAge } : {}),
+                        intent: cleanIntent,
                         onboarding_completed: false
                     },
                     photos: [],
@@ -490,9 +495,9 @@ router.post('/resend-otp', async (req, res) => {
         if (!email) return res.status(400).json({ error: "Email required" });
         const emailNormalized = email.trim().toLowerCase();
 
-        // 1. Check User
-        const user = await prisma.users.findUnique({
-            where: { email: emailNormalized },
+        // 1. Check User (case-insensitive)
+        const user = await prisma.users.findFirst({
+            where: { email: { equals: emailNormalized, mode: 'insensitive' as const } },
             select: { id: true, full_name: true, is_verified: true }
         });
 
@@ -561,9 +566,9 @@ router.post('/forgot-password', async (req, res) => {
 
         const emailNormalized = email.trim().toLowerCase();
 
-        // 1. Check User exists
-        const user = await prisma.users.findUnique({
-            where: { email: emailNormalized },
+        // 1. Check User exists (case-insensitive)
+        const user = await prisma.users.findFirst({
+            where: { email: { equals: emailNormalized, mode: 'insensitive' as const } },
             select: { id: true, full_name: true }
         });
 
@@ -647,9 +652,9 @@ router.post('/reset-password', async (req, res) => {
 
         const emailNormalized = email.trim().toLowerCase();
 
-        // 1. Validate User & OTP
-        const user = await prisma.users.findUnique({
-            where: { email: emailNormalized },
+        // 1. Validate User & OTP (case-insensitive email)
+        const user = await prisma.users.findFirst({
+            where: { email: { equals: emailNormalized, mode: 'insensitive' as const } },
             select: { id: true, otp_code: true, otp_expires_at: true }
         });
 
@@ -717,11 +722,15 @@ function isClearlyFemaleName(name?: string | null): boolean {
 
 router.post('/google', async (req, res) => {
     try {
-        const { code, gender: pendingGender, age: pendingAge } = req.body;
+        const { code, gender: pendingGender, age: pendingAge, intent: pendingIntent, country: pendingCountry } = req.body;
         const parsedGoogleAge = pendingAge ? parseInt(String(pendingAge), 10) : undefined;
         const validGoogleAge = (parsedGoogleAge && !isNaN(parsedGoogleAge) && parsedGoogleAge >= 18 && parsedGoogleAge <= 99) ? parsedGoogleAge : undefined;
         const cleanGoogleGender = pendingGender
             ? (String(pendingGender).trim().toLowerCase() === 'female' ? 'Female' : (String(pendingGender).trim().toLowerCase() === 'male' ? 'Male' : undefined))
+            : undefined;
+        const cleanGoogleIntent = pendingIntent && String(pendingIntent).trim().toLowerCase() === 'dating' ? 'dating' : 'matrimony';
+        const cleanGoogleCountry = (typeof pendingCountry === 'string' && pendingCountry.trim() && pendingCountry.trim() !== 'Worldwide')
+            ? pendingCountry.trim()
             : undefined;
 
         // 1. Exchange Code for Tokens
@@ -732,7 +741,7 @@ router.post('/google', async (req, res) => {
                 code,
                 client_id: process.env.GOOGLE_CLIENT_ID!,
                 client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                redirect_uri: req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://lifepartnerai.in/auth/callback/google',
+                redirect_uri: req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://www.lifepartnerai.in/auth/callback/google',
                 grant_type: 'authorization_code'
             })
         });
@@ -855,6 +864,7 @@ router.post('/google', async (req, res) => {
                         referral_code: myReferralCode,
                         gender: resolvedGender,
                         age: validGoogleAge || null,
+                        ...(cleanGoogleCountry ? { location_name: cleanGoogleCountry } : {}),
                         free_direct_messages: isFemale ? 999999 : 3,
                         coins: isFemale ? 100 : 0,
                         is_premium: isFemale ? true : false
@@ -869,6 +879,7 @@ router.post('/google', async (req, res) => {
                         metadata: {
                             ...(resolvedGender ? { gender: resolvedGender } : {}),
                             ...(validGoogleAge ? { age: validGoogleAge } : {}),
+                            intent: cleanGoogleIntent,
                             onboarding_completed: false
                         }
                     }

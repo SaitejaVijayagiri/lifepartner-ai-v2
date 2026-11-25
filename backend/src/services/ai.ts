@@ -1,3 +1,9 @@
+import fs from 'fs';
+import path from 'path';
+import { callGeminiGenerate, isGeminiConfigured } from '../utils/geminiClient';
+import { AIMatchEngine } from './aiMatchEngine';
+import { analyzeTextRuleBased } from './localAnalysis';
+
 export class AIService {
     private extractor: any = null;
 
@@ -368,54 +374,41 @@ export class AIService {
     }
 
     async analyzeImage(imageBuffer: Buffer, promptText: string) {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (apiKey && !apiKey.includes('your_') && apiKey.length > 10) {
+        if (isGeminiConfigured()) {
             try {
                 const base64Data = imageBuffer.toString('base64');
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: promptText },
-                                    { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-                                ]
-                            }],
-                            generationConfig: {
-                                temperature: 0.7,
-                                maxOutputTokens: 500,
-                                responseMimeType: "application/json",
-                                responseSchema: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        vibe: { type: "STRING" },
-                                        tags: { type: "ARRAY", items: { type: "STRING" } },
-                                        summary: { type: "STRING" }
-                                    },
-                                    required: ["vibe", "tags", "summary"]
-                                }
-                            }
-                        }),
-                        signal: AbortSignal.timeout(12000)
-                    }
-                );
+                const result = await callGeminiGenerate({
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { text: promptText },
+                            { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+                        ]
+                    }],
+                    temperature: 0.7,
+                    maxOutputTokens: 500,
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'OBJECT',
+                        properties: {
+                            vibe: { type: 'STRING' },
+                            tags: { type: 'ARRAY', items: { type: 'STRING' } },
+                            summary: { type: 'STRING' }
+                        },
+                        required: ['vibe', 'tags', 'summary']
+                    },
+                    timeoutMs: 12000
+                });
 
-                if (response.ok) {
-                    const data: any = await response.json();
-                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        return JSON.parse(text);
-                    }
+                if (result.text) {
+                    return JSON.parse(result.text);
                 }
             } catch (err: any) {
                 console.warn(`[analyzeImage] Gemini Vision call failed: ${err.message}`);
             }
         }
 
-        // fallback to "Friendly Vibe" since image processing locally is too CPU intensive
+        // fallback to "Friendly Vibe" when API is unconfigured or unavailable
         return {
             vibe: "Friendly & Authentic User",
             tags: ["Verified", "Portrait"],
@@ -534,27 +527,155 @@ export class AIService {
         return new Array(384).fill(0);
     }
 
-    // --- Legacy AI Feature Fallbacks (Fixes TS Build Errors) ---
+    // --- AI Compatibility, Couple Scenarios & Multimodal Analysis ---
 
     async generateRelationshipScenario(profileA: any, profileB: any): Promise<string> {
-        return "You find a stray puppy together in the rain. How do you handle it?";
+        const fallbackScenarios = [
+            "One of you receives a dream job offer in a new city right after your engagement. How do you decide together?",
+            "Both families have conflicting traditions for an upcoming festival. How do you honor both without stress?",
+            "You have a free Sunday after a tiring week—one wants quiet time at home while the other craves a spontaneous road trip. What's your compromise?",
+            "You decide to plan your first shared monthly budget, balancing family support, travel, and savings. How do you split priorities?"
+        ];
+
+        const bioA = String(profileA?.bio || profileA?.aboutMe || '').slice(0, 300);
+        const bioB = String(profileB?.bio || profileB?.aboutMe || '').slice(0, 300);
+
+        if (isGeminiConfigured()) {
+            const res = await callGeminiGenerate({
+                systemInstruction: 'You are a warm, culturally aware relationship coach creating a realistic compatibility scenario question for two people considering marriage.',
+                prompt: `Person A bio/traits: ${bioA || 'Serious partner'}\nPerson B bio/traits: ${bioB || 'Serious partner'}\n\nWrite ONE thoughtful, practical 1-2 sentence scenario question that helps them discover how they handle values, family, lifestyle, or teamwork together. Output plain text only.`,
+                temperature: 0.85,
+                maxOutputTokens: 180,
+                timeoutMs: 8000
+            });
+            if (res.text && res.text.length > 15) {
+                return res.text.replace(/^["']|["']$/g, '').trim();
+            }
+        }
+
+        const idx = Math.abs((bioA.length + bioB.length) % fallbackScenarios.length);
+        return fallbackScenarios[idx];
     }
 
     async generateDeepAnalysis(profileA: any, profileB: any): Promise<string> {
-        return "# Compatibility Report\n\n## Overview\nYou both seem to share a lot of common ground!\n\n## Details\nBased on your profiles, you have excellent potential for a meaningful connection.";
+        const engine = AIMatchEngine.computeMatch(profileA || {}, profileB || {});
+        const nameA = profileA?.full_name || 'Partner A';
+        const nameB = profileB?.full_name || 'Partner B';
+
+        if (isGeminiConfigured()) {
+            const summaryInput = {
+                partnerA: {
+                    name: nameA,
+                    age: profileA?.age,
+                    profession: profileA?.career?.profession,
+                    city: profileA?.location?.city || profileA?.city,
+                    interests: profileA?.interests,
+                    bio: String(profileA?.aboutMe || profileA?.bio || '').slice(0, 400)
+                },
+                partnerB: {
+                    name: nameB,
+                    age: profileB?.age,
+                    profession: profileB?.career?.profession,
+                    city: profileB?.location?.city || profileB?.city,
+                    interests: profileB?.interests,
+                    bio: String(profileB?.aboutMe || profileB?.bio || '').slice(0, 400)
+                },
+                computedScores: engine.dimensions,
+                strengths: engine.strengths
+            };
+
+            const res = await callGeminiGenerate({
+                systemInstruction: 'You are an insightful relationship & matrimony compatibility analyst. Write a respectful, grounded compatibility audit in clean Markdown.',
+                prompt: `Generate a structured Compatibility Audit for these two profiles:\n${JSON.stringify(summaryInput)}\n\nUse clean Markdown with '# Compatibility Report' and '##' headings covering: Overview, Personality & Values Alignment, Lifestyle & Daily Rhythm, Communication & Growth Tip, and Suggested First Meaningful Conversation. Keep it constructive, warm, and concise (300-450 words).`,
+                temperature: 0.7,
+                maxOutputTokens: 1200,
+                timeoutMs: 12000
+            });
+
+            if (res.text && res.text.length > 120) {
+                return res.text;
+            }
+        }
+
+        const strengthBullets = engine.strengths.length > 0
+            ? engine.strengths.map(s => `- ${s}`).join('\n')
+            : '- Complementary backgrounds with room for mutual discovery';
+
+        return `# Compatibility Report\n\n## Overview\n${nameA} and ${nameB} show an overall compatibility score of ${engine.score}% across personality (${engine.dimensions.personality}%), values (${engine.dimensions.values}%), lifestyle (${engine.dimensions.lifestyle}%), and cosmic harmony (${engine.dimensions.cosmic}%).\n\n## Key Strengths\n${strengthBullets}\n\n## Growth & Communication Tip\n${engine.growthTip}\n\n## Suggested Conversation Starter\n${engine.icebreaker}`;
     }
 
     async transcribeAudio(audioPath: string): Promise<string> {
-        return "Hello, I am looking for a serious relationship.";
+        if (audioPath && fs.existsSync(audioPath) && isGeminiConfigured()) {
+            try {
+                const stats = fs.statSync(audioPath);
+                if (stats.size > 0 && stats.size <= 8 * 1024 * 1024) {
+                    const ext = path.extname(audioPath).toLowerCase();
+                    const mimeMap: Record<string, string> = {
+                        '.mp3': 'audio/mp3',
+                        '.wav': 'audio/wav',
+                        '.webm': 'audio/webm',
+                        '.m4a': 'audio/mp4',
+                        '.ogg': 'audio/ogg'
+                    };
+                    const mimeType = mimeMap[ext] || 'audio/mp4';
+                    const audioBase64 = fs.readFileSync(audioPath).toString('base64');
+
+                    const res = await callGeminiGenerate({
+                        contents: [{
+                            role: 'user',
+                            parts: [
+                                { text: 'Transcribe this spoken voice introduction accurately in plain text. If silent or unclear, summarize what was heard.' },
+                                { inlineData: { mimeType, data: audioBase64 } }
+                            ]
+                        }],
+                        temperature: 0.2,
+                        maxOutputTokens: 500,
+                        timeoutMs: 15000
+                    });
+
+                    if (res.text) {
+                        return res.text;
+                    }
+                }
+            } catch (err: any) {
+                console.warn(`[transcribeAudio] Audio transcription failed: ${err?.message || err}`);
+            }
+        }
+
+        return "Voice introduction shared by member.";
     }
 
     async analyzePersonalityFromText(text: string): Promise<any> {
-        return {
-            vibe: "Calm & Articulate",
-            tags: ["Intellectual", "Soft-spoken"],
-            confidence: 0.92,
-            summary: "Voice tone is steady and low-pitch, indicating confidence and calmness."
-        };
+        const cleanText = (text || '').trim();
+        if (cleanText.length >= 10 && isGeminiConfigured()) {
+            try {
+                const res = await callGeminiGenerate({
+                    prompt: `Analyze the personality & communication vibe of this profile introduction:\n"${cleanText.slice(0, 1500)}"\n\nReturn strict JSON with vibe (2-3 words), tags (3-4 personality tags), confidence (0.5-0.98), and a warm 1-sentence summary.`,
+                    temperature: 0.5,
+                    maxOutputTokens: 300,
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'OBJECT',
+                        properties: {
+                            vibe: { type: 'STRING' },
+                            tags: { type: 'ARRAY', items: { type: 'STRING' } },
+                            confidence: { type: 'NUMBER' },
+                            summary: { type: 'STRING' }
+                        },
+                        required: ['vibe', 'tags', 'confidence', 'summary']
+                    },
+                    timeoutMs: 10000
+                });
+
+                if (res.text) {
+                    return JSON.parse(res.text);
+                }
+            } catch (err: any) {
+                console.warn(`[analyzePersonalityFromText] Gemini fallback to rule-based: ${err?.message || err}`);
+            }
+        }
+
+        return analyzeTextRuleBased(cleanText);
     }
 }
 

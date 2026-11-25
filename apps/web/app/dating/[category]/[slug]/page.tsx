@@ -34,10 +34,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         openGraph: {
             title,
             description,
-            images: ['https://lifepartnerai.in/og-image.jpg'],
+            images: ['https://www.lifepartnerai.in/og-image.jpg'],
         },
         alternates: {
-            canonical: `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
+            canonical: `https://www.lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
         }
     };
 }
@@ -63,7 +63,7 @@ export default async function SEODatingPage({ params }: PageProps) {
         "@type": "DatingService",
         "name": `Dating and Matchmaking in ${displayValue}`,
         "description": `Browse verified singles in ${displayValue} and start dating for free.`,
-        "url": `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
+        "url": `https://www.lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
         "areaServed": displayCategory === 'Location' ? displayValue : 'Worldwide',
         "offers": {
             "@type": "Offer",
@@ -81,25 +81,25 @@ export default async function SEODatingPage({ params }: PageProps) {
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Home",
-                "item": "https://lifepartnerai.in"
+                "item": "https://www.lifepartnerai.in"
             },
             {
                 "@type": "ListItem",
                 "position": 2,
                 "name": "Dating",
-                "item": "https://lifepartnerai.in/dating"
+                "item": "https://www.lifepartnerai.in/dating"
             },
             {
                 "@type": "ListItem",
                 "position": 3,
                 "name": displayCategory,
-                "item": `https://lifepartnerai.in/dating/${category.toLowerCase()}`
+                "item": `https://www.lifepartnerai.in/dating/${category.toLowerCase()}`
             },
             {
                 "@type": "ListItem",
                 "position": 4,
                 "name": displayValue,
-                "item": `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`
+                "item": `https://www.lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`
             }
         ]
     };
@@ -145,7 +145,7 @@ export default async function SEODatingPage({ params }: PageProps) {
                         <ShareButton
                             title={`Meet verified singles in ${displayValue}`}
                             text={`Check out verified dating profiles in ${displayValue} on LifePartner AI!`}
-                            url={`https://lifepartnerai.in/dating/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=dating_seo`}
+                            url={`https://www.lifepartnerai.in/dating/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=dating_seo`}
                         />
                     </div>
                 </div>
@@ -272,7 +272,7 @@ export default async function SEODatingPage({ params }: PageProps) {
                     </Button>
                 </Link>
                 <p className="mt-6 text-xs text-gray-500">
-                    Trusted by 10,000+ Verified Users
+                    100% Privacy-First • Zero Telemarketer Spam • Serious Matchmaking
                 </p>
             </div>
         </div>

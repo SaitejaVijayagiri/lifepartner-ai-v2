@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Filter, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { X, Filter, ChevronDown, ChevronUp, Sparkles, ShieldCheck } from 'lucide-react';
 import { Button } from './ui/button';
 import { RELIGION_SYMBOLS } from '@/lib/religionUtils';
 
@@ -26,6 +26,7 @@ export interface FilterState {
     country?: string;
     minIncome: number | null;
     caste: string;
+    verifiedOnly?: boolean;
 }
 
 export const GLOBAL_COUNTRIES = [
@@ -58,6 +59,7 @@ const DEFAULT_FILTERS: FilterState = {
     country: '',
     minIncome: null,
     caste: '',
+    verifiedOnly: false,
 };
 
 export default function FilterModal({ isOpen, onClose, onApply, initialFilters }: FilterModalProps) {
@@ -149,6 +151,27 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
 
                 {/* Filter Sections */}
                 <div className="flex-1 overflow-y-auto">
+                    {/* Trust & Verification Toggle */}
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-blue-50/50 dark:bg-blue-950/20">
+                        <label className="flex items-center justify-between gap-3 cursor-pointer">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                    <ShieldCheck size={18} />
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100">ID-Verified Profiles Only</div>
+                                    <div className="text-[11px] text-gray-500 dark:text-gray-400">Show only members who passed selfie/ID review</div>
+                                </div>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={Boolean(filters.verifiedOnly)}
+                                onChange={(e) => setFilters({ ...filters, verifiedOnly: e.target.checked })}
+                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                        </label>
+                    </div>
+
                     {/* Age Range */}
                     <Section id="age" title="Age Range">
                         <div className="space-y-4">
@@ -250,9 +273,9 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 />
                             </div>
                             <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 font-medium">
-                                <span>4'0"</span>
+                                <span>4&apos;0&quot;</span>
                                 <span className="text-indigo-600 font-semibold">{formatHeight(filters.heightRange[0])} - {formatHeight(filters.heightRange[1])}</span>
-                                <span>7'0"</span>
+                                <span>7&apos;0&quot;</span>
                             </div>
                         </div>
                     </Section>

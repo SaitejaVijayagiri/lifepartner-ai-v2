@@ -163,8 +163,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     <div className="flex items-center gap-2">
                         <h2 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">{profile.name}, {profile.age}</h2>
-                        {profile.is_verified && (
-                            <span className="bg-blue-500 text-white p-0.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center w-4 h-4 shadow-md shadow-blue-500/30">
+                        {Boolean(profile.isIdVerified ?? profile.isVerified) && (
+                            <span className="bg-blue-500 text-white p-0.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center w-4 h-4 shadow-md shadow-blue-500/30" title="Identity Verified">
                                 ✓
                             </span>
                         )}
@@ -222,16 +222,45 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 {displayHandle}
                             </span>
                         )}
-                        {profile.is_verified && (
+                        {Boolean(profile.isIdVerified ?? profile.isVerified) && (
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
-                                <Shield size={10} className="fill-blue-600" /> Verified
+                                <Shield size={10} className="fill-blue-600" /> ID Verified
                             </span>
                         )}
                     </div>
                     <div className="flex gap-2">
-                        {!profile.is_verified && (
+                        {!Boolean(profile.isIdVerified ?? profile.isVerified) && (
                             <RequestVerificationButton />
                         )}
+
+                        <Button
+                            variant="outline"
+                            onClick={async () => {
+                                const familyUrl = `${window.location.origin}/profile/${displayProfileId || profile.id || profile.user_id}?family=1`;
+                                const summaryText = `📋 Family Biodata Summary for ${profile.name} (${profile.age ? `${profile.age} yrs` : ''}${profile.career?.profession ? ` • ${profile.career.profession}` : ''}) on LifePartner AI:`;
+                                if (navigator.share) {
+                                    try {
+                                        await navigator.share({
+                                            title: `${profile.name} • Family Biodata`,
+                                            text: summaryText,
+                                            url: familyUrl
+                                        });
+                                        return;
+                                    } catch (e) {}
+                                }
+                                try {
+                                    await navigator.clipboard.writeText(`${summaryText}\n${familyUrl}`);
+                                    toast.success("Family-safe biodata link copied!");
+                                } catch (e) {
+                                    toast.error("Failed to copy family link");
+                                }
+                            }}
+                            size="sm"
+                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            title="Share read-only biodata with parents or family"
+                        >
+                            👨‍👩‍👧 Family Link
+                        </Button>
 
                         <Button
                             onClick={async () => {
@@ -505,7 +534,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                     <span>✨</span> Personal Bio
                                 </h3>
                                 <p className="text-indigo-900/90 dark:text-indigo-300 leading-relaxed text-sm sm:text-[15px] font-medium relative z-10 italic">
-                                    "{profile.aboutMe || "No bio added yet."}"
+                                    &ldquo;{profile.aboutMe || "No bio added yet."}&rdquo;
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -620,7 +649,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                         <span className="text-xl">💭</span> Expectations
                                     </h3>
                                     <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
-                                        "{exp}"
+                                        &ldquo;{exp}&rdquo;
                                     </p>
                                 </div>
                                 ) : null;

@@ -58,60 +58,60 @@ export default function GlobalOverviewBanner() {
         {/* 3. Visual 3-Fact Infographic Cards */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 mb-3">
-            Why Everyone Worldwide Chooses Us
+            Why Women &amp; Serious Families Trust Us
           </h2>
           <h3 className="text-3xl md:text-4xl font-heading font-black text-gray-900 dark:text-gray-100">
-            Dating & Matrimony Made 100% Free & Transparent.
+            Matrimony &amp; Matchmaking Built on Privacy.
           </h3>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
 
-          {/* Card 1: 100% Free */}
+          {/* Card 1: Free Mutual-Match Chat & Zero Spam */}
           <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-200/80 dark:border-gray-800 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-green-100 dark:bg-green-950/60 text-green-600 dark:text-green-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <MessageCircle size={28} />
             </div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-2.5 py-1 rounded-full mb-3 inline-block">
-              Zero Subscription Fees
+              Zero Telemarketers
             </span>
             <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-              100% Free Direct Chat
+              Free Mutual-Match Chat
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Unlike traditional matrimony and dating apps that charge $30/month just to send a message, LifePartner AI lets you register, match, and chat instantly with zero paywalls.
+              Unlike legacy portals that paywall every reply or sell your contact info to sales call centers, LifePartner AI lets mutual matches chat and call safely inside the app.
             </p>
           </div>
 
-          {/* Card 2: Snaps, Stories & Music */}
+          {/* Card 2: Blurred Photos & Family-Safe Biodata */}
           <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-200/80 dark:border-gray-800 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Camera size={28} />
+              <Lock size={28} />
             </div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950 px-2.5 py-1 rounded-full mb-3 inline-block">
-              Authentic Vibes
+              Consent-First Photos
             </span>
             <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-              Snaps, Stories & Music
+              Photo Blur &amp; Family Biodata
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Get to know the real person! View daily photo snaps, 24-hour video stories, and listen to shared Spotify song anthems before deciding to meet.
+              Keep your profile photos blurred until an interest is accepted, share view-once snaps in chat, and create read-only Family Biodata links for parents to review.
             </p>
           </div>
 
-          {/* Card 3: AI Compatibility & Real Humans */}
+          {/* Card 3: Selfie & Govt ID Verification */}
           <div className="bg-white dark:bg-gray-950 p-8 rounded-[2.5rem] border border-gray-200/80 dark:border-gray-800 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
             <div className="w-14 h-14 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
               <ShieldCheck size={28} />
             </div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 rounded-full mb-3 inline-block">
-              Anti-Catfish Security
+              Anti-Catfish &amp; Scam Shield
             </span>
             <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-              AI Verification & Safe Match
+              Govt ID &amp; Selfie Verification
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Bank-grade identity verification ensures you only talk to real, verified human singles. AI semantic matching introduces soulmates aligned with your values.
+              Basic email OTP confirmation is never shown as Govt ID Verified. Filter specifically for ID-verified profiles backed by anti-spoof screening and repeat-report auto-quarantine.
             </p>
           </div>
 

@@ -1,4 +1,3 @@
-
 import { Metadata, ResolvingMetadata } from 'next';
 import ProfileClient from '@/components/ProfileClient';
 import Script from 'next/script';
@@ -54,26 +53,31 @@ export async function generateMetadata(
 
     const name = profile.name || 'Member';
     const age = profile.age ? `${profile.age} yrs` : '';
-    const profession = profile.role || profile.career?.profession || profile.profession || 'Verified Member';
+    const profession = profile.role || profile.career?.profession || profile.profession || 'Member';
     const location = profile.location?.city || profile.location?.district || profile.city || 'India';
     const photos = (profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? [] : (profile.photos || []);
     const bio = profile.bio || profile.aboutMe || `Connect with ${name} on LifePartner AI.`;
     const summaryHeader = [name, age, profession, location].filter(Boolean).join(' • ');
+    const canonicalUrl = `https://www.lifepartnerai.in/profile/${params.id}`;
 
     return {
         title: `${name} - ${profession} in ${location} | LifePartner AI`,
         description: bio.substring(0, 160),
+        alternates: {
+            canonical: canonicalUrl,
+        },
         openGraph: {
             title: `${summaryHeader} | LifePartner AI`,
             description: `${bio.substring(0, 140)}... Connect with ${name} on LifePartner AI.`,
-            images: photos.length > 0 ? [photos[0]] : ['https://lifepartnerai.in/og-image.jpg'],
+            url: canonicalUrl,
+            images: photos.length > 0 ? [photos[0]] : ['https://www.lifepartnerai.in/og-image.jpg'],
             type: 'profile',
         },
         twitter: {
             card: 'summary_large_image',
             title: `${summaryHeader} is on LifePartner AI`,
             description: `Connect with ${name} from ${location}.`,
-            images: photos.length > 0 ? [photos[0]] : ['https://lifepartnerai.in/og-image.jpg'],
+            images: photos.length > 0 ? [photos[0]] : ['https://www.lifepartnerai.in/og-image.jpg'],
         },
     };
 }
@@ -92,9 +96,9 @@ export default async function ProfilePage({ params }: Props) {
             addressLocality: profile.location?.city,
             addressCountry: 'IN'
         },
-        image: (profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? 'https://lifepartnerai.in/og-image.jpg' : profile.photos?.[0],
+        image: (profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? 'https://www.lifepartnerai.in/og-image.jpg' : profile.photos?.[0],
         description: profile.bio || profile.aboutMe,
-        url: `https://lifepartnerai.in/profile/${profile.id}`
+        url: `https://www.lifepartnerai.in/profile/${profile.id}`
     } : null;
 
     return (

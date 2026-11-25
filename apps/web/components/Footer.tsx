@@ -22,7 +22,7 @@ export default function Footer() {
                     <h4 className="font-bold text-lg mb-4 text-gray-100">Company</h4>
                     <ul className="space-y-2 text-gray-400 text-sm">
                         <li><Link href="/for-women" className="text-pink-400 font-bold hover:text-pink-300 transition-colors">👑 For Women (VIP Free)</Link></li>
-                        <li><Link href="/download" className="text-purple-400 font-bold hover:text-purple-300 transition-colors">📱 Download Android App (APK / AAB)</Link></li>
+                        <li><Link href="/download" className="text-purple-400 font-bold hover:text-purple-300 transition-colors">📱 Mobile Web &amp; Android APK</Link></li>
                         <li><Link href="/about" className="hover:text-indigo-400 transition-colors">About Us</Link></li>
                         <li><Link href="/careers" className="hover:text-indigo-400 transition-colors">Careers</Link></li>
                         <li><Link href="/contact" className="hover:text-indigo-400 transition-colors">Contact</Link></li>
@@ -61,7 +61,7 @@ export default function Footer() {
                         </a>
                     </div>
                     <p className="text-gray-500 text-xs">
-                        Follow us for success stories and dating tips.
+                        Follow us for safety guides and serious matchmaking tips.
                     </p>
                 </div>
             </div>
@@ -83,10 +83,9 @@ export default function Footer() {
                 <div>
                     <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Matchmaking</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/india" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">🇮🇳 India Matrimony & Dating</Link></li>
-                        <li><Link href="/korean-dating" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors">🇰🇷 Date Korean Boys (한국 싱글)</Link></li>
-                        <li><Link href="/german-dating" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">🇩🇪 German Gentlemen (Männer)</Link></li>
-                        <li><Link href="/international-men" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors">🌍 Handsome Global Bachelors</Link></li>
+                        <li><Link href="/india" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">🇮🇳 India Matrimony</Link></li>
+                        <li><Link href="/matrimony" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors">💍 Worldwide Matrimony</Link></li>
+                        <li><Link href="/international-men" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors">🌍 Global Verified Matches</Link></li>
                         <li><Link href="/japan" className="hover:text-pink-400 transition-colors">🇯🇵 Japan (日本)</Link></li>
                         <li><Link href="/korea" className="hover:text-pink-400 transition-colors">🇰🇷 Korea (한국)</Link></li>
                         <li><Link href="/singapore" className="hover:text-pink-400 transition-colors">🇸🇬 Singapore Singles</Link></li>
@@ -127,15 +126,14 @@ export default function Footer() {
                     </ul>
                 </div>
                 <div>
-                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Global & Women-First</h5>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Safety &amp; Women-First</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/chat-with-boys" className="text-pink-400 font-bold hover:text-pink-300 transition-colors">💬 Chat with Cute Boys Safely</Link></li>
-                        <li><Link href="/for-women" className="text-pink-400 hover:text-pink-300 transition-colors">Safe Dating for Women</Link></li>
-                        <li><Link href="/korean-dating" className="text-rose-400 hover:text-rose-300 transition-colors">Date Korean Boys (BTS & K-Culture)</Link></li>
-                        <li><Link href="/german-dating" className="text-amber-400 hover:text-amber-300 transition-colors">German Gentlemen Dating</Link></li>
-                        <li><Link href="/dating/intent/safe-dating-app-for-women" className="hover:text-indigo-400 transition-colors">Women-First Dating App</Link></li>
-                        <li><Link href="/dating/intent/global-chat-with-verified-singles" className="hover:text-indigo-400 transition-colors">Global Verified Singles</Link></li>
-                        <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony Chat</Link></li>
+                        <li><Link href="/for-women" className="text-pink-400 font-bold hover:text-pink-300 transition-colors">👑 For Women (VIP Free)</Link></li>
+                        <li><Link href="/safety" className="text-emerald-400 hover:text-emerald-300 transition-colors">🛡️ Women&apos;s Safety Kit</Link></li>
+                        <li><Link href="/matrimony/intent/safe-matrimony-for-women" className="hover:text-indigo-400 transition-colors">Safe Matrimony for Women</Link></li>
+                        <li><Link href="/matrimony/intent/privacy-first-matrimony-india" className="hover:text-indigo-400 transition-colors">Privacy-First Matrimony</Link></li>
+                        <li><Link href="/matrimony/intent/id-verified-matrimony-profiles" className="hover:text-indigo-400 transition-colors">ID-Verified Profiles</Link></li>
+                        <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony</Link></li>
                         <li><Link href="/matrimony/intent/free-matrimony-chat-without-payment" className="hover:text-indigo-400 transition-colors">Free Direct Chat</Link></li>
                     </ul>
                 </div>

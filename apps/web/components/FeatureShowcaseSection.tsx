@@ -21,13 +21,13 @@ export default function FeatureShowcaseSection() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles size={14} className="text-pink-400" /> Express Yourself Worldwide
+            <Sparkles size={14} className="text-pink-400" /> Privacy-Controlled Expression
           </div>
           <h2 className="text-4xl md:text-6xl font-heading font-black tracking-tight text-white mb-6">
-            Snaps, Stories & Music Vibe.
+            More Than Static Biodatas.
           </h2>
           <p className="text-slate-300 text-lg md:text-xl font-light leading-relaxed">
-            Dating and matrimony shouldn't be dry resumes. Share authentic daily moments, express your personality through 24h stories, and connect deeply over shared music.
+            Matchmaking shouldn&apos;t feel like a cold spreadsheet. Share private view-once snaps with matches you trust, post daily stories, and connect over shared music taste.
           </p>
         </div>
 
@@ -91,7 +91,7 @@ export default function FeatureShowcaseSection() {
                     <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                       <ShieldCheck size={16} />
                     </div>
-                    <span>Bank-grade screenshot protection and privacy lock.</span>
+                    <span>Blur-until-accepted controls and view-once privacy timers.</span>
                   </li>
                   <li className="flex items-center gap-3 text-sm text-slate-200">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
@@ -306,7 +306,7 @@ export default function FeatureShowcaseSection() {
                           <div>
                             <span className="text-xs text-cyan-400 font-bold uppercase tracking-wider">Shared Anthem</span>
                             <h4 className="text-base font-black text-white">Kesariya (Arijit Singh)</h4>
-                            <p className="text-xs text-slate-400">Top 1 on Kabir's Spotify</p>
+                            <p className="text-xs text-slate-400">Top 1 on Kabir&apos;s Spotify</p>
                           </div>
                         </div>
 
@@ -334,7 +334,7 @@ export default function FeatureShowcaseSection() {
 
                     <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-2xl p-3 text-center">
                       <span className="text-[11px] text-cyan-200 font-medium">
-                        ✨ "You both love Arijit Singh, Coldplay & AR Rahman!"
+                        ✨ &ldquo;You both love Arijit Singh, Coldplay &amp; AR Rahman!&rdquo;
                       </span>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 import { trackGrowthEvent } from '../services/growthAnalytics';
 import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, areUsersConnected, getBlockedUserIdSet } from '../utils/photoUrl';
+import { getApprovedVerificationUserIds, hasMetadataIdVerification, isUserIdVerified } from '../utils/idVerification';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 import { mergeStoriesHelper } from './profile';
 
@@ -156,11 +157,15 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
             }
         });
 
+        const requesterIds = requests.map(r => r.users_interactions_from_user_idTousers?.id).filter(Boolean) as string[];
+        const approvedVerifiedIds = await getApprovedVerificationUserIds(requesterIds);
+
         const formattedRequests = requests.map(r => {
             const fromUser = r.users_interactions_from_user_idTousers;
             if (!fromUser) return null; // Safe guard for deleted accounts
 
             const meta: any = fromUser.profiles?.metadata || {};
+            const isIdVerified = approvedVerifiedIds.has(fromUser.id) || hasMetadataIdVerification(meta);
             const rawPhotoList = extractPhotosList(fromUser.profiles, meta, fromUser.avatar_url);
             const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, fromUser.full_name || fromUser.id)).filter(Boolean);
             const mainPhoto = sanitizePhotoUrl(
@@ -188,7 +193,7 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                     name: fromUser.full_name || 'Member',
                     age: fromUser.age,
                     gender: fromUser.gender,
-                    isVerified: fromUser.is_verified ?? false,
+                    isVerified: isIdVerified,
                     isPremium: fromUser.is_premium ?? false,
                     photoUrl: mainPhoto,
                     photos: finalPhotos,
@@ -540,6 +545,25 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             const targetName = target.full_name || "User";
             const targetEmail = target.email;
             const isPremium = user.is_premium;
+
+            // Anti-spam outreach protection: cap unverified accounts at 25 new requests / 24h
+            const senderIdVerified = await isUserIdVerified(userId, (user.profiles?.metadata as any) || {});
+            if (!senderIdVerified && typeof (prisma.interactions as any)?.count === 'function') {
+                const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                const recentInterests = await prisma.interactions.count({
+                    where: {
+                        from_user_id: userId,
+                        type: 'REQUEST',
+                        created_at: { gte: last24h }
+                    }
+                });
+                if (Number(recentInterests || 0) >= 25) {
+                    return res.status(429).json({
+                        error: 'Daily outreach limit reached for unverified profiles. Complete free selfie/ID verification to unlock higher outreach.',
+                        requiresIdVerification: true
+                    });
+                }
+            }
 
             // 1. Check if we already sent a request to this user
         const existingInteraction = await prisma.interactions.findUnique({
@@ -929,8 +953,30 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
         // Quota check only if NOT already connected
         if (!isAlreadyConnected) {
-            // Female users get 100% UNLIMITED free direct messaging to drive female initiation!
-            if (!user.is_premium && !isFemale && (user.free_direct_messages || 0) <= 0) {
+            const hasRealPhoto = Boolean(user.avatar_url && !user.avatar_url.includes('dicebear') && user.avatar_url.trim() !== '');
+            const senderIdVerified = await isUserIdVerified(userId, (user.profiles?.metadata as any) || {});
+            const hasVerifiedFemaleVip = isFemale && (hasRealPhoto || senderIdVerified);
+
+            // Prevent fake photo-less accounts selecting Female from blasting unlimited cold DMs
+            if (isFemale && !hasVerifiedFemaleVip && typeof (prisma.interactions as any)?.count === 'function') {
+                const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                const coldDmsToday = await prisma.interactions.count({
+                    where: {
+                        from_user_id: userId,
+                        status: 'connected',
+                        created_at: { gte: last24h }
+                    }
+                });
+                if (Number(coldDmsToday || 0) >= 3) {
+                    return res.status(403).json({
+                        error: "Verification Required",
+                        message: "Upload a clear profile photo or complete free ID verification to unlock unlimited Women VIP Direct Messages."
+                    });
+                }
+            }
+
+            // Female users with a real photo or ID check get 100% UNLIMITED free direct messaging!
+            if (!user.is_premium && !hasVerifiedFemaleVip && (user.free_direct_messages || 0) <= 0) {
                 return res.status(403).json({ 
                     error: "Limit Reached", 
                     message: "You have run out of free Direct Messages. Upgrade to Premium for unlimited!" 

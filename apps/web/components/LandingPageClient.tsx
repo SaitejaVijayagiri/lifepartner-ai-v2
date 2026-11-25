@@ -4,24 +4,22 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus, Crown, Download } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, CheckCircle, Zap, BrainCircuit, ShieldCheck, Lock, MapPin, Calendar, Camera, Eye, EyeOff, UserPlus, Crown, Download } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 import FloatingMobileSignupBar from '@/components/FloatingMobileSignupBar';
 import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 import PublicMatchCard from '@/components/PublicMatchCard';
-import SocialProofToasts from '@/components/SocialProofToasts';
 import FeatureShowcaseSection from '@/components/FeatureShowcaseSection';
 import WomenSafetyBanner from '@/components/WomenSafetyBanner';
 import ConnectionWorkflowSection from '@/components/ConnectionWorkflowSection';
 import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
-import GooglePlayTesterCard from '@/components/GooglePlayTesterCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/ui/Toast';
 import { api, getApiUrl } from '@/lib/api';
 import { detectVisitorGeo, VisitorGeo } from '@/lib/geoDetect';
-import { isNativePlatform } from '@/lib/notifications';
+import { isNativePlatform, Notifications } from '@/lib/notifications';
 import NativeAppGate from '@/components/NativeAppGate';
 import { growthTracker } from '@/lib/growthTracker';
 
@@ -35,6 +33,7 @@ export default function LandingPageClient() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [isNativeApp, setIsNativeApp] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Live Visitor Geo & Curiosity Metrics
   const [visitorGeo, setVisitorGeo] = useState<VisitorGeo>({
@@ -90,12 +89,12 @@ export default function LandingPageClient() {
 
     const oauthState = encodeURIComponent(JSON.stringify({
       gender: signupForm.gender,
-      age: signupForm.age || '24',
+      ...(signupForm.age ? { age: signupForm.age } : {}),
       country: visitorGeo.country && visitorGeo.country !== 'Worldwide' ? visitorGeo.country : '',
       intent: signupForm.intent || 'matrimony'
     }));
 
-    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent&state=${oauthState}`;
+    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=select_account&state=${oauthState}`;
     window.location.href = startUrl;
   };
 
@@ -154,13 +153,16 @@ export default function LandingPageClient() {
         localStorage.removeItem('matches_cache_v2');
         localStorage.removeItem('lifepartner_onboarding_data');
         localStorage.removeItem('lifepartner_onboarding_step');
+        localStorage.removeItem('onboarding_completed');
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify({
           id: res.userId,
           name: signupForm.full_name.trim(),
           gender: signupForm.gender,
-          age: ageNum
+          age: ageNum,
+          is_premium: Boolean(res.user?.is_premium ?? signupForm.gender === 'Female'),
+          onboarding_completed: false
         }));
         if (typeof window !== 'undefined') {
           const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
@@ -169,8 +171,9 @@ export default function LandingPageClient() {
             if (typeof bridge.setAuthToken === 'function') bridge.setAuthToken(res.token);
           }
         }
+        Notifications.init().catch(() => {});
         toast.success(signupForm.gender === 'Female'
-          ? "Welcome Queen! 👑 Your Free Lifetime VIP is active!"
+          ? "Welcome Queen! 👑 Your Free VIP & Women-First Safety tools are active!"
           : "Account created successfully! Welcome 🎉"
         );
         router.replace('/onboarding');
@@ -202,13 +205,16 @@ export default function LandingPageClient() {
         localStorage.removeItem('matches_cache_v2');
         localStorage.removeItem('lifepartner_onboarding_data');
         localStorage.removeItem('lifepartner_onboarding_step');
+        localStorage.removeItem('onboarding_completed');
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify({
           id: res.userId,
           name: signupForm.full_name.trim(),
           gender: signupForm.gender,
-          age: parseInt(signupForm.age, 10) || 24
+          age: parseInt(signupForm.age, 10) || 24,
+          is_premium: Boolean(res.user?.is_premium ?? signupForm.gender === 'Female'),
+          onboarding_completed: false
         }));
         if (typeof window !== 'undefined') {
           const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
@@ -217,6 +223,7 @@ export default function LandingPageClient() {
             if (typeof bridge.setAuthToken === 'function') bridge.setAuthToken(res.token);
           }
         }
+        Notifications.init().catch(() => {});
         toast.success("Email verified! Welcome to LifePartner AI 🎉");
         router.replace('/onboarding');
       }
@@ -284,13 +291,30 @@ export default function LandingPageClient() {
       }
     };
     fetchProfiles();
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  const handleInstallWebApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice.catch(() => null);
+      setDeferredPrompt(null);
+    } else if (typeof window !== 'undefined') {
+      toast.info("Open your browser menu (⋮ or Share icon) and choose 'Add to Home Screen' for instant Web App access.");
+    }
+  };
 
   const handleShareMatrimony = async () => {
     const shareData = {
-      title: 'LifePartner AI | 100% Free Matrimony & Matchmaking',
-      text: 'Find your life partner on LifePartner AI Matrimony! 100% verified profiles, zero paywalls, direct chat, and smart AI matchmaking.',
-      url: 'https://lifepartnerai.in/matrimony'
+      title: 'LifePartner AI | Privacy-First Matrimony & Serious Matchmaking',
+      text: 'Find your life partner on LifePartner AI Matrimony! ID-verified profiles, zero telemarketer spam, free mutual-match chat, and Women-First privacy controls.',
+      url: 'https://www.lifepartnerai.in/matrimony'
     };
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -353,7 +377,6 @@ export default function LandingPageClient() {
 
       <Navbar />
       <WhatsAppFloat />
-      <SocialProofToasts />
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-28 lg:pt-36 pb-16 lg:pb-28 overflow-hidden min-h-screen flex items-center">
@@ -367,21 +390,14 @@ export default function LandingPageClient() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
           <div className="text-left relative">
 
-            {/* Dual Intent Selector Pills + Women VIP Pill */}
+            {/* Dual Intent Selector Pills + Women Safety Pill */}
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <button
-                onClick={() => setQuickIntent('dating')}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
-                  quickIntent === 'dating'
-                    ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white ring-2 ring-pink-300 shadow-md scale-105'
-                    : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-pink-300'
-                }`}
-              >
-                <Sparkles size={14} className={`shrink-0 ${quickIntent === 'dating' ? 'text-white' : 'text-pink-500'}`} />
-                <span>{t('heroDatingPill')}</span>
-              </button>
-              <button
-                onClick={() => setQuickIntent('matrimony')}
+                type="button"
+                onClick={() => {
+                  setQuickIntent('matrimony');
+                  setSignupForm(prev => ({ ...prev, intent: 'matrimony' }));
+                }}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
                   quickIntent === 'matrimony'
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white ring-2 ring-indigo-300 shadow-md scale-105'
@@ -391,19 +407,34 @@ export default function LandingPageClient() {
                 <Heart size={14} className={`shrink-0 ${quickIntent === 'matrimony' ? 'text-white' : 'text-indigo-500'}`} />
                 <span>{t('heroMatrimonyPill')}</span>
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickIntent('dating');
+                  setSignupForm(prev => ({ ...prev, intent: 'dating' }));
+                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  quickIntent === 'dating'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white ring-2 ring-pink-300 shadow-md scale-105'
+                    : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-pink-300'
+                }`}
+              >
+                <Sparkles size={14} className={`shrink-0 ${quickIntent === 'dating' ? 'text-white' : 'text-pink-500'}`} />
+                <span>{t('heroDatingPill')}</span>
+              </button>
               <Link
                 href="/for-women"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 dark:from-pink-950/40 dark:to-purple-950/40 text-pink-700 dark:text-pink-300 border border-pink-300/70 dark:border-pink-800 hover:scale-105 hover:bg-pink-100/50 dark:hover:bg-pink-900/30 transition-all shadow-sm"
               >
                 <Crown size={14} className="text-amber-500 fill-amber-500 shrink-0" />
-                <span>👑 For Women: Free Lifetime VIP & Anti-Creep Shield</span>
+                <span>👑 For Women: Free Safety &amp; VIP Chat</span>
               </Link>
               <Link
                 href="#download-app"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white dark:bg-gray-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:scale-105 hover:border-indigo-400 transition-all shadow-sm"
               >
                 <Smartphone size={14} className="text-indigo-500 shrink-0" />
-                <span>📱 Android App (APK & AAB)</span>
+                <span>📱 Mobile Web &amp; Android APK</span>
               </Link>
             </div>
 
@@ -414,9 +445,20 @@ export default function LandingPageClient() {
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-6 sm:mb-8 leading-relaxed font-light">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-4 sm:mb-5 leading-relaxed font-light">
               {t('heroSub')}
             </p>
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mb-6 sm:mb-8">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                <ShieldCheck size={13} /> Zero Telemarketer Calls
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
+                <CheckCircle size={13} /> Free Mutual-Match Chat
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/80 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                <Lock size={13} /> Women-First Safety
+              </span>
+            </div>
 
             {/* Interactive Dual-Tab Hero Widget: Instant Signup vs Match Search */}
             <div id="hero-signup-widget" className="bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800 transition-all">
@@ -436,7 +478,7 @@ export default function LandingPageClient() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-indigo-600 text-[11px] sm:text-xs shrink-0 pl-2">
-                  <span>🔥 {visitorGeo.activeCount} Singles Active Today</span>
+                  <span>🛡️ Privacy-First &amp; Zero Spam</span>
                 </div>
               </div>
 
@@ -560,7 +602,7 @@ export default function LandingPageClient() {
                     </div>
 
                     <div className="pt-2 text-center border-t border-gray-100 dark:border-gray-800">
-                      <p className="text-[11px] text-gray-400 mb-1.5">Didn't get email or prefer 1-click?</p>
+                      <p className="text-[11px] text-gray-400 mb-1.5">Didn&apos;t get email or prefer 1-click?</p>
                       <button
                         type="button"
                         onClick={handleGoogleSignIn}
@@ -616,7 +658,7 @@ export default function LandingPageClient() {
                         <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-pink-50 via-rose-50 to-purple-50 dark:from-pink-950/50 dark:via-purple-950/40 dark:to-gray-900 border border-pink-200 dark:border-pink-800 text-[11px] text-pink-900 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200">
                           <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
                           <span>
-                            <strong>Queen VIP Active:</strong> 100% Free Unlimited Direct Chat • 100 Welcome Coins • AI Anti-Creep Shield.
+                            <strong>Queen VIP Safety Active:</strong> Free Unlimited Mutual &amp; Direct Chat (with photo or ID check) • Blurred-Photo Lock • AI Anti-Creep &amp; Scam Shield.
                           </span>
                         </div>
                       )}
@@ -742,7 +784,7 @@ export default function LandingPageClient() {
                       )}
                     </button>
                     <p className="text-[11px] text-center text-gray-400 dark:text-gray-500 font-medium">
-                      🔒 100% Free Forever • Zero Subscription Fees • No Credit Card Required
+                      🔒 Free Mutual-Match Chat • Zero Telemarketer Calls • Phone Numbers Masked
                     </p>
                   </form>
                 )
@@ -779,8 +821,8 @@ export default function LandingPageClient() {
                         onChange={(e) => setQuickIntent(e.target.value as any)}
                         className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="dating">Worldwide Dating</option>
-                        <option value="matrimony">Matrimony</option>
+                        <option value="matrimony">Serious Matrimony</option>
+                        <option value="dating">Intentional Dating</option>
                       </select>
                     </div>
                     <div>
@@ -791,21 +833,21 @@ export default function LandingPageClient() {
                         className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="Worldwide">Worldwide (190+ Countries)</option>
-                        <option value="Russia">Russia 🇷🇺 (Moscow, St. Petersburg)</option>
+                        <option value="India">India 🇮🇳</option>
+                        <option value="USA">USA &amp; Canada 🇺🇸🇨🇦</option>
+                        <option value="UK">United Kingdom &amp; Europe 🇬🇧🇪🇺</option>
+                        <option value="UAE">UAE &amp; Gulf 🇦🇪</option>
+                        <option value="Australia">Australia 🇦🇺</option>
+                        <option value="Singapore">Singapore 🇸🇬</option>
                         <option value="Japan">Japan 🇯🇵</option>
                         <option value="South Korea">South Korea 🇰🇷</option>
-                        <option value="China">China / Hong Kong 🇨🇳</option>
+                        <option value="Russia">Russia 🇷🇺</option>
                         <option value="Philippines">Philippines 🇵🇭</option>
                         <option value="Indonesia">Indonesia 🇮🇩</option>
                         <option value="Malaysia">Malaysia 🇲🇾</option>
                         <option value="Vietnam">Vietnam 🇻🇳</option>
-                        <option value="Venezuela">Venezuela 🇻🇪</option>
                         <option value="Brazil">Brazil 🇧🇷</option>
                         <option value="Africa">Africa (Nigeria, Kenya, SA) 🌍</option>
-                        <option value="USA">USA & Canada 🇺🇸🇨🇦</option>
-                        <option value="UK">United Kingdom & Europe 🇬🇧🇪🇺</option>
-                        <option value="India">India 🇮🇳</option>
-                        <option value="Australia">Australia 🇦🇺</option>
                       </select>
                     </div>
                   </div>
@@ -830,42 +872,34 @@ export default function LandingPageClient() {
               )}
             </div>
 
-            {/* High Conversion Trust Bar */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-8">
+            {/* Honest Verification & Privacy Guarantees */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-6">
               <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle size={14} /> {t('trust100Free')}
               </span>
-              <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/40 px-2 py-0.5 rounded-full border border-pink-200 dark:border-pink-800">
+              <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/40 px-2.5 py-0.5 rounded-full border border-pink-200 dark:border-pink-800">
                 <Crown size={13} className="shrink-0 text-amber-500 fill-amber-500" /> Free VIP for Women
               </span>
               <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
                 <ShieldCheck size={14} /> {t('trustVerified')}
               </span>
               <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                <Lock size={13} className="shrink-0" /> 100% Screenshot-Proof
+                <Lock size={13} className="shrink-0" /> Blurred-Photo Privacy
               </span>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="flex -space-x-4">
-                {[
-                  "/images/avatars/user-1.jpg",
-                  "/images/avatars/user-2.jpg",
-                  "/images/avatars/user-3.jpg",
-                  "/images/avatars/user-4.jpg"
-                ].map((src, i) => (
-                  <div key={i} className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-900 shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
-                    <img src={src} alt={`Verified Single Dating Profile ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-                <div className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-900 shadow-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">
-                  +10k
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex text-yellow-500 mb-1 gap-0.5"><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /></div>
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">TrustScore 4.9/5 • 100k+ Connections</span>
-              </div>
+            <div className="rounded-2xl bg-white/80 dark:bg-gray-900/70 border border-gray-200/80 dark:border-gray-800 p-3.5 text-xs text-gray-600 dark:text-gray-300 flex flex-wrap items-center gap-x-4 gap-y-1.5 shadow-sm">
+              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                Transparent Safety Promise:
+              </span>
+              <span>No sold phone numbers</span>
+              <span className="text-gray-300 dark:text-gray-700">•</span>
+              <span>Email confirmation is never shown as Govt ID Verified</span>
+              <span className="text-gray-300 dark:text-gray-700">•</span>
+              <Link href="/safety" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                Read Safety Standards →
+              </Link>
             </div>
           </div>
 
@@ -915,6 +949,36 @@ export default function LandingPageClient() {
         </div>
       </section>
 
+      {/* --- LIVE PRIVACY-PROTECTED MEMBER PREVIEWS --- */}
+      {(topRow.length > 0 || bottomRow.length > 0) && (
+        <section className="py-16 bg-slate-950 text-white border-y border-slate-800/80 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-pink-300 mb-2">
+                <ShieldCheck size={14} className="text-emerald-400" /> Real Community Profiles
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black text-white">
+                Privacy-Controlled Member Previews
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Photos stay blurred or hidden on request until you accept a connection. Family-managed profiles are clearly labeled.
+              </p>
+            </div>
+            <Link
+              href="/matrimony"
+              className="text-xs font-bold text-indigo-300 hover:text-indigo-200 underline shrink-0"
+            >
+              Browse by City &amp; Community →
+            </Link>
+          </div>
+          <div className="flex gap-6 px-6 w-max animate-scroll hover:[animation-play-state:paused]">
+            {[...(topRow.length > 0 ? topRow : bottomRow), ...(topRow.length > 0 ? topRow : bottomRow)].map((profile, idx) => (
+              <PublicMatchCard key={`${profile.id || 'member'}-${idx}`} match={profile} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* --- GLOBAL OVERVIEW & 3-FACT INFOGRAPHIC --- */}
       <GlobalOverviewBanner />
 
@@ -936,41 +1000,41 @@ export default function LandingPageClient() {
       <section id="app-features" className="py-32 relative bg-slate-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20 max-w-3xl mx-auto">
-            <p className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-4">The Future of Dating</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Upgrade Your Love Life.</h2>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-lg">Leave the swipe fatigue behind using our advanced AI tools designed for meaningful, long-term connections.</p>
+            <p className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-4">Privacy-First Matchmaking</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Built for Trust, Not Swipe Fatigue.</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Transparent verification, masked personal numbers, and context-aware AI designed for serious life partner discovery.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
               icon={<Bot size={32} className="text-indigo-600" />}
-              title="AI Wingman"
-              desc="Smart icebreakers and conversation starters generated by context-aware AI based on shared interests."
+              title="AI Wingman &amp; Smart Search"
+              desc="Natural-language partner discovery and thoughtful icebreakers grounded in real profile values and shared goals."
             />
             <FeatureCard
               icon={<MapPin size={32} className="text-pink-600" />}
-              title="Interactive Live Map"
-              desc="Discover nearby matches organically. See real-time activity and send icebreakers based on nearby locations."
+              title="Privacy-Safe City Discovery"
+              desc="Explore compatible matches by city, NRI hub, profession, or community without broadcasting your exact home address."
             />
             <FeatureCard
               icon={<Video size={32} className="text-green-600" />}
-              title="HD Video Calls"
-              desc="Crystal clear, low-latency video calls built directly into the platform for safe virtual dates."
+              title="Masked HD Audio &amp; Video"
+              desc="Talk and video call directly inside LifePartner AI without disclosing your mobile number or WhatsApp handle."
             />
             <FeatureCard
               icon={<Sparkles size={32} className="text-amber-500" />}
-              title="Cosmic Matching"
-              desc="Vedic astrology, numerology and psychometrics combined for deep compatibility analysis."
+              title="Vedic Kundali &amp; Values"
+              desc="Combine 36-Guna Vedic compatibility and deep lifestyle preferences to evaluate long-term alignment."
             />
             <FeatureCard
               icon={<Shield size={32} className="text-blue-500" />}
-              title="Anti-Catfish"
-              desc="Bank-grade AI identity verification ensures you only talk to real, verified humans."
+              title="Selfie &amp; Govt ID Review"
+              desc="Free optional Govt ID + selfie spoof check unlocks your Identity Verified badge — clearly distinct from email confirmation."
             />
             <FeatureCard
-              icon={<Zap size={32} className="text-yellow-500" />}
-              title="Live Speed Dating"
-              desc="Drop into anonymous 3-minute virtual dates. If the vibe matches, unlock their profile. If not, instantly skip!"
+              icon={<Lock size={32} className="text-purple-500" />}
+              title="Family Biodata &amp; Blur Lock"
+              desc="Keep photos blurred until accepted and share read-only family biodata links (?family=1) with parents safely."
             />
           </div>
         </div>
@@ -1003,8 +1067,8 @@ export default function LandingPageClient() {
                     <MapPin className="text-pink-400" size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xl mb-1">Discover Local Events</h4>
-                    <p className="text-sm text-indigo-200/70">Find events sorted by distance or date. See exactly what's happening in your city today.</p>
+                    <h4 className="font-bold text-xl mb-1">Curated Daytime Coffee Meetups</h4>
+                    <p className="text-sm text-indigo-200/70">Explore public coffee gatherings and community mixers sorted by city and date.</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -1012,8 +1076,8 @@ export default function LandingPageClient() {
                     <Users className="text-blue-400" size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xl mb-1">See Who's Going</h4>
-                    <p className="text-sm text-indigo-200/70">Check the RSVP list before you go. Match with attendees before the event even starts.</p>
+                    <h4 className="font-bold text-xl mb-1">Preview Confirmed Attendees</h4>
+                    <p className="text-sm text-indigo-200/70">See verified RSVP profiles before stepping out, with no surprise cold walk-ins.</p>
                   </div>
                 </div>
                 <div className="flex gap-4">
@@ -1021,8 +1085,8 @@ export default function LandingPageClient() {
                     <ShieldCheck className="text-green-400" size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xl mb-1">Safe & Verified</h4>
-                    <p className="text-sm text-indigo-200/70">Host or attend events with peace of mind. Only verified profiles can RSVP to exclusive spots.</p>
+                    <h4 className="font-bold text-xl mb-1">Women&apos;s Safety Kit &amp; Angel Timer</h4>
+                    <p className="text-sm text-indigo-200/70">Schedule in-app meetups with a 45-minute safety check-in, Fake Call exit, and trusted emergency contact alerts.</p>
                   </div>
                 </div>
               </div>
@@ -1059,7 +1123,7 @@ export default function LandingPageClient() {
                         ☕ Coffee Meetup
                       </div>
                       <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
-                        <Zap size={10} className="fill-yellow-400 text-yellow-400" /> 2h away
+                        <ShieldCheck size={10} className="text-emerald-400" /> Safe Meetup
                       </div>
                     </div>
                   </div>
@@ -1075,28 +1139,28 @@ export default function LandingPageClient() {
                   {/* Content */}
                   <div className="pt-10 p-5 flex-1 flex flex-col">
                     <h3 className="text-base font-black text-gray-900 dark:text-white tracking-tight">Weekend Coffee Mingle</h3>
-                    <p className="text-[11px] font-medium text-gray-500 mb-3">Hosted by <span className="font-bold text-gray-700 dark:text-gray-300">Priya S.</span></p>
+                    <p className="text-[11px] font-medium text-gray-500 mb-3">Example Daytime Meetup • Public Cafe</p>
                     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 mb-3 space-y-2 border border-gray-100 dark:border-gray-800">
                       <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
                         <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><Calendar size={10} className="text-indigo-600" /></div>
-                        <span className="font-semibold">Sat, May 3 • 11:00 AM</span>
+                        <span className="font-semibold">Saturday Daytime • 11:00 AM</span>
                       </div>
                       <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
                         <div className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center shrink-0"><MapPin size={10} className="text-rose-600" /></div>
-                        <span className="font-medium">Starbucks, Banjara Hills</span>
+                        <span className="font-medium">Public Cafe • Banjara Hills</span>
                       </div>
                       <div className="flex items-center gap-2 text-[12px] text-gray-500">
-                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0"><Users size={10} className="text-blue-600" /></div>
-                        <span>1.2 km away</span>
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><ShieldCheck size={10} className="text-emerald-600" /></div>
+                        <span>Angel Timer &amp; Safety Kit Enabled</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 text-[11px] font-bold text-gray-600">
-                        <Users size={11} className="text-indigo-500" /> 8/15 Attending
+                        <Users size={11} className="text-indigo-500" /> ID-Checked RSVPs
                       </span>
-                      <button className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md hover:brightness-110 transition-all">
-                        Join Now
-                      </button>
+                      <Link href={isLoggedIn ? '/dashboard?tab=events' : '/register?new=true'} className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md hover:brightness-110 transition-all">
+                        View Events
+                      </Link>
                     </div>
                     <div className="flex items-center gap-1 pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
                       <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
@@ -1115,36 +1179,36 @@ export default function LandingPageClient() {
                   </div>
                 </div>
 
-                {/* Card 2 — Speed Dating (smaller/preview) */}
+                {/* Card 2 — Community Book & Heritage Mixer (smaller/preview) */}
                 <div className="bg-white dark:bg-gray-900 rounded-[2rem] overflow-hidden border border-gray-100 dark:border-gray-800 shadow-md opacity-90 flex flex-col relative">
                   <div className="h-20 bg-gradient-to-br from-rose-500 to-pink-500 relative overflow-hidden">
                     <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.8) 1px,transparent 0)', backgroundSize: '16px 16px' }} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                       <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider border border-white/20">
-                        ⚡ Speed Dating
+                        ☕ Cultural Mixer
                       </div>
                       <div className="bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
-                        <Zap size={10} className="fill-yellow-400 text-yellow-400" /> Tomorrow
+                        <Lock size={10} className="text-pink-300" /> Women-Safe
                       </div>
                     </div>
                   </div>
                   <div className="absolute top-[3.5rem] left-5 z-10">
                     <div className="relative">
                       <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm" />
-                      <img src="/images/avatars/user-3.jpg" alt="Speed Dating Event Host"
+                      <img src="/images/avatars/user-3.jpg" alt="Community Mixer Event Host"
                         className="relative w-12 h-12 rounded-full border-2 border-white object-cover shadow-md bg-gray-100"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
                     </div>
                   </div>
                   <div className="pt-8 px-5 pb-4 flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-black text-gray-900 dark:text-white">Singles Speed Date Night</h3>
-                      <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-1"><MapPin size={10} /> The Skybar, Jubilee Hills • 3.8 km</p>
+                      <h3 className="text-sm font-black text-gray-900 dark:text-white">Book &amp; Coffee Matchmaking Mixer</h3>
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-1"><MapPin size={10} /> Gallery Cafe • Public Venue</p>
                     </div>
-                    <button className="shrink-0 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md">
-                      Join
-                    </button>
+                    <Link href={isLoggedIn ? '/dashboard?tab=events' : '/register?new=true'} className="shrink-0 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md">
+                      Explore
+                    </Link>
                   </div>
                 </div>
 
@@ -1158,9 +1222,9 @@ export default function LandingPageClient() {
       <section id="safety-pillars" className="py-24 bg-white dark:bg-gray-950 relative border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block py-1 px-3 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">High-Trust Matchmaking</span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Built on Privacy, Verified Identity & Safety</h2>
-            <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">We prioritize genuine connections by engineering privacy protections into every conversation.</p>
+            <span className="inline-block py-1 px-3 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-600 dark:text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">Privacy-First Matrimony</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Built on Verified Identity, Safety &amp; Zero Spam</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">No telemarketer harassment, no hidden pay-to-chat walls for mutual matches, and active scam shielding with blurred-photo privacy controls.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -1178,9 +1242,9 @@ export default function LandingPageClient() {
               <div className="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-6">
                 <ShieldCheck size={24} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">AI Anti-Harassment Shield</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">AI Anti-Creep &amp; Scam Shield</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                Real-time machine learning monitors and blocks unsolicited vulgarity, predatory behavior, and abusive messages before they enter your inbox.
+                Real-time screening masks explicit harassment and financial/UPI/crypto scam solicitation while auto-quarantining accounts reported by multiple members.
               </p>
             </div>
 
@@ -1188,9 +1252,9 @@ export default function LandingPageClient() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-6">
                 <Camera size={24} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Screenshot-Protected Ephemeral Media</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Blurred Photos &amp; Private Snaps</h3>
               <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                Share private photos with disappearing timers and built-in screenshot prevention, giving female singles complete ownership of their digital privacy.
+                Keep profile photos blurred until an interest is accepted, share view-once snaps inside trusted chats, or export a read-only Family Biodata link.
               </p>
             </div>
           </div>
@@ -1206,95 +1270,81 @@ export default function LandingPageClient() {
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
-            <StepCard step="01" title="Create Profile" desc="Sign up and build your smart biodata with AI assistance." />
-            <StepCard step="02" title="AI Verification" desc="We verify your identity to ensure a safe community." />
+            <StepCard step="01" title="Create Profile" desc="Sign up and build your smart biodata with photo privacy toggles." />
+            <StepCard step="02" title="Selfie &amp; Govt ID Check" desc="Optional free ID + selfie check unlocks your Identity Verified badge." />
             <StepCard step="03" title="Get Matched" desc="Receive daily curated matches based on your preferences." />
             <StepCard step="04" title="Connect" desc="Chat, video call, and meet your future partner." />
           </div>
         </div>
       </section>
 
-      {/* --- NATIVE ANDROID APP DOWNLOAD & GOOGLE PLAY TESTER SECTION --- */}
+      {/* --- MOBILE WEB APP & DIRECT ANDROID APK SECTION --- */}
       <section id="download-app" className="hide-in-native-app py-24 relative overflow-hidden bg-gradient-to-b from-slate-50 via-purple-50/40 to-white dark:from-gray-900 dark:via-purple-950/20 dark:to-gray-950 border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-black uppercase tracking-wider mb-4 shadow-sm">
-              <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400" />
-              <span>Google Play Store Closed Beta & Official Releases</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 text-xs font-black uppercase tracking-wider mb-4 shadow-sm">
+              <Smartphone size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <span>Mobile Web App &amp; Direct Android APK</span>
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-white tracking-tight mb-4">
-              Get LifePartner AI on Android
+              Take LifePartner AI Anywhere
             </h2>
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-light">
-              Register as an early tester to download directly from the Google Play Store, or install our verified APK immediately for instant access.
+              Use immediately from Chrome or Safari with Add to Home Screen, or install our signed Android APK without waiting on app store approvals.
             </p>
           </div>
 
-          {/* Interactive Google Play Early Access Tester Card */}
-          <div className="max-w-4xl mx-auto mb-14">
-            <GooglePlayTesterCard />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto items-stretch">
-            {/* 1. Google Play Store Closed Track Card */}
-            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-emerald-500/40 p-6 sm:p-7 shadow-xl hover:shadow-2xl hover:border-emerald-500 transition-all flex flex-col justify-between group">
-              <div className="absolute top-4 right-4 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
-                Play Store Track
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
+            {/* 1. Installable Mobile Web App (iOS & Android PWA) */}
+            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-indigo-500/40 p-6 sm:p-8 shadow-xl hover:shadow-2xl hover:border-indigo-500 transition-all flex flex-col justify-between group">
+              <div className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
+                Recommended • All Phones
               </div>
               <div>
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg mb-5 group-hover:scale-110 transition-transform">
-                  <Play size={24} className="fill-white" />
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-lg mb-5 group-hover:scale-110 transition-transform">
+                  <Sparkles size={24} />
                 </div>
-                <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-                  Google Play Store
+                <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
+                  iPhone, Android &amp; Desktop Web App
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  Official Play Store App
+                  Instant Mobile Web App (PWA)
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
-                  Install via Google Play with automatic updates & verified device security once your Gmail is added to our closed tester list.
+                  Works immediately inside Chrome or Safari with zero APK sideloading needed — always updated with our latest safety &amp; privacy features.
                 </p>
                 <div className="space-y-2 mb-6 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Automatic background Google Play updates</span>
+                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
+                    <span>Works on iOS Safari &amp; Android Chrome instantly</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Google Play Protect security certified</span>
+                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
+                    <span>Zero storage bloat • Full Family Biodata &amp; ID check tools</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Requires Closed Beta Tester opt-in</span>
+                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
+                    <span>Always runs the newest release automatically</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.lifepartner.ai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                <button
+                  type="button"
+                  onClick={handleInstallWebApp}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:opacity-95 text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Smartphone size={15} />
-                  <span>Open in Play Store</span>
-                </a>
-                <a
-                  href="https://play.google.com/apps/testing/com.lifepartner.ai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-xs transition-all flex items-center justify-center gap-2"
-                >
-                  <span>Accept Closed Test (Web)</span>
-                </a>
+                  <Smartphone size={16} />
+                  <span>Install Web App / Add to Home Screen</span>
+                </button>
               </div>
             </div>
 
             {/* 2. Direct APK Download Card */}
-            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-purple-500/40 p-6 sm:p-7 shadow-xl hover:shadow-2xl hover:border-purple-500 transition-all flex flex-col justify-between group">
+            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-purple-500/40 p-6 sm:p-8 shadow-xl hover:shadow-2xl hover:border-purple-500 transition-all flex flex-col justify-between group">
               <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
-                Instant • v1.0.9
+                Android • v1.0.9
               </div>
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg mb-5 group-hover:scale-110 transition-transform">
@@ -1307,20 +1357,20 @@ export default function LandingPageClient() {
                   LifePartner.apk
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
-                  Direct one-click installer for Samsung, OnePlus, Xiaomi, Vivo, Oppo, Realme, Pixel & all Android 8.0+ phones. No Google Play approval required.
+                  Optional signed installer for Android 8.0+ devices with direct home-screen app launch and live OTA feature sync.
                 </p>
                 <div className="space-y-2 mb-6 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Instant access without waiting for closed beta approval</span>
+                    <span>Signed v2 release binary • 6.9 MB</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Verified v2 signed release binary • 6.9 MB</span>
+                    <span>Works across Samsung, OnePlus, Xiaomi, Vivo &amp; Pixel</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={13} className="text-emerald-500 shrink-0" />
-                    <span>Live OTA sync for all website feature updates</span>
+                    <span>Automatic live web-bundle sync on every launch</span>
                   </div>
                 </div>
               </div>
@@ -1334,56 +1384,11 @@ export default function LandingPageClient() {
                 <span>Download Android APK (6.9 MB)</span>
               </a>
             </div>
-
-            {/* 3. Android App Bundle (AAB) Card */}
-            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-7 shadow-xl hover:shadow-2xl hover:border-indigo-400 transition-all flex flex-col justify-between group">
-              <div className="absolute top-4 right-4 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                Play Store Bundle
-              </div>
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-600 text-white flex items-center justify-center shadow-lg mb-5 group-hover:scale-110 transition-transform">
-                  <Sparkles size={24} />
-                </div>
-                <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
-                  Google Play Bundle Format (.aab)
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  LifePartner.aab
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
-                  Official Android App Bundle release package optimized for Google Play distribution, automated split APK generation, or bundletool deployment.
-                </p>
-                <div className="space-y-2 mb-6 text-xs text-gray-500 dark:text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
-                    <span>Dynamic delivery & compressed package • 6.6 MB</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
-                    <span>Google Play Console production-ready signed binary</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle size={13} className="text-indigo-500 shrink-0" />
-                    <span>Device-specific architecture optimization</span>
-                  </div>
-                </div>
-              </div>
-
-              <a
-                href="/LifePartner.aab"
-                download="LifePartner.aab"
-                className="w-full py-3.5 rounded-xl bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-bold text-xs active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 border border-gray-700 cursor-pointer"
-              >
-                <Download size={16} className="text-indigo-400" />
-                <span>Download App Bundle AAB (6.6 MB)</span>
-              </a>
-            </div>
           </div>
 
-          {/* Quick installation callout */}
-          <div className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+          <div className="mt-10 text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
             <ShieldCheck size={16} className="text-emerald-500" />
-            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.9 Release</span>
+            <span>Signed Android Release v1.0.9 • Full feature parity on lifepartnerai.in Web App</span>
           </div>
         </div>
       </section>
@@ -1396,15 +1401,15 @@ export default function LandingPageClient() {
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/30 rounded-full filter blur-[100px]"></div>
 
           <div className="text-center py-20 px-6 relative z-10">
-            <h2 className="text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">Ready to find <br />the one?</h2>
-            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join the exclusive community of singles who value meaningful connections over mindless swiping.</p>
+            <h2 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">Ready for <br />Privacy-First Matrimony?</h2>
+            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join for free, control who sees your photos, verify real IDs, and chat without telemarketer spam.</p>
 
             <Link href="/register?new=true">
               <button className="group relative px-12 py-6 rounded-full bg-white dark:bg-gray-950 text-indigo-900 font-bold text-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
                 <span className="relative z-10">Create Free Account</span>
               </button>
             </Link>
-            <p className="mt-8 text-sm text-indigo-300 font-medium tracking-wide uppercase">No credit card required • Cancel anytime</p>
+            <p className="mt-8 text-sm text-indigo-300 font-medium tracking-wide uppercase">Zero telemarketer calls • Free mutual-match chat</p>
           </div>
         </div>
       </section>
@@ -1433,47 +1438,12 @@ function FeatureCard({ icon, title, desc }: { icon: any, title: string, desc: st
   )
 }
 
-function StoryCard({ image, names, story }: { image: string, names: string, story: string }) {
-  return (
-    <div className="group relative rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500">
-      <div className="h-80 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
-        <img src={image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={names} />
-        <div className="absolute bottom-6 left-6 right-6 z-20 text-white">
-          <h3 className="text-2xl font-heading font-bold mb-2">{names}</h3>
-          <p className="text-sm text-gray-200 italic">"{story}"</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function StepCard({ step, title, desc }: { step: string, title: string, desc: string }) {
   return (
     <div className="text-center p-6 rounded-3xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
       <div className="text-6xl font-black text-indigo-100 mb-4">{step}</div>
       <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
       <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{desc}</p>
-    </div>
-  )
-}
-
-function PricingCard({ title, price, features, isPopular }: { title: string, price: string, features: string[], isPopular?: boolean }) {
-  return (
-    <div className={`p-8 rounded-[2rem] border ${isPopular ? 'border-amber-400 bg-white dark:bg-gray-950 ring-4 ring-amber-100 shadow-xl scale-105' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg'} relative flex flex-col`}>
-      {isPopular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md">Most Popular</div>}
-      <h3 className="text-xl font-bold text-gray-600 dark:text-gray-300 mb-2">{title}</h3>
-      <div className="text-4xl font-black text-gray-900 dark:text-gray-100 mb-8">{price}</div>
-      <ul className="space-y-4 mb-8 flex-1">
-        {features.map((f, i) => (
-          <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-600 dark:text-gray-300">
-            <CheckCircle size={16} className={`flex-shrink-0 ${isPopular ? 'text-amber-500' : 'text-indigo-500'}`} /> {f}
-          </li>
-        ))}
-      </ul>
-      <button className={`w-full py-4 rounded-xl font-bold transition-all ${isPopular ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-amber-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-200'}`}>
-        Choose {title}
-      </button>
     </div>
   )
 }

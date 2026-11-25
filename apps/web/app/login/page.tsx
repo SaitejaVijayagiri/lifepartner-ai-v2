@@ -116,7 +116,7 @@ export default function LoginPage() {
                             Start Your Journey <br /> To Forever.
                         </h1>
                         <p className="text-lg text-indigo-100 font-light opacity-90 max-w-sm">
-                            "The best thing to hold onto in life is each other."
+                            &ldquo;The best thing to hold onto in life is each other.&rdquo;
                         </p>
                     </div>
                 </div>
@@ -233,7 +233,7 @@ export default function LoginPage() {
                     </div>
 
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
-                        Don't have an account? <Link href="/register?new=true" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
+                        Don&apos;t have an account? <Link href="/register?new=true" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
                     </p>
 
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-4 text-[11px] text-gray-400 font-medium">

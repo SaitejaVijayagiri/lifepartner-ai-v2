@@ -126,7 +126,7 @@ export default function Navbar() {
                         <Link href="/dashboard" className="flex items-center gap-2.5 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
                             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden shrink-0">
                                 {user.avatar_url ? (
-                                    <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
+                                    <img src={user.avatar_url} alt={user.full_name || user.name || 'Profile'} className="w-full h-full object-cover" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.full_name || user.name || 'User')}`;
@@ -138,7 +138,7 @@ export default function Navbar() {
                             <div className="flex flex-col text-left">
                                 <span className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
                                     {(user.full_name || user.name || 'Dashboard').split(' ')[0]}
-                                    {user.is_verified && <VerificationBadge size={12} />}
+                                    {Boolean(user.isIdVerified ?? user.isVerified) && <VerificationBadge size={12} />}
                                 </span>
                             </div>
                         </Link>
@@ -164,7 +164,7 @@ export default function Navbar() {
                         <Link href="/dashboard" className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1.5 pr-2.5 rounded-full text-xs font-bold">
                             <div className="w-7 h-7 rounded-full bg-indigo-100 overflow-hidden flex items-center justify-center">
                                 {user.avatar_url ? (
-                                    <img src={user.avatar_url} className="w-full h-full object-cover" />
+                                    <img src={user.avatar_url} alt={user.full_name || user.name || 'Profile'} className="w-full h-full object-cover" />
                                 ) : (
                                     <User size={14} />
                                 )}
@@ -241,12 +241,12 @@ export default function Navbar() {
                             <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-indigo-200 dark:border-indigo-800">📍 Real Life</span>
                         </Link>
                         <Link
-                            href="/stranger-chat"
+                            href="/safety"
                             className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            <span>Stranger Chat</span>
-                            <span className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-green-200 dark:border-green-800">🔥 Free Video</span>
+                            <span>Safety &amp; Verification</span>
+                            <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-200 dark:border-emerald-800">🛡️ Protected</span>
                         </Link>
                         <Link
                             href="/for-women"

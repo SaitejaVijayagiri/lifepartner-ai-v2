@@ -34,6 +34,7 @@ import { deleteFromCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBase64ToR2, uploadBufferToR2, deleteFromR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
 import { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper } from '../utils/story';
+import { getApprovedVerificationUserIds, hasMetadataIdVerification, isUserIdVerified } from '../utils/idVerification';
 export { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper };
 
 /**
@@ -115,7 +116,7 @@ const logDebug = (msg: string, data?: any) => {
     })();
 };
 
-export function calculateProfileCompleteness(user: any, meta: any = {}, photos: any[] = []) {
+export function calculateProfileCompleteness(user: any, meta: any = {}, photos: any[] = [], isIdVerifiedOverride?: boolean) {
     let score = 0;
     const missingSections: Array<{ key: string; label: string; points: number; actionUrl: string }> = [];
 
@@ -233,8 +234,8 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     }
 
     // Badge Level Requirements:
-    // Gold Verified requires BOTH 90%+ completeness AND user profile verification flag!
-    const isUserVerified = Boolean(user?.is_verified);
+    // Gold Verified requires BOTH 90%+ completeness AND true ID verification!
+    const isUserVerified = typeof isIdVerifiedOverride === 'boolean' ? isIdVerifiedOverride : hasMetadataIdVerification(meta);
     let badgeLevel = 'Basic';
     if (score >= 90 && isUserVerified) {
         badgeLevel = 'Gold Verified';
@@ -274,12 +275,13 @@ export function deepMergeMeta(existing: any, updates: any): any {
     return result;
 }
 
-export function formatFullProfile(user: any, profileRecord: any): any {
+export function formatFullProfile(user: any, profileRecord: any, isIdVerifiedOverride?: boolean): any {
     if (!user) return null;
     const meta: any = profileRecord?.metadata || {};
     const photosList = (profileRecord?.photos as any[]) || meta.photos || [];
+    const isIdVerified = typeof isIdVerifiedOverride === 'boolean' ? isIdVerifiedOverride : hasMetadataIdVerification(meta);
 
-    const completeness = calculateProfileCompleteness(user, meta, photosList);
+    const completeness = calculateProfileCompleteness(user, meta, photosList, isIdVerified);
 
     const locationObj = {
         city: meta.location?.city || user.city || user.location_name || "",
@@ -426,6 +428,9 @@ export function formatFullProfile(user: any, profileRecord: any): any {
         missingSections: completeness.missingSections,
         badgeLevel: completeness.badgeLevel,
         isComplete: completeness.isComplete,
+        isVerified: isIdVerified,
+        isIdVerified,
+        isEmailVerified: Boolean(user.is_verified),
 
         stories: (() => {
             const direct: any[] = (profileRecord?.stories as any[]) || [];
@@ -447,7 +452,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const profile = formatFullProfile(user, user.profiles);
+        const isIdVerified = await isUserIdVerified(user.id, user.profiles?.metadata);
+        const profile = formatFullProfile(user, user.profiles, isIdVerified);
 
         // Self-Healing: Asynchronously persist healed fields to database so subsequent queries have them immediately
         const isFemaleResolved = profile.gender === 'Female';
@@ -551,6 +557,7 @@ router.get('/public/featured', async (req, res) => {
         const combinedUsers = [...specificUsers, ...randomUsers];
         // Ensure randomize order
         const shuffled = combinedUsers.sort(() => 0.5 - Math.random());
+        const approvedFeaturedIds = await getApprovedVerificationUserIds(shuffled.map(u => u.id));
 
         // Map to public profile format
         const nameAliasMap: Record<string, string> = {
@@ -593,7 +600,7 @@ router.get('/public/featured', async (req, res) => {
                 photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
                 location: locationStr,
                 profession: meta.career?.profession || "Professional",
-                isVerified: true,
+                isVerified: approvedFeaturedIds.has(user.id) || hasMetadataIdVerification(meta),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred: isPhotoPrivacyShieldEnabled(meta)
             };
@@ -783,6 +790,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         const handle = `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`;
 
         const isBlurred = isPhotoPrivacyShieldEnabled(meta) && matchStatus !== 'accepted' && matchStatus !== 'connected' && user.id !== requesterId;
+        const isIdVerified = await isUserIdVerified(user.id, meta);
 
         const targetAstro = astrologyService.resolveUserAstrology({
             id: user.id,
@@ -818,6 +826,8 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             age: user.age,
             gender: user.gender,
             isPremium: user.is_premium,
+            isVerified: isIdVerified,
+            isIdVerified,
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             avatar_url: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             location: {

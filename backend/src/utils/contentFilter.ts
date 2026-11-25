@@ -1,14 +1,20 @@
 /**
- * Revenue Protection Filter & AI Anti-Creep Shield
+ * Revenue Protection Filter, AI Anti-Creep Shield & Romance Scam Guard
  * Detects and masks contact information to prevent platform leakage for non-premium users,
  * while preventing false-positive masking on normal casual conversation (e.g., "insta hai kya").
- * Always enforces the AI Anti-Creep Shield to protect users from unsolicited explicit language.
+ * Always enforces the Anti-Creep Shield and Anti-Scam Shield regardless of user tier.
  */
 
 export interface ContentFilterOptions {
     isPremium?: boolean;
     allowContact?: boolean;
     skipContactMasking?: boolean;
+}
+
+export interface SafetyAnalysisResult {
+    sanitized: string;
+    isFlagged: boolean;
+    reasons: string[];
 }
 
 const COMMON_CONVERSATIONAL_WORDS = new Set([
@@ -22,48 +28,59 @@ const COMMON_CONVERSATIONAL_WORDS = new Set([
     'please', 'pls', 'send', 'share', 'give', 'tell', 'want', 'need', 'like'
 ]);
 
-export function sanitizeContent(text: string, options: ContentFilterOptions = {}): string {
-    if (!text) return "";
+const HARASSMENT_PATTERNS: RegExp[] = [
+    /\b(?:send\s+nudes?|send\s+pics?\s+of\s+your|show\s+bobs?|send\s+bobs?|show\s+vagene|send\s+naked|sleep\s+with\s+me|have\s+sex\s+with\s+me|hook\s+up\s+tonight|send\s+nude|booty\s+call)\b/gi,
+    /\b(?:boobs?|boobies|breasts?|cleavage|chuchi|chuchiyan|chucho|chut|gaand|lund|choot|vagina|penis|randi)\b/gi,
+    /\b(?:send.*(?:naked|nudes?|private\s+pics?|body\s+pics?)|wanna.*hook\s+up|want.*sex|video\s+sex|nude\s+(?:call|video)|cam\s+sex|sex\s+chat)\b/gi,
+    /\b(?:fwb|one\s+night\s+stand|rate\s+kitna|paid\s+(?:sex|fun|service)|sugar\s+(?:baby|daddy)\s+pay)\b/gi
+];
 
-    // Check if message is a reply containing structured media
+const SCAM_FINANCIAL_PATTERNS: RegExp[] = [
+    /\b(?:send|transfer|pay|lend|loan|need)\s+(?:me\s+)?(?:₹|rs\.?|inr|usd|\$|money|cash|amount|funds)\b/gi,
+    /\b(?:upi\s*(?:id|pe)|gpay|google\s*pay|phonepe|paytm|bank\s+account|ifsc|wire\s+transfer|western\s+union|gift\s+card|itunes\s+card)\b.*(?:send|pay|transfer|urgent|emergency|stuck)/gi,
+    /\b(?:crypto|usdt|binance|forex|trading\s+profit|guaranteed\s+return|double\s+your\s+money)\b/gi,
+    /\b(?:share|tell|send)\s+(?:your\s+)?(?:otp|cvv|pin|bank\s+details|aadhaar|pan\s+card)\b/gi
+];
+
+export function analyzeMessageSafety(text: string, options: ContentFilterOptions = {}): SafetyAnalysisResult {
+    if (!text) {
+        return { sanitized: '', isFlagged: false, reasons: [] };
+    }
+
     let coreText = text;
-    if (text.startsWith("[REPLY:")) {
-        const replyEnd = text.indexOf("]");
+    if (text.startsWith('[REPLY:')) {
+        const replyEnd = text.indexOf(']');
         if (replyEnd !== -1) {
             coreText = text.substring(replyEnd + 1).trim();
         }
     }
 
-    // Bypass sanitization entirely for machine-generated media and system attachments
-    // to prevent regex matching on Base64 Data URIs, URLs, and timestamps
     if (
-        coreText.startsWith("[IMAGE]") || 
-        coreText.startsWith("[VIDEO]") || 
-        coreText.startsWith("[AUDIO]") || 
-        coreText.startsWith("[STICKER]") ||
-        coreText.startsWith("[STORY_REPLY:") ||
-        coreText.startsWith("[DATE_INVITE:") ||
-        coreText.startsWith("[DATE_RESPONSE:") ||
-        coreText.startsWith("[MUSIC_SHARE:") ||
-        coreText.startsWith("[INSTANT:") ||
-        coreText.startsWith("[LOCATION:") ||
-        coreText.startsWith("[GAME:") ||
-        coreText.startsWith("[CALL:")
+        coreText.startsWith('[IMAGE]') ||
+        coreText.startsWith('[VIDEO]') ||
+        coreText.startsWith('[AUDIO]') ||
+        coreText.startsWith('[STICKER]') ||
+        coreText.startsWith('[STORY_REPLY:') ||
+        coreText.startsWith('[DATE_INVITE:') ||
+        coreText.startsWith('[DATE_RESPONSE:') ||
+        coreText.startsWith('[MUSIC_SHARE:') ||
+        coreText.startsWith('[INSTANT:') ||
+        coreText.startsWith('[LOCATION:') ||
+        coreText.startsWith('[GAME:') ||
+        coreText.startsWith('[CALL:')
     ) {
-        return text;
+        return { sanitized: text, isFlagged: false, reasons: [] };
     }
 
     let sanitized = text;
+    const reasons = new Set<string>();
 
-    // Temporarily replace URLs and Data URIs (both plain and percent-encoded)
-    // so numeric IDs, hashes, and timestamps are not mistaken for phone numbers
     const urls: string[] = [];
     const urlPattern = /(?:https?:\/\/[^\s"'`<>]+|https?%3A%2F%2F[^\s"'`<>]+|data:(?:image|audio|video)\/[a-zA-Z0-9+.-]+;base64,[A-Za-z0-9+/=]+)/g;
     sanitized = sanitized.replace(urlPattern, (url) => {
-        // If the URL is specifically an off-platform social handle link, keep it for contact evaluation unless premium
         const isOffPlatformDirect = /^(?:https?:\/\/)?(?:t\.me|telegram\.me|wa\.me|api\.whatsapp\.com|instagram\.com)\/[a-zA-Z0-9_+.\-]+/i.test(url);
         if (isOffPlatformDirect && !options.isPremium && !options.allowContact && !options.skipContactMasking) {
-            return "[Hidden Contact - Upgrade to Share]";
+            return '[Hidden Contact - Upgrade to Share]';
         }
         urls.push(url);
         return `__URL_PLACEHOLDER_${urls.length - 1}__`;
@@ -72,53 +89,59 @@ export function sanitizeContent(text: string, options: ContentFilterOptions = {}
     const shouldMaskContacts = !options.isPremium && !options.allowContact && !options.skipContactMasking;
 
     if (shouldMaskContacts) {
-        // 1. Email Regex
         const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-        sanitized = sanitized.replace(emailRegex, "[Hidden Contact - Upgrade to Share]");
+        sanitized = sanitized.replace(emailRegex, '[Hidden Contact - Upgrade to Share]');
 
-        // 2. Off-platform Social Handles & Direct Link Shortcuts:
-        // Match direct links (e.g. t.me/username, wa.me/919999999999, telegram.me/username)
         const directLinkRegex = /(?:https?:\/\/)?(?:t\.me|telegram\.me|wa\.me|api\.whatsapp\.com|instagram\.com)\/[a-zA-Z0-9_+.\-]+/gi;
-        sanitized = sanitized.replace(directLinkRegex, "[Hidden Contact - Upgrade to Share]");
+        sanitized = sanitized.replace(directLinkRegex, '[Hidden Contact - Upgrade to Share]');
 
-        // Match explicit @handles (e.g. @Nihasmiley1996, @john_doe)
-        sanitized = sanitized.replace(/\B@[a-zA-Z0-9_.]{4,}\b/g, "[Hidden Contact - Upgrade to Share]");
+        sanitized = sanitized.replace(/\B@[a-zA-Z0-9_.]{4,}\b/g, '[Hidden Contact - Upgrade to Share]');
 
-        // Match platform handle patterns (e.g. "insta: my_handle", "telegram @xyz", "t.me/handle")
-        // but avoid false positives on casual conversation like "insta hai kya", "whatsapp use karte ho"
         const socialPrefixRegex = /\b(telegram|tg|whatsapp|insta|instagram)\s*(?:id|handle|username)?\s*[:=-]?\s*@?([a-zA-Z0-9_.]{3,})\b/gi;
-        sanitized = sanitized.replace(socialPrefixRegex, (match, platform, candidate) => {
+        sanitized = sanitized.replace(socialPrefixRegex, (match, _platform, candidate) => {
             const cleanCandidate = (candidate || '').toLowerCase().trim();
-            // If the following word is a common conversational word, do NOT mask
             if (COMMON_CONVERSATIONAL_WORDS.has(cleanCandidate)) {
                 return match;
             }
-            return "[Hidden Contact - Upgrade to Share]";
+            return '[Hidden Contact - Upgrade to Share]';
         });
 
-        // 3. Phone Number Regex (Indian 10-digit formats with 5+5, 3+3+4, or contiguous, and international)
         const indianPhoneRegex = /(?:\+?91[\s.-]?)?(?:\b0)?[6-9]\d{4}[\s.-]?\d{5}\b|(?:\+?91[\s.-]?)?(?:\b0)?[6-9]\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b|\b[6-9]\d{9}\b/g;
-        sanitized = sanitized.replace(indianPhoneRegex, "[Hidden Contact - Upgrade to Share]");
+        sanitized = sanitized.replace(indianPhoneRegex, '[Hidden Contact - Upgrade to Share]');
 
         const intlPhoneRegex = /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g;
-        sanitized = sanitized.replace(intlPhoneRegex, "[Hidden Contact - Upgrade to Share]");
+        sanitized = sanitized.replace(intlPhoneRegex, '[Hidden Contact - Upgrade to Share]');
     }
 
-    // 4. AI Anti-Creep & Harassment Shield (Protects users from unsolicited explicit language & harassment)
-    // Runs ALWAYS, even for premium accounts!
-    const harassmentPatterns = [
-        /\b(?:send\s+nudes?|send\s+pics?\s+of\s+your|show\s+bobs?|send\s+bobs?|show\s+vagene|send\s+naked|sleep\s+with\s+me|have\s+sex\s+with\s+me|hook\s+up\s+tonight|send\s+nude|booty\s+call)\b/gi,
-        /\b(?:boobs?|boobies|breasts?|cleavage|chuchi|chuchiyan|chucho|chut|gaand|lund|choot|vagina|penis)\b/gi,
-        /\b(?:send.*(?:naked|nudes?|private\s+pics?|body\s+pics?)|wanna.*hook\s+up|want.*sex)\b/gi
-    ];
-    for (const pattern of harassmentPatterns) {
-        sanitized = sanitized.replace(pattern, "[Blocked by AI Anti-Creep Shield 🛡️]");
+    // AI Anti-Creep & Harassment Shield (Runs ALWAYS, even for premium accounts)
+    for (const pattern of HARASSMENT_PATTERNS) {
+        const fresh = new RegExp(pattern.source, pattern.flags);
+        if (fresh.test(sanitized)) {
+            reasons.add('Harassment / Explicit Solicitation');
+            sanitized = sanitized.replace(new RegExp(pattern.source, pattern.flags), '[Blocked by AI Anti-Creep Shield 🛡️]');
+        }
     }
 
-    // Restore protected URLs
+    // Anti-Scam & Financial Solicitation Shield (Runs ALWAYS, even for premium accounts)
+    for (const pattern of SCAM_FINANCIAL_PATTERNS) {
+        const fresh = new RegExp(pattern.source, pattern.flags);
+        if (fresh.test(sanitized)) {
+            reasons.add('Financial / Scam Solicitation');
+            sanitized = sanitized.replace(new RegExp(pattern.source, pattern.flags), '[Flagged by Anti-Scam Safety Shield ⚠️]');
+        }
+    }
+
     urls.forEach((url, i) => {
         sanitized = sanitized.replace(`__URL_PLACEHOLDER_${i}__`, url);
     });
 
-    return sanitized;
+    return {
+        sanitized,
+        isFlagged: reasons.size > 0,
+        reasons: Array.from(reasons)
+    };
+}
+
+export function sanitizeContent(text: string, options: ContentFilterOptions = {}): string {
+    return analyzeMessageSafety(text, options).sanitized;
 }

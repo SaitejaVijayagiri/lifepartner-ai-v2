@@ -17,9 +17,6 @@ router.post('/', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Missing required fields: reportedId, reason" });
         }
 
-        // Optional: Validate that reportedId exists (FK constraint will catch it too, but this is cleaner)
-        // Ignoring for speed, db error will handle it.
-
         const report = await prisma.reports.create({
             data: {
                 reporter_id: reporterId,
@@ -46,6 +43,35 @@ router.post('/', authenticateToken, async (req: any, res) => {
             });
         } catch (_) {}
 
+        // Auto-quarantine repeat offenders reported by >= 3 distinct users in 30 days
+        let autoQuarantined = false;
+        try {
+            const reportsModel = (prisma as any)?.reports;
+            const usersModel = (prisma as any)?.users;
+            if (reportsModel && typeof reportsModel.findMany === 'function') {
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                const recentReports = await reportsModel.findMany({
+                    where: {
+                        reported_id: reportedId,
+                        created_at: { gte: thirtyDaysAgo }
+                    },
+                    select: { reporter_id: true }
+                });
+                const distinctReporters = new Set(
+                    (recentReports || []).map((r: any) => r?.reporter_id).filter(Boolean)
+                );
+                if (distinctReporters.size >= 3 && usersModel && typeof usersModel.update === 'function') {
+                    await usersModel.update({
+                        where: { id: reportedId },
+                        data: { is_deactivated: true }
+                    });
+                    autoQuarantined = true;
+                }
+            }
+        } catch (qErr) {
+            console.warn('Auto-quarantine check warning:', qErr);
+        }
+
         // Notify Admins
         try {
             const io = getIO();
@@ -53,8 +79,17 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 id: report.id,
                 reason,
                 reporterId,
+                autoQuarantined,
                 created_at: new Date()
             });
+            if (autoQuarantined) {
+                io.emit('admin:urgentAbuseAlert', {
+                    reportedId,
+                    reason,
+                    action: 'AUTO_QUARANTINED',
+                    created_at: new Date()
+                });
+            }
         } catch (e) { /* ignore if socket not ready */ }
 
         trackGrowthEvent('user_reported', { userId: reporterId, metadata: { reason } }).catch(() => {});
@@ -62,7 +97,8 @@ router.post('/', authenticateToken, async (req: any, res) => {
 
         res.status(201).json({
             message: "Report submitted successfully",
-            reportId: report.id
+            reportId: report.id,
+            autoQuarantined
         });
 
     } catch (error) {

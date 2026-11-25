@@ -24,6 +24,10 @@ import {
 export const metadata: Metadata = {
   title: 'Chat with Cute Boys & Handsome Men Online 100% Free | Safe Video, Voice & Direct Chat | LifePartner AI',
   description: 'Looking to chat with cute boys and handsome men online safely? LifePartner AI offers 100% free direct chat, HD video calls, audio notes, and disappearing snaps with verified bachelors across Korea, USA, Germany, and worldwide. 100% anti-creep & privacy protected.',
+  robots: {
+    index: false,
+    follow: false,
+  },
   keywords: [
     'chat with boys online free',
     'chat with cute guys online',

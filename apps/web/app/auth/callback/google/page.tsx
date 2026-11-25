@@ -74,6 +74,8 @@ function GoogleCallbackContent() {
 
                 let stateGender: string | undefined;
                 let stateAge: string | undefined;
+                let stateIntent: string | undefined;
+                let stateCountry: string | undefined;
                 let initiatedFromNative = false;
                 const rawState = searchParams.get('state');
                 if (rawState) {
@@ -83,6 +85,8 @@ function GoogleCallbackContent() {
                             stateGender = parsedState.gender;
                         }
                         if (parsedState?.age) stateAge = String(parsedState.age);
+                        if (parsedState?.intent) stateIntent = String(parsedState.intent);
+                        if (parsedState?.country) stateCountry = String(parsedState.country);
                         if (parsedState?.native === true) initiatedFromNative = true;
                     } catch (_) {}
                 }
@@ -99,7 +103,9 @@ function GoogleCallbackContent() {
                     code,
                     redirect_uri,
                     gender: pendingGender,
-                    age: pendingAge
+                    age: pendingAge,
+                    ...(stateIntent ? { intent: stateIntent } : {}),
+                    ...(stateCountry ? { country: stateCountry } : {})
                 });
 
                 if (res.data.token) {

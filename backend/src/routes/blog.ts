@@ -6,8 +6,8 @@ const router = express.Router();
 // Get list of blog posts (Paginated)
 router.get('/', async (req, res) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 500);
         const skip = (page - 1) * limit;
 
         const posts = await prisma.blog_posts.findMany({
@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
                 slug: true,
                 title: true,
                 excerpt: true,
+                keywords: true,
                 created_at: true,
             },
             orderBy: {

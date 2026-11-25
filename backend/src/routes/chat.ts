@@ -1,7 +1,8 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { sanitizeContent } from '../utils/contentFilter';
+import { analyzeMessageSafety } from '../utils/contentFilter';
+import { getIO } from '../socket';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { trackGrowthEvent } from '../services/growthAnalytics';
@@ -207,10 +208,40 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         // Fallback default
     }
 
-    const cleanText = sanitizeContent(text, { isPremium });
+    const safetyCheck = analyzeMessageSafety(text, { isPremium });
+    const cleanText = safetyCheck.sanitized;
     const shouldDisappear = Boolean(isIncognito || isDisappearing);
     const dbContent = shouldDisappear ? `[DISAPPEARING]${cleanText}` : cleanText;
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+    if (safetyCheck.isFlagged) {
+        trackGrowthEvent('safety_shield_triggered', {
+            userId: senderId,
+            metadata: { targetUserId: connectionId, reasons: safetyCheck.reasons }
+        }).catch(() => {});
+
+        const reportsModel = (prisma as any)?.reports;
+        if (reportsModel && typeof reportsModel.create === 'function') {
+            reportsModel.create({
+                data: {
+                    reporter_id: null,
+                    reported_id: senderId,
+                    reason: `Automated Safety Shield: ${safetyCheck.reasons.join(', ')}`,
+                    details: `Blocked/flagged message toward user ${connectionId}. Excerpt: ${String(text).slice(0, 200)}`
+                }
+            }).then((report: any) => {
+                try {
+                    const io = getIO();
+                    io.emit('admin:newReport', {
+                        id: report?.id,
+                        reason: report?.reason,
+                        reporterId: 'SYSTEM_SAFETY_SHIELD',
+                        created_at: new Date()
+                    });
+                } catch {}
+            }).catch(() => {});
+        }
+    }
 
     try {
         // SECURITY FIX: Check block status FIRST before creating any message.

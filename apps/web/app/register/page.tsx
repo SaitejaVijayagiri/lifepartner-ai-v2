@@ -13,16 +13,16 @@ import { Notifications, startGoogleOAuthFlow } from '@/lib/notifications';
 import { growthTracker } from '@/lib/growthTracker';
 
 const TESTIMONIALS = [
-    { quote: "100% Free Lifetime Queen VIP for women with zero hidden paywalls.", author: "Women-First Platform Protection" },
-    { quote: "AI Anti-Creep Shield proactively filters unsolicited harassment.", author: "Verified & Safe Dating Community" },
-    { quote: "Direct audio and video calling without disclosing phone numbers.", author: "Privacy & Masked Contact Security" }
+    { quote: "Women-first safety with blurred-photo privacy and zero telemarketer spam.", author: "Women-First Matrimony Protection" },
+    { quote: "Selfie & Govt ID verification kept clearly separate from email confirmation.", author: "Transparent Identity Standards" },
+    { quote: "Direct audio and video calling without disclosing personal mobile numbers.", author: "Masked Contact Security" }
 ];
 
 function RegisterForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const referralCodeParam = searchParams.get('code') || searchParams.get('ref');
-    const intentParam = searchParams.get('intent') || 'dating';
+    const intentParam = searchParams.get('intent') || 'matrimony';
     const isDating = intentParam.toLowerCase() === 'dating';
 
     const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '', gender: '', age: '' });
@@ -66,7 +66,7 @@ function RegisterForm() {
 
         const isExplicitNew = searchParams.get('new') === 'true';
         const genderParam = searchParams.get('gender');
-        if (genderParam && (genderParam === 'Female' || genderParam === 'Male') && !isExplicitNew) {
+        if (genderParam === 'Female' || genderParam === 'Male') {
             setForm(prev => ({ ...prev, gender: genderParam }));
             localStorage.setItem('pendingUserGender', genderParam);
         } else if (isExplicitNew) {
@@ -165,10 +165,13 @@ function RegisterForm() {
             // Show 'slow' hint after 6s — common on Render free tier cold starts
             const slowTimer = setTimeout(() => setSlowRequest(true), 6000);
             try {
+                const savedCountry = searchParams.get('country') || localStorage.getItem('pendingUserCountry') || '';
                 const res = await api.auth.register({
                     ...form,
                     age: parsedAge,
                     gender: form.gender,
+                    intent: intentParam,
+                    ...(savedCountry && savedCountry !== 'Worldwide' ? { location_name: savedCountry } : {}),
                     email: form.email.trim().toLowerCase(),
                     password: form.password.trim()
                 });
@@ -191,7 +194,7 @@ function RegisterForm() {
                         onboarding_completed: false
                     }));
                     toast.success(form.gender === 'Female'
-                        ? 'Welcome Queen! 👑 Your Free Lifetime VIP & 100 Coins are active!'
+                        ? 'Welcome Queen! 👑 Your Free VIP & Women-First Safety tools are active!'
                         : 'Account created! Let’s complete your profile 🎉'
                     );
                     // Immediately initiate Push Token collection and notification readiness
@@ -328,7 +331,7 @@ function RegisterForm() {
                                 disabled={resendLoading}
                                 className="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors disabled:opacity-50"
                             >
-                                {resendLoading ? 'Sending...' : "Didn't receive a code? Resend"}
+                                {resendLoading ? 'Sending...' : 'Didn\u0027t receive a code? Resend'}
                             </button>
                         )}
                         <button
@@ -414,7 +417,7 @@ function RegisterForm() {
                             <div className="animate-scroll-vertical space-y-4">
                                 {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
                                     <div key={i} className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-lg">
-                                        <p className="text-sm italic font-medium mb-2 opacity-95 leading-relaxed">"{t.quote}"</p>
+                                        <p className="text-sm italic font-medium mb-2 opacity-95 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
                                         <div className="flex items-center gap-2">
                                             <div className="w-4 h-1 bg-indigo-400 rounded-full"></div>
                                             <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">{t.author}</p>
@@ -453,7 +456,7 @@ function RegisterForm() {
                         </div>
                         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Create Account</h2>
                         <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm font-medium">
-                            {isDating ? '100% Free Worldwide Dating • Instant Free Messaging.' : 'Begin your journey to a happy marriage.'}
+                            {isDating ? 'Intentional Dating • Masked Contacts • Free Mutual Chat.' : 'Privacy-first matrimony with zero telemarketer spam.'}
                         </p>
                     </div>
 
@@ -464,7 +467,7 @@ function RegisterForm() {
                         </div>
                         <div className="text-[11px] leading-tight">
                             <p className="font-extrabold text-pink-700 dark:text-pink-300">Women-First Safety Guarantee</p>
-                            <p className="text-slate-500 dark:text-slate-400 mt-0.5">100% Free Lifetime VIP • Masked Contacts • AI Anti-Creep Shield</p>
+                            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Zero Telemarketer Calls • Blurred Photos • AI Anti-Creep Shield</p>
                         </div>
                     </div>
 
@@ -508,7 +511,7 @@ function RegisterForm() {
                             {form.gender === 'Female' && (
                                 <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-[11px] text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200 mt-1.5">
                                     <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
-                                    <span><strong>Queen VIP Active:</strong> 100 free coins, unlimited direct chat, and private masked phone number.</span>
+                                    <span><strong>Queen VIP Safety Active:</strong> Free unlimited direct chat (after photo or ID check), blurred-photo lock, and masked phone number.</span>
                                 </div>
                             )}
                         </div>
@@ -582,7 +585,7 @@ function RegisterForm() {
                                     localStorage.setItem('referralCode', e.target.value);
                                 }}
                             />
-                            {form.referralCode && <p className="text-[10px] text-green-600 font-bold animate-pulse mt-1 ml-1">🎁 +20 Coins Bonus Applied!</p>}
+                            {form.referralCode && <p className="text-[10px] text-emerald-600 font-bold mt-1 ml-1">✓ Referral code applied</p>}
                         </div>
                     </div>
 

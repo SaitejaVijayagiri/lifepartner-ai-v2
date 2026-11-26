@@ -44,7 +44,6 @@ const GameModal = dynamic(() => import('@/components/GameModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
 const MeetSpots = dynamic(() => import('@/components/MeetSpots'));
 const FloatingLoveGuru = dynamic(() => import('@/components/FloatingLoveGuru'), { ssr: false });
-const InstantsBar = dynamic(() => import('@/components/InstantsBar'), { ssr: false });
 import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
@@ -99,6 +98,19 @@ function DashboardContent() {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const isFetchingMatchesMoreRef = useRef(false);
+    const matchesFetchSeqRef = useRef(0);
+
+    const dedupeMatchesById = (items: any[]) => {
+        if (!Array.isArray(items)) return [];
+        const seen = new Set<string>();
+        return items.filter((item) => {
+            const id = item?.id;
+            if (!id || seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        });
+    };
     const [mapProfiles, setMapProfiles] = useState<any[]>([]);
     const [mapLoading, setMapLoading] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
@@ -634,12 +646,13 @@ function DashboardContent() {
             try {
                 const cachedMatchesStr = localStorage.getItem('matches_cache_v2');
                 if (cachedMatchesStr) {
-                    const { data, ts } = JSON.parse(cachedMatchesStr);
+                    const { data, hasMore: cachedHasMore, ts } = JSON.parse(cachedMatchesStr);
                     // 2 minute TTL for client cache, then fallback to loading state
-                    if (Date.now() - ts < 120000 && Array.isArray(data)) {
-                        setMatches(data);
-                        if (data.length < 500) {
-                            setHasMore(false);
+                    if (Date.now() - ts < 120000 && Array.isArray(data) && data.length > 0) {
+                        setMatches(dedupeMatchesById(data));
+                        setPage(1);
+                        if (typeof cachedHasMore === 'boolean') {
+                            setHasMore(cachedHasMore);
                         }
                     }
                 }
@@ -674,7 +687,7 @@ function DashboardContent() {
             try {
                 const [profileResult, matchesResult, countsResult, connsResult, reqsResult] = await Promise.allSettled([
                     api.profile.getMe(),
-                    api.matches.getAll(),
+                    api.matches.getAll(1, 24),
                     api.interactions.getCounts(),
                     api.interactions.getConnections(),
                     api.interactions.getRequests()
@@ -741,18 +754,19 @@ function DashboardContent() {
                 }
 
                 // Matches - with stale-while-revalidate cache save
-                if (matchesResult.status === 'fulfilled') {
-                    const freshMatches = Array.isArray(matchesResult.value?.matches)
+                if (matchesResult.status === 'fulfilled' && matchesFetchSeqRef.current === 0) {
+                    const rawMatches = Array.isArray(matchesResult.value?.matches)
                         ? matchesResult.value.matches
                         : (Array.isArray(matchesResult.value) ? matchesResult.value : []);
+                    const freshMatches = dedupeMatchesById(rawMatches);
+                    const nextHasMore = typeof matchesResult.value?.hasMore === 'boolean'
+                        ? matchesResult.value.hasMore
+                        : freshMatches.length >= 24;
                     setMatches(freshMatches);
-                    if (typeof matchesResult.value?.hasMore === 'boolean') {
-                        setHasMore(matchesResult.value.hasMore);
-                    } else {
-                        setHasMore(freshMatches.length >= 30);
-                    }
+                    setPage(1);
+                    setHasMore(nextHasMore);
                     try {
-                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
+                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, hasMore: nextHasMore, ts: Date.now() }));
                     } catch (e) {}
                 }
 
@@ -984,10 +998,20 @@ function DashboardContent() {
 
     const activeDiscoveryOptsRef = useRef<{ scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }>({});
 
-    const fetchMatches = async (
+    const fetchMatches = useCallback(async (
         pageNum = 1,
         opts?: { scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }
     ) => {
+        if (pageNum > 1 && isFetchingMatchesMoreRef.current) return;
+
+        if (pageNum === 1) {
+            isFetchingMatchesMoreRef.current = false;
+        } else {
+            isFetchingMatchesMoreRef.current = true;
+        }
+
+        const seq = ++matchesFetchSeqRef.current;
+
         try {
             if (opts) {
                 activeDiscoveryOptsRef.current = opts;
@@ -996,46 +1020,54 @@ function DashboardContent() {
             if (pageNum > 1) setLoadingMore(true);
             else if (opts) setLoading(true);
 
-            const data = await api.matches.getAll(pageNum, 30, effectiveOpts);
-            const newMatches = Array.isArray(data?.matches) ? data.matches : [];
-            
-            if (typeof data?.hasMore === 'boolean') {
-                setHasMore(data.hasMore);
-            } else {
-                setHasMore(newMatches.length >= 30);
-            }
+            const data = await api.matches.getAll(pageNum, 24, effectiveOpts);
+            if (seq !== matchesFetchSeqRef.current) return;
+
+            const newMatches = dedupeMatchesById(Array.isArray(data?.matches) ? data.matches : []);
+            const nextHasMore = typeof data?.hasMore === 'boolean'
+                ? data.hasMore
+                : newMatches.length >= 24;
+
+            setHasMore(nextHasMore);
 
             if (pageNum === 1) {
                 setMatches(newMatches);
                 if (!effectiveOpts?.scope || effectiveOpts.scope === 'all') {
                     try {
-                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: newMatches, ts: Date.now() }));
+                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: newMatches, hasMore: nextHasMore, ts: Date.now() }));
                     } catch (_) {}
                 }
+            } else if (newMatches.length === 0) {
+                setHasMore(false);
             } else {
-                if (newMatches.length === 0) {
-                    setHasMore(false);
-                } else {
-                    setMatches(prev => {
-                        const seenIds = new Set(prev.map((m: any) => m?.id).filter(Boolean));
-                        const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
-                        const merged = [...prev, ...uniqueNew];
+                setMatches(prev => {
+                    const seenIds = new Set(prev.map((m: any) => m?.id).filter(Boolean));
+                    const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
+                    const merged = [...prev, ...uniqueNew];
+                    if (!effectiveOpts?.scope || effectiveOpts.scope === 'all') {
                         try {
-                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 90), ts: Date.now() }));
+                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 72), hasMore: nextHasMore, ts: Date.now() }));
                         } catch (_) {}
-                        return merged;
-                    });
-                }
+                    }
+                    return merged;
+                });
             }
             setPage(pageNum);
         } catch (err: any) {
-            console.error('Failed to load matches', err);
-            toast.error(err?.message || 'Failed to load more matches. Please try again.');
+            if (seq === matchesFetchSeqRef.current) {
+                console.error('Failed to load matches', err);
+                toast.error(err?.message || 'Failed to load more matches. Please try again.');
+            }
         } finally {
-            setLoading(false);
-            setLoadingMore(false);
+            if (pageNum > 1) {
+                isFetchingMatchesMoreRef.current = false;
+            }
+            if (seq === matchesFetchSeqRef.current) {
+                setLoading(false);
+                setLoadingMore(false);
+            }
         }
-    };
+    }, []);
 
     const fetchRequests = async () => {
         try {
@@ -1784,30 +1816,27 @@ function DashboardContent() {
 
                     <div className={activeTab === 'matches' ? 'block' : 'hidden'}>
                         {visitedTabs.has('matches') && (
-                            <>
-                                <InstantsBar />
-                                <MatchesTab
-                                    currentUser={currentUser}
-                                    setCurrentUser={setCurrentUser}
-                                    matches={matches}
-                                    setMatches={setMatches}
-                                    fetchMatches={fetchMatches}
-                                    hasMore={hasMore}
-                                    loadingMore={loadingMore}
-                                    page={page}
-                                    activeFilters={activeFilters}
-                                    setActiveFilters={setActiveFilters}
-                                    setSelectedProfile={handleOpenProfile}
-                                    setSelectedKundli={setSelectedKundli}
-                                    setGiftData={setGiftData}
-                                    connections={connections}
-                                    openChat={openChat}
-                                    setActiveTab={setActiveTab}
-                                    setShowCoinStore={setShowCoinStore}
-                                    setShowSpeedDatingLobby={setShowSpeedDatingLobby}
-                                    onOpenFilters={() => setShowFilterModal(true)}
-                                />
-                            </>
+                            <MatchesTab
+                                currentUser={currentUser}
+                                setCurrentUser={setCurrentUser}
+                                matches={matches}
+                                setMatches={setMatches}
+                                fetchMatches={fetchMatches}
+                                hasMore={hasMore}
+                                loadingMore={loadingMore}
+                                page={page}
+                                activeFilters={activeFilters}
+                                setActiveFilters={setActiveFilters}
+                                setSelectedProfile={handleOpenProfile}
+                                setSelectedKundli={setSelectedKundli}
+                                setGiftData={setGiftData}
+                                connections={connections}
+                                openChat={openChat}
+                                setActiveTab={setActiveTab}
+                                setShowCoinStore={setShowCoinStore}
+                                setShowSpeedDatingLobby={setShowSpeedDatingLobby}
+                                onOpenFilters={() => setShowFilterModal(true)}
+                            />
                         )}
                     </div>
 

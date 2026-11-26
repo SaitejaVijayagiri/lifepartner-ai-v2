@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHorizontal, MapPin, Globe, Navigation, Compass } from 'lucide-react';
+import { Sparkles, Eye, Lock, Heart, Search, EyeOff, X, SlidersHorizontal, MapPin, Globe, Navigation, Compass } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -25,12 +25,7 @@ import MatchCard from '@/components/MatchCard';
 // Dynamically import heavy modals only when requested
 const StoryModal = dynamic(() => import('@/components/StoryModal'));
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
-const LiveEventBanner = dynamic(() => import('@/components/LiveEventBanner'), { ssr: false });
 const HostSpeedDateModal = dynamic(() => import('@/components/HostSpeedDateModal'), { ssr: false });
-const DailyChemistrySpark = dynamic(() => import('@/components/DailyChemistrySpark'), { ssr: false });
-const LiveSinglesRadar = dynamic(() => import('@/components/LiveSinglesRadar'), { ssr: false });
-const AISoulmateSpotlight = dynamic(() => import('@/components/AISoulmateSpotlight'), { ssr: false });
-const CompatibilityModal = dynamic(() => import('@/components/CompatibilityModal'), { ssr: false });
 
 interface MatchesTabProps {
     currentUser: any;
@@ -85,7 +80,6 @@ export default function MatchesTab({
     const [aiFilters, setAiFilters] = useState<any>(null);
     const [showHostModal, setShowHostModal] = useState(false);
     const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
-    const [compatibilityModalData, setCompatibilityModalData] = useState<{ id: string; name: string; photoUrl?: string } | null>(null);
     const [discoveryScope, setDiscoveryScope] = useState<'all' | 'nearby' | 'country' | 'international'>('all');
     const [selectedCountry, setSelectedCountry] = useState<string>('');
     const [locatingNearby, setLocatingNearby] = useState(false);
@@ -210,52 +204,38 @@ export default function MatchesTab({
         };
     }, [socket]);
 
-    /* Live Online Members State */
-    const [liveOnlineMembers, setLiveOnlineMembers] = useState<any[]>([]);
-
-    const fetchOnlineMembers = useCallback(() => {
-        api.matches.getOnlineNow()
-            .then((data: any) => {
-                if (Array.isArray(data?.onlineMembers)) {
-                    setLiveOnlineMembers(data.onlineMembers);
-                }
-            })
-            .catch(() => {});
-    }, []);
-
-    useEffect(() => {
-        fetchOnlineMembers();
-    }, [fetchOnlineMembers]);
-
-    // Poll online members cleanly at a calm 45s interval (prevents global socket storm from DDoS-ing /online-now)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-                fetchOnlineMembers();
-            }
-        }, 45000);
-        return () => clearInterval(interval);
-    }, [fetchOnlineMembers]);
-
-    // Instagram-style Pre-fetch on scroll: triggers fetchMatches 600px before reaching bottom
+    // Pre-fetch on scroll: triggers fetchMatches cleanly once per page before reaching bottom
     const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const lastTriggeredScrollRef = useRef<{ page: number; ts: number }>({ page: 0, ts: 0 });
+
     useEffect(() => {
-        if (!hasMore || loadingMore || isSearching || searchQuery) return;
+        lastTriggeredScrollRef.current = { page: 0, ts: 0 };
+    }, [discoveryScope, selectedCountry]);
+
+    useEffect(() => {
+        if (!hasMore || loadingMore || isSearching || Boolean(searchQuery.trim()) || Boolean(aiFilters)) return;
         const el = sentinelRef.current;
         if (!el) return;
 
+        const nextPage = page + 1;
+        let triggered = false;
+
         const observer = new IntersectionObserver(
             ([entry]) => {
-                if (entry.isIntersecting && hasMore && !loadingMore) {
-                    fetchMatches(page + 1);
-                }
+                if (triggered || !entry.isIntersecting || !hasMore || loadingMore) return;
+                const last = lastTriggeredScrollRef.current;
+                if (last.page === nextPage && Date.now() - last.ts < 3000) return;
+
+                triggered = true;
+                lastTriggeredScrollRef.current = { page: nextPage, ts: Date.now() };
+                fetchMatches(nextPage);
             },
-            { rootMargin: '600px' }
+            { rootMargin: '500px' }
         );
 
         observer.observe(el);
         return () => observer.disconnect();
-    }, [hasMore, loadingMore, page, fetchMatches, isSearching, searchQuery]);
+    }, [hasMore, loadingMore, page, fetchMatches, isSearching, searchQuery, aiFilters]);
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -475,23 +455,6 @@ export default function MatchesTab({
     const [showMultiPhotoOnly, setShowMultiPhotoOnly] = useState(false);
 
     const onlineSet = useMemo(() => new Set(Array.isArray(onlineUsers) ? onlineUsers : []), [onlineUsers]);
-    const onlineMatchesList = useMemo(() => {
-        const memberMap = new Map<string, any>();
-
-        // 1. Add from dedicated live online members endpoint
-        (Array.isArray(liveOnlineMembers) ? liveOnlineMembers : []).forEach(m => {
-            if (m && m.id && (onlineSet.size === 0 || onlineSet.has(m.id) || m.isOnline)) {
-                memberMap.set(m.id, { ...m, isOnline: true });
-            }
-        });
-        // 2. Add from matches feed
-        (Array.isArray(matches) ? matches : []).forEach(m => {
-            if (m && m.id && (onlineSet.has(m.id) || m.isOnline)) {
-                memberMap.set(m.id, { ...m, isOnline: true });
-            }
-        });
-        return Array.from(memberMap.values());
-    }, [matches, liveOnlineMembers, onlineSet]);
 
     const connectedPartnerIds = useMemo(() => {
         return new Set((Array.isArray(connections) ? connections : []).map(c => c?.partner?.id || c?.id).filter(Boolean));
@@ -508,16 +471,24 @@ export default function MatchesTab({
 
     const displayMatches = useMemo(() => {
         const baseMatches = activeFilters ? filterMatches(matches) : (Array.isArray(matches) ? matches : []);
-        let filtered = showHighlightsOnly
-            ? baseMatches.filter(m => m && (m.stories || []).some((s: any) => s.isHighlight))
-            : baseMatches;
+        const seenIds = new Set<string>();
+        let filtered = baseMatches.filter(m => {
+            if (!m) return false;
+            if (m.id) {
+                if (seenIds.has(m.id)) return false;
+                seenIds.add(m.id);
+            }
+            if (showHighlightsOnly && !(m.stories || []).some((s: any) => s.isHighlight)) {
+                return false;
+            }
+            return true;
+        });
 
         // Strict Client-Side Gender Safety Guard: Never leak same-gender profiles into the feed
         const userGender = String(currentUser?.gender || currentUser?.metadata?.gender || '').trim().toLowerCase();
         const expectedOppositeGender = (userGender === 'female' || userGender === 'woman' || userGender === 'women' || userGender === 'f') ? 'male' : 'female';
         if (userGender) {
             filtered = filtered.filter(m => {
-                if (!m) return false;
                 const mGender = String(m.gender || m.metadata?.gender || '').trim().toLowerCase();
                 if (expectedOppositeGender === 'female') {
                     if (mGender === 'male' || mGender === 'man' || mGender === 'men' || mGender === 'm') return false;
@@ -535,67 +506,42 @@ export default function MatchesTab({
         if (showWorldwideOnly) {
             const homeLower = homeCountry.toLowerCase();
             filtered = filtered.filter(m => Boolean(
-                m && (
-                    m.isWorldwide ||
-                    (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes(homeLower)) ||
-                    (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes(homeLower) && m.location.includes(','))
-                )
+                m.isWorldwide ||
+                (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes(homeLower)) ||
+                (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes(homeLower) && m.location.includes(','))
             ));
         }
 
-        // Helper to determine candidate photo tier:
-        // Tier 3: 3+ photos (Top rank)
-        // Tier 2: 2 photos (High rank)
-        // Tier 1: 1 photo (Standard rank)
-        // Tier 0: No photos (Bottom rank)
-        const getPhotoTier = (m: any): number => {
-            const photosList = Array.isArray(m?.photos) ? m.photos : [];
-            const validCount = photosList.filter((p: any) => 
-                typeof p === 'string' && 
-                p.trim() && 
-                !p.includes('dicebear') && 
-                !p.includes('avatar-fallback')
-            ).length;
-            const hasSingle = Boolean(
-                m?.hasValidPhoto ?? (
-                    (m?.photoUrl && !m.photoUrl.includes('dicebear') && !m.photoUrl.includes('avatar-fallback')) ||
-                    (m?.avatar_url && !m.avatar_url.includes('dicebear') && !m.avatar_url.includes('avatar-fallback'))
-                )
-            );
-            const count = Math.max(m?.photoCount || 0, validCount, hasSingle ? 1 : 0);
-            if (count >= 3) return 3;
-            if (count === 2) return 2;
-            if (count === 1) return 1;
-            return 0;
-        };
-
         if (showMultiPhotoOnly) {
-            filtered = filtered.filter(m => getPhotoTier(m) >= 2);
+            filtered = filtered.filter(m => {
+                const photosList = Array.isArray(m?.photos) ? m.photos : [];
+                const validCount = photosList.filter((p: any) =>
+                    typeof p === 'string' &&
+                    p.trim() &&
+                    !p.includes('dicebear') &&
+                    !p.includes('avatar-fallback')
+                ).length;
+                const hasSingle = Boolean(
+                    m?.hasValidPhoto ?? (
+                        (m?.photoUrl && !m.photoUrl.includes('dicebear') && !m.photoUrl.includes('avatar-fallback')) ||
+                        (m?.avatar_url && !m.avatar_url.includes('dicebear') && !m.avatar_url.includes('avatar-fallback'))
+                    )
+                );
+                return Math.max(m?.photoCount || 0, validCount, hasSingle ? 1 : 0) >= 2;
+            });
         }
 
-        // Preserve distance order when Nearby discovery is active; otherwise prioritize multi-photo tier
-        return filtered.slice().sort((a, b) => {
-            if (discoveryScope === 'nearby') {
+        // Preserve backend rank order so appended pages never shuffle or duplicate already-scrolled cards
+        if (discoveryScope === 'nearby') {
+            return filtered.slice().sort((a, b) => {
                 const distA = typeof a?.distanceKm === 'number' ? a.distanceKm : Number.POSITIVE_INFINITY;
                 const distB = typeof b?.distanceKm === 'number' ? b.distanceKm : Number.POSITIVE_INFINITY;
-                if (distA !== distB) return distA - distB;
-            }
+                return distA - distB;
+            });
+        }
 
-            // 1. Multiple Photos Tier Priority (Tier 3 > Tier 2 > Tier 1 > Tier 0)
-            const tierA = getPhotoTier(a);
-            const tierB = getPhotoTier(b);
-            if (tierA !== tierB) return tierB - tierA; // Higher photo tier strictly first
-
-            // 2. Live Online Priority within the same photo tier
-            const isOnlineA = Boolean((a?.id && onlineSet.has(a.id)) || a?.isOnline);
-            const isOnlineB = Boolean((b?.id && onlineSet.has(b.id)) || b?.isOnline);
-            if (isOnlineA && !isOnlineB) return -1;
-            if (!isOnlineA && isOnlineB) return 1;
-
-            // 3. Match / Compatibility score
-            return (b?.score || 0) - (a?.score || 0);
-        });
-    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, onlineSet, homeCountry, discoveryScope]);
+        return filtered;
+    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, showOnlineOnly ? onlineSet : null, homeCountry, discoveryScope, currentUser?.gender, currentUser?.metadata?.gender]);
 
     if (loading && matches.length === 0) {
         return (
@@ -625,32 +571,6 @@ export default function MatchesTab({
 
     return (
         <div className="w-full space-y-6">
-            {/* 1. Daily Chemistry Spark (Interactive Vibe Duel & Instant Spark Coins) */}
-            <DailyChemistrySpark
-                currentUser={currentUser}
-                setCurrentUser={setCurrentUser}
-                matches={matches}
-                onOpenChat={openChat}
-                onViewProfile={setSelectedProfile}
-            />
-
-            {/* AI Soulmate Spotlight (Groundbreaking Multi-Dimensional Match Recommendation) */}
-            <AISoulmateSpotlight
-                currentUser={currentUser}
-                onViewProfile={setSelectedProfile}
-                onOpenChat={openChat}
-                onOpenCompatibility={(id, name, photoUrl) => setCompatibilityModalData({ id, name, photoUrl })}
-            />
-
-            {/* 2. Live Singles Radar (Pulse Reel & Quick Wave) */}
-            <LiveSinglesRadar
-                matches={matches}
-                currentUserId={currentUser?.id}
-                currentUser={currentUser}
-                onViewProfile={setSelectedProfile}
-                onOpenChat={openChat}
-            />
-
             {/* AI Matchmaker Search & Filters Bar */}
             <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-3.5 overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
@@ -1214,11 +1134,10 @@ export default function MatchesTab({
                     if (!match) return null;
                     return (
                         <div
-                            key={match.id ? `${match.id}-${idx}` : `match-${idx}`}
+                            key={match.id || `match-${idx}`}
                             id={match.id ? `match-card-${match.id}` : `match-card-${idx}`}
                             data-match-id={match.id}
-                            className="animate-in fade-in slide-in-from-bottom-8 duration-500 h-full card-premium virtualized-card transition-all duration-300"
-                            style={{ animationDelay: `${Math.min(idx, 15) * 50}ms` }}
+                            className={idx < 12 ? "animate-in fade-in duration-300 h-full card-premium virtualized-card" : "h-full card-premium virtualized-card"}
                         >
                             <MatchCard
                                 match={match}
@@ -1258,8 +1177,8 @@ export default function MatchesTab({
                 })}
             </div>
 
-            {/* Instagram-style Load Balancing & Infinite Stream Sentinel */}
-            {hasMore && displayMatches.length > 0 && (
+            {/* Load Balancing & Infinite Stream Sentinel */}
+            {hasMore && !searchQuery.trim() && !aiFilters && displayMatches.length > 0 && (
                 <div ref={sentinelRef} className="flex flex-col items-center justify-center mt-8 pb-20">
                     {loadingMore ? (
                         <div className="flex items-center gap-2.5 px-6 py-3 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md animate-in fade-in">
@@ -1418,16 +1337,6 @@ export default function MatchesTab({
                             toast.success('🎉 Your Live Speed Dating event is now LIVE!');
                         }
                     }}
-                />
-            )}
-            {compatibilityModalData && (
-                <CompatibilityModal
-                    isOpen={Boolean(compatibilityModalData)}
-                    onClose={() => setCompatibilityModalData(null)}
-                    targetUserId={compatibilityModalData.id}
-                    targetName={compatibilityModalData.name}
-                    targetPhotoUrl={compatibilityModalData.photoUrl}
-                    onOpenChat={openChat}
                 />
             )}
         </div>

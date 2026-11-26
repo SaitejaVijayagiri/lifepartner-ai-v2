@@ -911,14 +911,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const queryLat = req.query.lat !== undefined ? parseFloat(String(req.query.lat)) : NaN;
         const queryLng = req.query.lng !== undefined ? parseFloat(String(req.query.lng)) : NaN;
 
-        // Check Cache per page, limit, scope & country
-        const cacheKey = `${userId}_p${page}_l${limit}_s${scope}_c${requestedCountry.toLowerCase()}`;
+        // Check Full-Pool Cache per user, scope & country (zero page drift / zero scroll duplicates)
+        const cacheKey = `${userId}_rec_s${scope}_c${requestedCountry.toLowerCase()}`;
         const hasFreshCoordOverride = Number.isFinite(queryLat) && Number.isFinite(queryLng);
         const cached = !hasFreshCoordOverride ? matchCache.get(cacheKey) : null;
         if (cached && cached.expiresAt > Date.now()) {
             const payload = cached.data;
-            const cachedMatches = Array.isArray(payload) ? payload : (payload?.matches || []);
-            const liveMatches = cachedMatches.map((m: any) => ({
+            const allRanked: any[] = Array.isArray(payload) ? payload : (payload?.matches || []);
+            const liveMatches = allRanked.slice(offset, offset + limit).map((m: any) => ({
                 ...m,
                 isOnline: isUserOnline(m.id)
             }));
@@ -926,17 +926,27 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 matches: liveMatches,
                 page,
                 limit,
+                total: allRanked.length,
                 scope,
                 viewerCountry: Array.isArray(payload) ? null : payload?.viewerCountry || null,
                 viewerNeedsLocation: Array.isArray(payload) ? false : Boolean(payload?.viewerNeedsLocation),
-                hasMore: liveMatches.length >= limit
+                hasMore: offset + liveMatches.length < allRanked.length
             });
         }
 
-        // 1. Get Me
+        // 1. Get Me (skip unused embedding vector)
         const me = await prisma.users.findUnique({
             where: { id: userId },
-            include: { profiles: true }
+            include: {
+                profiles: {
+                    select: {
+                        metadata: true,
+                        raw_prompt: true,
+                        photos: true,
+                        updated_at: true
+                    }
+                }
+            }
         });
 
         if (!me) return res.json({ matches: [] });
@@ -953,11 +963,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         const myGender = resolveViewerGender(me, meMeta);
         const expectedCandidateGender: 'male' | 'female' = myGender === 'female' ? 'male' : 'female';
-        // Deterministic window chunking ensures outer photo-tier sorting + outer OFFSET
-        // never repeats or drops profiles across pages while keeping scans bounded at O(windowChunk).
-        const windowChunk = 1200;
-        const windowOffset = Math.floor(offset / windowChunk) * windowChunk;
-        const outerOffset = offset - windowOffset;
+        // Score & rank a bounded candidate pool ONCE per feed key so every user sees their
+        // highest-compatibility matches on Page 1 and paginated slices never overlap or drift.
+        const poolLimit = Math.min(800, Math.max(limit * page, 500));
 
         // Unified parameterized SQL conditions (eliminates 3 duplicate raw queries)
         const baseConditions: Prisma.Sql[] = [
@@ -1042,8 +1050,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     (CASE WHEN dist_km IS NOT NULL THEN 0 ELSE 1 END) ASC,
                     dist_km ASC NULLS LAST,
                     region_tier ASC,
-                    created_at DESC
-                LIMIT ${limit} OFFSET ${offset}
+                    created_at DESC,
+                    id ASC
+                LIMIT ${poolLimit}
             `;
         } else if (scope === 'nearby') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
@@ -1067,8 +1076,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                         THEN 1
                         ELSE 2
                     END) ASC,
-                    u.created_at DESC
-                LIMIT ${limit} OFFSET ${offset}
+                    u.created_at DESC,
+                    u.id ASC
+                LIMIT ${poolLimit}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
@@ -1078,7 +1088,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     LEFT JOIN profiles p ON p.user_id = u.id
                     WHERE ${whereSql}
                     ORDER BY u.created_at DESC, u.id ASC
-                    LIMIT ${windowChunk} OFFSET ${windowOffset}
+                    LIMIT 1500
                 )
                 SELECT cp.id FROM candidate_pool cp
                 LEFT JOIN profiles p ON p.user_id = cp.id
@@ -1098,14 +1108,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   END) ASC,
                   cp.created_at DESC,
                   cp.id ASC
-                LIMIT ${limit} OFFSET ${outerOffset}
+                LIMIT ${poolLimit}
             `;
         }
 
-        // Prioritize actively online candidates of opposite gender on Page 1 (for default All scope)
+        // Prioritize actively online candidates of opposite gender inside the cached ranked pool
         const onlineIds = (scope === 'all' && !effectiveCountryFilter) ? getOnlineUserIds().filter(id => id !== userId).slice(0, 100) : [];
         const targetGenderClause = myGender === 'female' ? ['Male', 'male', 'MALE', 'man', 'men'] : ['Female', 'female', 'FEMALE', 'woman', 'women'];
-        const onlineOppositeCandidateIds = (onlineIds.length > 0 && page === 1)
+        const onlineOppositeCandidateIds = onlineIds.length > 0
             ? (await prisma.users.findMany({
                 where: {
                     id: { in: onlineIds },
@@ -1122,18 +1132,24 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             })).map(u => u.id)
             : [];
 
-        // Step B: Extract IDs, prepending online candidates without truncating rawDbIds (prevents displacing tail items across pages)
+        // Extract deduplicated candidate IDs (online + scored SQL pool)
         const rawDbIds = randomCandidates.map(c => c.id);
-        const shuffledIds = page === 1
-            ? Array.from(new Set([...onlineOppositeCandidateIds, ...rawDbIds]))
-            : rawDbIds;
+        const shuffledIds = Array.from(new Set([...onlineOppositeCandidateIds, ...rawDbIds]));
 
-        // Parallelise candidates + gift stats fetches
+        // Parallelise candidates + gift stats fetches (skip embedding vectors for fast DB I/O)
         const [shuffledCandidates, giftStatsRaw] = await Promise.all([
             prisma.users.findMany({
                 where: { id: { in: shuffledIds } },
                 include: {
-                    profiles: true,
+                    profiles: {
+                        select: {
+                            metadata: true,
+                            raw_prompt: true,
+                            photos: true,
+                            stories: true,
+                            updated_at: true
+                        }
+                    },
                     matches_matches_user_b_idTousers: {
                         where: { user_a_id: userId },
                         select: { status: true, is_liked: true }
@@ -1173,8 +1189,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         // 3. Score
 
 
-        // Strictly filter candidates to guarantee 0% opposite gender leakage
-        const strictlyFilteredCandidates = shuffledCandidates.filter(c => isCandidateOfTargetGender(c, expectedCandidateGender));
+        // Strictly filter & deduplicate candidates by id to guarantee 0% gender leakage and 0% duplicates
+        const uniqueCandidateMap = new Map<string, any>();
+        for (const c of shuffledCandidates) {
+            if (c?.id && !uniqueCandidateMap.has(c.id) && isCandidateOfTargetGender(c, expectedCandidateGender)) {
+                uniqueCandidateMap.set(c.id, c);
+            }
+        }
+        const strictlyFilteredCandidates = Array.from(uniqueCandidateMap.values());
         const approvedRecIds = await getApprovedVerificationUserIds(strictlyFilteredCandidates.map(c => c.id));
 
         const matches = await Promise.all(strictlyFilteredCandidates.map(async c => {
@@ -1210,10 +1232,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 reasons.push("Career Match");
             }
 
-            // Boost ID-verified profiles for safety & trust
+            // Boost Selfie-verified profiles for safety & trust
             if (isIdVerified) {
                 score += 5;
-                reasons.push("🛡️ ID Verified");
+                reasons.push("🛡️ Selfie Verified");
             }
 
             // Photo quality penalty — users with NO photo at all (null or DiceBear placeholder)
@@ -1515,7 +1537,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
                 if (a.isOnline && !b.isOnline) return -1;
                 if (!a.isOnline && b.isOnline) return 1;
-                return (b.score || 0) - (a.score || 0);
+                if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+                return String(a.id).localeCompare(String(b.id));
             });
         } else {
             // Smart Compatibility + Photo Quality Ranking:
@@ -1537,7 +1560,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     return rankB - rankA;
                 }
 
-                return (b.score || 0) - (a.score || 0);
+                if ((b.score || 0) !== (a.score || 0)) {
+                    return (b.score || 0) - (a.score || 0);
+                }
+                return String(a.id).localeCompare(String(b.id));
             });
         }
 
@@ -1547,13 +1573,13 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             viewerNeedsLocation: !hasViewerCoords
         };
 
-        // Save to in-memory Cache
+        // Cache FULL ranked feed under user+scope+country key (paginates deterministically without duplicates)
         if (!hasFreshCoordOverride) {
             matchCache.set(cacheKey, { data: cachedPayload, expiresAt: Date.now() + MATCH_CACHE_TTL });
         }
 
-        // Ensure live online status is 100% current upon response
-        const liveMatches = matches.map(m => ({
+        // Slice requested page and attach live online status
+        const liveMatches = matches.slice(offset, offset + limit).map(m => ({
             ...m,
             isOnline: isUserOnline(m.id)
         }));
@@ -1562,10 +1588,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             matches: liveMatches,
             page,
             limit,
+            total: matches.length,
             scope,
             viewerCountry: myCountry || null,
             viewerNeedsLocation: !hasViewerCoords,
-            hasMore: liveMatches.length >= limit
+            hasMore: offset + liveMatches.length < matches.length
         });
 
     } catch (e) {

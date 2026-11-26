@@ -150,7 +150,7 @@ export const api = {
     matches: {
         getAll: (
             page: number = 1,
-            limit: number = 30,
+            limit: number = 24,
             opts?: { scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }
         ) => {
             const params = new URLSearchParams();

@@ -1,11 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Sparkles, Heart, Zap, Radio, ArrowRight, Star, Users, Video, MapPin, Coffee, Calendar, Music, Tv, Play, Send, X, Headphones, Check } from 'lucide-react';
+import { Sparkles, Heart, Zap, Radio, ArrowRight, Star, MapPin, Calendar, Music, Send, X, Headphones } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 import StoriesFeed from '@/components/StoriesFeed';
-import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 import ProfileStrengthCard from '@/components/ProfileStrengthCard';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
 import ChatMusicJukebox from '@/components/ChatMusicJukebox';
@@ -14,7 +12,6 @@ import { api } from '@/lib/api';
 
 import MatchCard from '@/components/MatchCard';
 const AnonymousStrangerChat = dynamic(() => import('@/components/AnonymousStrangerChat'), { ssr: false });
-const DailyChemistrySpark = dynamic(() => import('@/components/DailyChemistrySpark'), { ssr: false });
 const LiveSinglesRadar = dynamic(() => import('@/components/LiveSinglesRadar'), { ssr: false });
 const AISoulmateSpotlight = dynamic(() => import('@/components/AISoulmateSpotlight'), { ssr: false });
 const CompatibilityModal = dynamic(() => import('@/components/CompatibilityModal'), { ssr: false });
@@ -117,46 +114,106 @@ export default function HomeTab({
         }
     };
 
+    const needsPhotoOrProfile =
+        !currentUser?.avatar_url ||
+        (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear')) ||
+        (Array.isArray(currentUser?.photos) && currentUser.photos.length < 3) ||
+        (currentUser?.completenessScore ?? 40) < 80;
+
     return (
-        <div className="w-full space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+        <div className="w-full space-y-5 sm:space-y-6 animate-in fade-in duration-300">
             
-            {/* 1. Stories Feed Arranged at the Very Top of Home Screen */}
+            {/* 1. Stories Feed */}
             <StoriesFeed
                 currentUser={currentUser}
                 setCurrentUser={setCurrentUser}
                 onOpenStory={onOpenStory}
             />
 
-            {/* 2. Hero Welcome Header */}
-            <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-7 text-white shadow-2xl border border-indigo-500/20 overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="space-y-1.5">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-black uppercase tracking-wider">
-                            <Sparkles size={13} className="text-amber-400 animate-pulse" />
-                            Welcome Back, {firstName}!
-                        </div>
-                        <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white">
-                            How would you like to connect today?
+            {/* 2. Clean Compact Greeting + Quick Action Pills */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                    <div>
+                        <h1 className="text-lg sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Welcome back, {firstName} ✨
                         </h1>
-                        <p className="text-xs sm:text-sm text-gray-300 max-w-2xl leading-relaxed">
-                            Jump into 1-on-1 blind speed dates, live video streams, nearby radar, or AI bio-data & Kundli matches.
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Your daily compatible matches & live connections
                         </p>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button
+                        type="button"
+                        onClick={() => onJoinLiveRoom()}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                    >
+                        <Zap size={13} className="text-rose-500" />
+                        <span>Speed Date</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onNavigateTab('live_events')}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+                    >
+                        <Radio size={13} className="text-indigo-500" />
+                        <span>Live Rooms</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowStrangerChat(true)}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors cursor-pointer"
+                    >
+                        <Sparkles size={13} className="text-purple-500" />
+                        <span>Blind Chat</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onNavigateTab('map')}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 text-sky-700 dark:text-sky-300 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors cursor-pointer"
+                    >
+                        <MapPin size={13} className="text-sky-500" />
+                        <span>Nearby Map</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onNavigateTab('events')}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                    >
+                        <Calendar size={13} className="text-amber-500" />
+                        <span>Meetups</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowJukebox(true)}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800/60 text-pink-700 dark:text-pink-300 text-xs font-bold hover:bg-pink-100 dark:hover:bg-pink-900/50 transition-colors cursor-pointer"
+                    >
+                        <Headphones size={13} className="text-pink-500" />
+                        <span>Vibe Music</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Daily Chemistry Spark (Interactive Vibe Duel & Instant Spark Coins) */}
-            <DailyChemistrySpark
-                currentUser={currentUser}
-                setCurrentUser={setCurrentUser}
-                matches={matches}
-                onOpenChat={openChat}
-                onViewProfile={onSelectProfile}
-            />
+            {/* 3. Single Contextual Profile / Trust Card (at most one shown when needed) */}
+            {needsPhotoOrProfile ? (
+                <ProfileStrengthCard
+                    completenessScore={currentUser?.completenessScore ?? 40}
+                    missingSections={currentUser?.missingSections || []}
+                    badgeLevel={currentUser?.badgeLevel || 'Basic'}
+                    onEditProfile={() => onNavigateTab('profile_edit')}
+                />
+            ) : currentUser && !currentUser.isVerified ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Get Your Blue Selfie Verified Badge 🛡️</p>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Verified profiles get higher visibility and more mutual connections.</p>
+                    </div>
+                    <RequestVerificationButton className="w-full sm:w-auto justify-center shrink-0" />
+                </div>
+            ) : null}
 
-            {/* AI Soulmate Spotlight (Groundbreaking Multi-Dimensional Match Recommendation) */}
+            {/* 4. Today's #1 AI Match Spotlight */}
             <AISoulmateSpotlight
                 currentUser={currentUser}
                 onViewProfile={onSelectProfile}
@@ -164,7 +221,7 @@ export default function HomeTab({
                 onOpenCompatibility={(id, name, photoUrl) => setCompatibilityModalData({ id, name, photoUrl })}
             />
 
-            {/* Live Singles Radar */}
+            {/* 5. Live Singles Online Radar */}
             <LiveSinglesRadar
                 matches={matches}
                 currentUserId={currentUser?.id}
@@ -173,318 +230,11 @@ export default function HomeTab({
                 onOpenChat={openChat}
             />
 
-            {/* Music & Video Vibe Jukebox Featured Banner */}
-            <div 
-                onClick={() => setShowJukebox(true)}
-                className="group relative rounded-3xl bg-gradient-to-r from-pink-500/15 via-purple-500/10 to-rose-500/15 dark:from-pink-950/50 dark:via-purple-950/60 dark:to-indigo-950/70 border border-pink-300/80 dark:border-pink-500/30 hover:border-pink-500/60 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 hover:shadow-pink-500/10 hover:-translate-y-0.5 overflow-hidden"
-            >
-                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-pink-400/20 via-rose-400/15 to-transparent dark:from-pink-500/15 dark:via-rose-500/10 dark:to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-
-                <div className="relative z-10 flex items-center gap-3.5 sm:gap-4 min-w-0">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform shrink-0">
-                        <Headphones size={26} className="text-white" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-500/20 border border-pink-300 dark:border-pink-500/40 text-pink-700 dark:text-pink-300 text-[10px] font-black uppercase tracking-wider">
-                                <Sparkles size={11} className="text-amber-500 dark:text-amber-400" />
-                                Vibe Music & Video Player
-                            </span>
-                            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/30">
-                                🎬 Full HD Videos
-                            </span>
-                            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
-                                🔥 100% Free
-                            </span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight mt-1 truncate">
-                            Chat & Dating Vibe Jukebox
-                        </h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-1 sm:line-clamp-2">
-                            Explore trending songs, watch full HD official music videos, bookmark favorites, or share with your match!
-                        </p>
-                    </div>
-                </div>
-
-                <button
-                    type="button"
-                    className="relative z-10 w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 hover:from-pink-600 hover:to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-pink-500/25 transition-all flex items-center justify-center gap-2 shrink-0 group-hover:scale-105 cursor-pointer"
-                >
-                    <Play size={14} className="fill-white" />
-                    <span>Open Vibe Jukebox</span>
-                </button>
-            </div>
-
-            {/* Photo Upload Accelerator for Profiles without Multiple Photos */}
-            {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear')) || (Array.isArray(currentUser?.photos) && currentUser.photos.length < 3)) && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
-                    <div className="flex items-center gap-3.5">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
-                            📸
-                        </div>
-                        <div>
-                            <h4 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
-                                {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear'))) 
-                                    ? 'Unlock Top Match Ranking & 10x More Responses!' 
-                                    : 'Upload 3+ Photos to Rank at the Top of Matches!'}
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-300">
-                                Profiles with multiple verified photos receive top priority placement in matches and 10x higher interest rates.
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => onNavigateTab('profile_edit')}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
-                    >
-                        {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear'))) ? 'Upload Photo Now ➔' : 'Add More Photos ➔'}
-                    </button>
-                </div>
-            )}
-
-            {/* Profile Strength Indicator Card (Gamification & Match Boost) */}
-            <ProfileStrengthCard
-                completenessScore={currentUser?.completenessScore ?? 40}
-                missingSections={currentUser?.missingSections || []}
-                badgeLevel={currentUser?.badgeLevel || 'Basic'}
-                onEditProfile={() => onNavigateTab('profile_edit')}
-            />
-
-            {/* Get Blue Selfie Verified Badge — shown for unverified users */}
-            {currentUser && !currentUser.isVerified && (
-                <div className="mx-1 mt-1 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center gap-4">
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-200">Get Your Blue Selfie Verified Badge 🛡️</p>
-                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">Verified profiles get 3× more connection requests and appear above unverified matches.</p>
-                    </div>
-                    <RequestVerificationButton />
-                </div>
-            )}
-
-            {/* 3. Balanced 6-Card Interactive Feature Hub (2x3 Grid on Mobile, 3x2 on Desktop) */}
-            <div className="space-y-3.5">
-                <div className="flex items-center justify-between px-1">
-                    <div>
-                        <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight">
-                            Interactive Feature Hub
-                        </h2>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">All 6 ways to meet verified singles — arranged for 1-tap access</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-                    
-                    {/* Feature 1: 1-on-1 Speed Date */}
-                    <div
-                        onClick={() => onJoinLiveRoom()}
-                        className="group relative rounded-3xl bg-gradient-to-b from-rose-500/10 via-rose-500/5 to-transparent border border-rose-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-rose-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <Zap size={20} className="fill-white" />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-500 dark:text-rose-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    ⚡ 1-ON-1 CALL
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-rose-500 transition-colors leading-snug">
-                                Instant Speed Date
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                3-minute blind 1-on-1 audio or video call paired with verified opposite-gender singles.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-rose-500/25 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <Zap size={14} className="text-yellow-300 fill-yellow-300 shrink-0" />
-                            <span className="truncate">Start Speed Date</span>
-                        </button>
-                    </div>
-
-                    {/* Feature 2: Live Video Broadcasts */}
-                    <div
-                        onClick={() => onNavigateTab('live_events')}
-                        className="group relative rounded-3xl bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-indigo-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <Radio size={20} className="animate-pulse" />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 dark:text-indigo-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    📡 LIVE ROOMS
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-indigo-500 transition-colors leading-snug">
-                                Live Video Streams
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                Join live stream rooms hosted by verified members or broadcast your own room.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <Radio size={14} className="text-rose-300 shrink-0" />
-                            <span className="truncate">Explore Rooms</span>
-                        </button>
-                    </div>
-
-                    {/* Feature 3: AI Bio-Data Matches */}
-                    <div
-                        onClick={() => onNavigateTab('matches')}
-                        className="group relative rounded-3xl bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-emerald-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <Heart size={20} className="fill-white" />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    ❤️ AI + KUNDLI
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-emerald-500 transition-colors leading-snug">
-                                Compatible Matches
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                Browse verified profiles ranked by AI bio-data compatibility, lifestyle & Kundli score.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <Heart size={14} className="fill-white shrink-0" />
-                            <span className="truncate">Matches ({(Array.isArray(matches) ? matches : []).length})</span>
-                        </button>
-                    </div>
-
-                    {/* Feature 4: Anonymous Stranger Chat */}
-                    <div
-                        onClick={() => setShowStrangerChat(true)}
-                        className="group relative rounded-3xl bg-gradient-to-b from-purple-500/10 via-indigo-500/5 to-transparent border border-purple-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-purple-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <Sparkles size={20} className="text-amber-300 animate-pulse" />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-600 dark:text-purple-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    🎭 BLIND CHAT
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-purple-500 transition-colors leading-snug">
-                                Stranger Blind Chat
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                Chat anonymously without revealing your identity first. Shows city & age — skip anytime!
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <Sparkles size={14} className="text-amber-300 shrink-0" />
-                            <span className="truncate">Start Blind Chat</span>
-                        </button>
-                    </div>
-
-                    {/* Feature 5: Interactive Live Map */}
-                    <div
-                        onClick={() => onNavigateTab('map')}
-                        className="group relative rounded-3xl bg-gradient-to-b from-sky-500/10 via-blue-500/5 to-transparent border border-sky-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-sky-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-sky-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <MapPin size={20} />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-sky-500/20 border border-sky-500/30 text-sky-600 dark:text-sky-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    📍 LIVE RADAR
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-sky-500 transition-colors leading-snug">
-                                Nearby Singles Map
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                Explore verified singles near your city on the interactive map with full incognito control.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-1.5"
-                        >
-                            <MapPin size={14} className="shrink-0" />
-                            <span className="truncate">Open Live Map</span>
-                        </button>
-                    </div>
-
-                    {/* Feature 6: Community Lounge & Real-World Meetups */}
-                    <div
-                        onClick={() => onNavigateTab('community')}
-                        className="group relative rounded-3xl bg-gradient-to-b from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/30 p-4 sm:p-6 flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-amber-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer"
-                    >
-                        <div className="space-y-2.5">
-                            <div className="flex items-center justify-between gap-1">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform shrink-0">
-                                    <Coffee size={20} />
-                                </div>
-                                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
-                                    ☕ SOCIAL CLUB
-                                </span>
-                            </div>
-
-                            <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white group-hover:text-amber-500 transition-colors leading-snug">
-                                Lounge & Meetups
-                            </h3>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                                Chat in the Verified Community Lounge or RSVP to curated local coffee & social meetups.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); onNavigateTab('community'); }}
-                                className="py-2.5 sm:py-3 px-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-[10px] sm:text-xs shadow-md transition-all flex items-center justify-center gap-1"
-                            >
-                                <Coffee size={13} className="shrink-0" />
-                                <span className="truncate">Lounge</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); onNavigateTab('events'); }}
-                                className="py-2.5 sm:py-3 px-2 rounded-2xl bg-white dark:bg-gray-800 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-gray-700 font-extrabold text-[10px] sm:text-xs shadow-sm transition-all flex items-center justify-center gap-1"
-                            >
-                                <Calendar size={13} className="shrink-0" />
-                                <span className="truncate">Meetups</span>
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
             {showStrangerChat && (
                 <AnonymousStrangerChat onClose={() => setShowStrangerChat(false)} />
             )}
 
-            {/* 4. Top AI Recommended Matches Section */}
+            {/* 6. Top AI Recommended Matches */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
@@ -557,22 +307,6 @@ export default function HomeTab({
                     </div>
                 )}
             </div>
-
-            {/* 5. Global Site Views Badge (Rendered ONLY at bottom of Home page) */}
-            <GlobalViewsBadge className="my-4" />
-
-            {/* 6. Clean Inline App Feedback Banner */}
-            <AppExperienceFeedback userId={currentUser?.id} userName={currentUser?.full_name} variant="card" />
-
-            {/* Floating Music & Video Jukebox Trigger Button */}
-            <button
-                onClick={() => setShowJukebox(true)}
-                className="fixed bottom-24 right-4 sm:right-6 z-[900] flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white shadow-2xl shadow-pink-500/40 border border-white/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
-                title="Open Music & Video Vibe Player"
-            >
-                <Headphones size={18} className="text-white" />
-                <span className="text-xs font-black tracking-wide hidden sm:inline">Vibe Player</span>
-            </button>
 
             {/* In-Home Music & Video Jukebox Modal */}
             {showJukebox && (

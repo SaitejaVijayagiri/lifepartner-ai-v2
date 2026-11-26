@@ -427,7 +427,12 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ documentUrl })
         }),
-        getStatus: () => fetchAPI('/verification/status')
+        getStatus: () => fetchAPI('/verification/status'),
+        getPending: () => fetchAPI('/verification/admin/pending'),
+        resolve: (id: string, status: 'APPROVED' | 'REJECTED', notes?: string) => fetchAPI(`/verification/admin/${id}/resolve`, {
+            method: 'POST',
+            body: JSON.stringify({ status, notes })
+        })
     },
     instants: {
         create: (payload: any) => fetchAPI('/instants', { method: 'POST', body: JSON.stringify(payload) }),

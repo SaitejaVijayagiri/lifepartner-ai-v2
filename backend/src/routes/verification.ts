@@ -60,23 +60,56 @@ router.post('/request', authenticateToken, async (req: any, res) => {
                         mimeType = match[1];
                         rawB64 = match[2];
                     }
+
+                    // Optionally fetch user's primary profile photo to compare face match
+                    let profilePhotoPart: { inlineData: { mimeType: string; data: string } } | null = null;
+                    try {
+                        const owner = await prisma.users.findUnique({
+                            where: { id: userId },
+                            select: { avatar_url: true, profiles: { select: { photos: true } } }
+                        });
+                        const candidateUrl = (Array.isArray(owner?.profiles?.photos) && owner.profiles.photos[0]) || owner?.avatar_url;
+                        if (typeof candidateUrl === 'string' && candidateUrl.startsWith('http') && !candidateUrl.includes('dicebear')) {
+                            const photoResp = await fetch(candidateUrl, { signal: AbortSignal.timeout(2500) });
+                            if (photoResp.ok) {
+                                const ct = photoResp.headers.get('content-type') || 'image/jpeg';
+                                if (ct.startsWith('image/')) {
+                                    const buf = Buffer.from(await photoResp.arrayBuffer());
+                                    if (buf.length > 0 && buf.length < 3 * 1024 * 1024) {
+                                        profilePhotoPart = { inlineData: { mimeType: ct.split(';')[0], data: buf.toString('base64') } };
+                                    }
+                                }
+                            }
+                        }
+                    } catch {
+                        // Non-fatal: continue liveness check even if profile photo fetch fails
+                    }
+
+                    const parts: any[] = [
+                        {
+                            text: profilePhotoPart
+                                ? 'Assess photo 1 (submitted selfie) and compare against photo 2 (user profile photo). Confirm photo 1 is a genuine live selfie (NOT a photo of another phone/monitor screen, meme, stock photo, AI-generated image, or celebrity), and check if it looks like the same person as photo 2. Return strict JSON: { "isGenuineCapture": boolean, "faceMatchesProfile": boolean, "docType": "LIVE_SELFIE" | "SUSPICIOUS", "summary": "short reviewer note" }.'
+                                : 'Assess this selfie verification photo. Is it a genuine live selfie of a real person (NOT a photo of another phone/monitor screen, meme, stock photo, AI image, or celebrity)? Return strict JSON: { "isGenuineCapture": boolean, "docType": "LIVE_SELFIE" | "SUSPICIOUS", "summary": "short reviewer note" }.'
+                        },
+                        { inlineData: { mimeType, data: rawB64 } }
+                    ];
+                    if (profilePhotoPart) {
+                        parts.push(profilePhotoPart);
+                    }
+
                     const authRes = await callGeminiGenerate({
                         contents: [{
                             role: 'user',
-                            parts: [
-                                {
-                                    text: 'Assess this identity verification photo. Is it a genuine live selfie or physical ID card photo (NOT a photo of another phone/monitor screen, meme, stock photo, or celebrity)? Return strict JSON: { "isGenuineCapture": boolean, "docType": "LIVE_SELFIE" | "ID_DOCUMENT" | "SELFIE_WITH_ID" | "SUSPICIOUS", "summary": "short reviewer note" }.'
-                                },
-                                { inlineData: { mimeType, data: rawB64 } }
-                            ]
+                            parts
                         }],
                         temperature: 0,
-                        maxOutputTokens: 180,
+                        maxOutputTokens: 200,
                         responseMimeType: 'application/json',
                         responseSchema: {
                             type: 'OBJECT',
                             properties: {
                                 isGenuineCapture: { type: 'BOOLEAN' },
+                                faceMatchesProfile: { type: 'BOOLEAN' },
                                 docType: { type: 'STRING' },
                                 summary: { type: 'STRING' }
                             },
@@ -88,10 +121,13 @@ router.post('/request', authenticateToken, async (req: any, res) => {
                         const parsed = JSON.parse(authRes.text);
                         if (parsed.isGenuineCapture === false || parsed.docType === 'SUSPICIOUS') {
                             return res.status(400).json({
-                                error: 'Please upload a clear, live selfie or original ID photo (not a photo of another screen or stock image).'
+                                error: 'Please take a clear, live selfie (not a photo of another screen or stock image).'
                             });
                         }
-                        aiPrecheckNote = `AI Verification Pre-Check (${parsed.docType}): ${parsed.summary}`;
+                        const matchTag = typeof parsed.faceMatchesProfile === 'boolean'
+                            ? (parsed.faceMatchesProfile ? ' • Profile face match: YES' : ' • Profile face match: UNCERTAIN/NO')
+                            : '';
+                        aiPrecheckNote = `AI Live Selfie Check (${parsed.docType}${matchTag}): ${parsed.summary}`;
                     }
                 } catch (aiErr: any) {
                     console.warn('[verification] AI authenticity pre-check skipped:', aiErr?.message || aiErr);

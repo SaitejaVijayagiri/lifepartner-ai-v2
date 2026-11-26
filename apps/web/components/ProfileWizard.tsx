@@ -1294,8 +1294,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         Submit a quick live selfie (reviewed privately by our safety team, never shown publicly) or verify anytime from your Dashboard.
                                     </p>
                                 </div>
-                                <div className="shrink-0">
-                                    <RequestVerificationButton />
+                                <div className="w-full sm:w-auto shrink-0">
+                                    <RequestVerificationButton className="w-full sm:w-auto justify-center" />
                                 </div>
                             </div>
                         </div>

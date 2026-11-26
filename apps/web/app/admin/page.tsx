@@ -65,6 +65,8 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
+    const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
+    const [resolvingVerificationId, setResolvingVerificationId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -110,11 +112,12 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [statsRes, usersRes, txRes, photosRes, campaignStatsRes, analyticsRes, viewsRes] = await Promise.all([
+            const [statsRes, usersRes, txRes, photosRes, verificationsRes, campaignStatsRes, analyticsRes, viewsRes] = await Promise.all([
                 api.admin.getStats().catch(err => { console.warn('getStats failed:', err); return null; }),
                 api.admin.getUsers({ search, limit: 20 }).catch(err => { console.warn('getUsers failed:', err); return []; }),
                 api.admin.getTransactions({ limit: 50 }).catch(err => { console.warn('getTransactions failed:', err); return []; }),
                 api.admin.getPhotosPending().catch(err => { console.warn('getPhotosPending failed:', err); return []; }),
+                api.verification.getPending().catch(err => { console.warn('getPending verifications failed:', err); return []; }),
                 api.admin.getCampaignStats().catch(err => { console.warn('getCampaignStats failed:', err); return null; }),
                 fetchAPI('/analytics/insights').catch(() => null),
                 fetchAPI('/analytics/views').catch(() => null)
@@ -123,6 +126,7 @@ export default function AdminDashboard() {
             setUsers(Array.isArray(usersRes) ? usersRes : []);
             setTransactions(Array.isArray(txRes) ? txRes : []);
             setPendingPhotos(Array.isArray(photosRes) ? photosRes : []);
+            setPendingVerifications(Array.isArray(verificationsRes) ? verificationsRes : []);
             setCampaignStats(campaignStatsRes || {});
             setAnalyticsInsights(analyticsRes || {});
             setSiteViews(viewsRes || {});
@@ -259,6 +263,20 @@ export default function AdminDashboard() {
         } catch (e) {
             console.error("Moderation error", e);
             alert("Failed to moderate photo");
+        }
+    };
+
+    const handleResolveVerification = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+        if (status === 'REJECTED' && !confirm('Reject this selfie verification request? The user can submit a clearer live selfie afterwards.')) return;
+        setResolvingVerificationId(id);
+        try {
+            await api.verification.resolve(id, status, status === 'APPROVED' ? 'Verified via admin review' : 'Selfie unclear or did not match profile photo');
+            setPendingVerifications(prev => prev.filter(v => v.id !== id));
+        } catch (e) {
+            console.error("Verification resolve error", e);
+            alert("Failed to update verification status");
+        } finally {
+            setResolvingVerificationId(null);
         }
     };
 
@@ -404,7 +422,7 @@ export default function AdminDashboard() {
                         <TabsTrigger value="growth">🚀 Growth Analytics</TabsTrigger>
                         <TabsTrigger value="users">User Management</TabsTrigger>
                         <TabsTrigger value="analytics">📊 Image & Drop-Off Analytics</TabsTrigger>
-                        <TabsTrigger value="moderation">Photo Moderation</TabsTrigger>
+                        <TabsTrigger value="moderation">Moderation ({pendingVerifications.length + pendingPhotos.length})</TabsTrigger>
                         <TabsTrigger value="transactions">Financials</TabsTrigger>
                         <TabsTrigger value="referrals">Referral Tracking</TabsTrigger>
                         <TabsTrigger value="campaigns">📧 Campaigns</TabsTrigger>
@@ -697,7 +715,71 @@ export default function AdminDashboard() {
                     </TabsContent>
 
                     {/* MODERATION TAB */}
-                    <TabsContent value="moderation" className="space-y-4">
+                    <TabsContent value="moderation" className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ShieldCheck className="w-5 h-5 text-blue-600" />
+                                    Pending Live Selfie Verifications ({pendingVerifications.length})
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {pendingVerifications.length === 0 ? (
+                                    <div className="text-center p-8 text-gray-500 dark:text-gray-400">No pending selfie verifications.</div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {pendingVerifications.map(v => (
+                                            <div key={v.id} className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 p-4 space-y-3">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Profile Photo</p>
+                                                        <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                                                            <img src={v.photo_url || '/avatar-fallback.svg'} alt={v.name || 'Profile'} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold uppercase text-blue-500 mb-1">Live Selfie</p>
+                                                        <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                                                            <img src={v.document_url} alt="Submitted selfie" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{v.name || 'Member'}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{v.email}</p>
+                                                    {v.admin_notes && (
+                                                        <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1.5 bg-indigo-50 dark:bg-indigo-950/40 p-2 rounded-lg border border-indigo-100 dark:border-indigo-900/50">
+                                                            {v.admin_notes}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={resolvingVerificationId === v.id}
+                                                        className="w-full text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20 dark:border-green-900/30"
+                                                        onClick={() => handleResolveVerification(v.id, 'APPROVED')}
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-1" /> Approve Badge
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        disabled={resolvingVerificationId === v.id}
+                                                        className="w-full bg-red-500 hover:bg-red-600 border-none text-white"
+                                                        onClick={() => handleResolveVerification(v.id, 'REJECTED')}
+                                                    >
+                                                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">

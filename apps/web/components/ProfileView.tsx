@@ -203,8 +203,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             <div className="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-900">
 
                 {/* Header with Edit Button */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-wrap justify-between items-center gap-3 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-center gap-3 sm:sticky sm:top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                         <h3 className="font-bold text-gray-800 dark:text-gray-100">My Profile</h3>
                         {displayProfileId && (
                             <button
@@ -218,7 +218,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             </button>
                         )}
                         {displayHandle && (
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 truncate max-w-[160px]">
                                 {displayHandle}
                             </span>
                         )}
@@ -228,9 +228,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             </span>
                         )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {!Boolean(profile.isIdVerified ?? profile.isVerified) && (
-                            <RequestVerificationButton />
+                            <RequestVerificationButton className="flex-1 min-w-[140px] sm:flex-initial sm:min-w-0 justify-center whitespace-nowrap text-xs" />
                         )}
 
                         <Button
@@ -256,7 +256,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 }
                             }}
                             size="sm"
-                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                            className="flex-1 min-w-[140px] sm:flex-initial sm:min-w-0 justify-center whitespace-nowrap text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                             title="Share read-only biodata with parents or family"
                         >
                             👨‍👩‍👧 Family Link
@@ -291,15 +291,15 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             }}
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            className="flex-1 min-w-[140px] sm:flex-initial sm:min-w-0 justify-center whitespace-nowrap text-xs gap-1.5 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                             title="Share Profile Link"
                         >
-                            <Share2 size={15} />
-                            <span className="hidden sm:inline">Share</span>
+                            <Share2 size={14} />
+                            <span>Share</span>
                         </Button>
 
-                        <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                            <Edit size={16} /> Edit Profile
+                        <Button onClick={onEdit} variant="outline" size="sm" className="flex-1 min-w-[140px] sm:flex-initial sm:min-w-0 justify-center whitespace-nowrap text-xs gap-1.5 border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+                            <Edit size={14} /> Edit Profile
                         </Button>
                     </div>
                 </div>
@@ -594,13 +594,13 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-2xl border border-teal-100 dark:border-teal-900/50 mt-6">
                                 <h3 className="font-bold text-teal-900 dark:text-teal-100 mb-4">Contact Information</h3>
                                 <div className="space-y-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-teal-800/70 dark:text-teal-400">Phone</span>
-                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300">{profile.phone || "-"}</span>
+                                    <div className="flex justify-between gap-3 items-center">
+                                        <span className="text-sm text-teal-800/70 dark:text-teal-400 shrink-0">Phone</span>
+                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300 break-all text-right">{profile.phone || "-"}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-teal-800/70 dark:text-teal-400">Email</span>
-                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300">{profile.email || "-"}</span>
+                                    <div className="flex justify-between gap-3 items-center">
+                                        <span className="text-sm text-teal-800/70 dark:text-teal-400 shrink-0">Email</span>
+                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300 break-all text-right">{profile.email || "-"}</span>
                                     </div>
                                 </div>
                             </div>

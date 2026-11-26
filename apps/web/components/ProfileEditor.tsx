@@ -339,7 +339,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-800">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-white dark:bg-gray-800">
                 {/* GAMIFICATION WIDGET & AI ROAST */}
             <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-3 md:p-6 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
                 <div className="w-full flex-1">
@@ -429,7 +429,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 </div>
             )}
 
-            <div className="p-6 space-y-8">
+            <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
                 {/* Photo Upload Section */}
                 {/* Photo Gallery Upload Section */}
                 <div className="space-y-4">

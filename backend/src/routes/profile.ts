@@ -870,7 +870,9 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             id: user.id,
             full_name: user.full_name,
             dob: meta.dob,
-            horoscope: meta.horoscope
+            horoscope: meta.horoscope,
+            astrology: meta.astrology,
+            religion: meta.religion
         });
 
         const reqMeta = (requesterUser?.profiles?.metadata as any) || {};
@@ -880,13 +882,17 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                     id: requesterUser.id,
                     full_name: requesterUser.full_name,
                     dob: reqMeta.dob,
-                    horoscope: reqMeta.horoscope
+                    horoscope: reqMeta.horoscope,
+                    astrology: reqMeta.astrology,
+                    religion: reqMeta.religion
                 },
                 {
                     id: user.id,
                     full_name: user.full_name,
                     dob: meta.dob,
-                    horoscope: meta.horoscope
+                    horoscope: meta.horoscope,
+                    astrology: meta.astrology,
+                    religion: meta.religion
                 }
             )
             : null;

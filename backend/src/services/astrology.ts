@@ -151,18 +151,77 @@ export class AstrologyService {
         return 'Rakshasa';
     }
 
+    // Common spelling & Sanskrit aliases for Nakshatras and Rashis
+    private static readonly NAKSHATRA_ALIASES: Record<string, string> = {
+        ashwin: 'ashwini',
+        aswini: 'ashwini',
+        mrigashira: 'mrigashirsha',
+        mrigashiras: 'mrigashirsha',
+        mrigasira: 'mrigashirsha',
+        thiruvadhirai: 'ardra',
+        pushyami: 'pushya',
+        poorvaphalguni: 'purvaphalguni',
+        purvaphalguni: 'purvaphalguni',
+        pubba: 'purvaphalguni',
+        uttaraphalguni: 'uttaraphalguni',
+        hastha: 'hasta',
+        chithirai: 'chitra',
+        visakha: 'vishakha',
+        vishaka: 'vishakha',
+        jyestha: 'jyeshtha',
+        moola: 'mula',
+        poorvashadha: 'purvaashadha',
+        uttarashadha: 'uttaraashadha',
+        dhanishtha: 'dhanishta',
+        dhanista: 'dhanishta',
+        shatabhisheka: 'shatabhisha',
+        sadayam: 'shatabhisha',
+        poorvabhadrapada: 'purvabhadrapada',
+        uttarabhadrapada: 'uttarabhadrapada'
+    };
+
+    private static readonly RASHI_NAME_TO_ZODIAC: Record<string, string> = {
+        mesha: 'aries',
+        mesh: 'aries',
+        vrishabha: 'taurus',
+        vrishabh: 'taurus',
+        mithuna: 'gemini',
+        mithun: 'gemini',
+        karka: 'cancer',
+        karkata: 'cancer',
+        kark: 'cancer',
+        simha: 'leo',
+        singh: 'leo',
+        kanya: 'virgo',
+        tula: 'libra',
+        vrishchika: 'scorpio',
+        vrischika: 'scorpio',
+        dhanu: 'sagittarius',
+        dhanus: 'sagittarius',
+        makara: 'capricorn',
+        makar: 'capricorn',
+        kumbha: 'aquarius',
+        kumbh: 'aquarius',
+        meena: 'pisces',
+        meen: 'pisces'
+    };
+
     // Helpers
     public getNakshatraIndex(name: string): number {
         if (!name || typeof name !== 'string') return -1;
-        const normInput = name.toLowerCase().replace(/[^a-z]/g, '');
-        if (!normInput) return -1;
+        const rawNorm = name.toLowerCase().replace(/[^a-z]/g, '');
+        if (!rawNorm) return -1;
+        const normInput = AstrologyService.NAKSHATRA_ALIASES[rawNorm] || rawNorm;
 
-        // 1. Try Exact/Fuzzy Match
+        // 1. Try Exact Match
         const exactIdx = this.nakshatras.findIndex(n => n.toLowerCase().replace(/[^a-z]/g, '') === normInput);
         if (exactIdx !== -1) return exactIdx;
 
         // 2. Try Substring Match
-        return this.nakshatras.findIndex(n => normInput.includes(n.toLowerCase().replace(/[^a-z]/g, '')) || n.toLowerCase().replace(/[^a-z]/g, '').includes(normInput));
+        return this.nakshatras.findIndex(n => {
+            const target = n.toLowerCase().replace(/[^a-z]/g, '');
+            return normInput.includes(target) || target.includes(normInput);
+        });
     }
 
     /**
@@ -188,11 +247,20 @@ export class AstrologyService {
             finalIdx = explicitIdx;
         }
 
-        // 2. Use explicit Zodiac Sign if present
+        // 2. Use explicit Zodiac Sign or Sanskrit Rashi if present
         if (finalIdx === -1) {
-            const rawZodiac = (userOrMeta.zodiacSign || userOrMeta.horoscope?.zodiacSign || userOrMeta.astrology?.zodiac || '').toLowerCase().trim();
-            if (rawZodiac && AstrologyService.ZODIAC_TO_NAKSHATRAS[rawZodiac]) {
-                const candidates = AstrologyService.ZODIAC_TO_NAKSHATRAS[rawZodiac];
+            const rawZodiac = String(
+                userOrMeta.zodiacSign || userOrMeta.rashi || userOrMeta.horoscope?.zodiacSign || userOrMeta.horoscope?.rashi || userOrMeta.astrology?.zodiac || ''
+            ).toLowerCase().trim();
+            const zodiacAlpha = rawZodiac.replace(/[^a-z]/g, '');
+            const canonicalZodiac = AstrologyService.ZODIAC_TO_NAKSHATRAS[zodiacAlpha]
+                ? zodiacAlpha
+                : (AstrologyService.RASHI_NAME_TO_ZODIAC[zodiacAlpha] ||
+                    Object.keys(AstrologyService.ZODIAC_TO_NAKSHATRAS).find(z => zodiacAlpha.includes(z)) ||
+                    Object.entries(AstrologyService.RASHI_NAME_TO_ZODIAC).find(([rashi]) => zodiacAlpha.includes(rashi))?.[1] ||
+                    '');
+            if (canonicalZodiac && AstrologyService.ZODIAC_TO_NAKSHATRAS[canonicalZodiac]) {
+                const candidates = AstrologyService.ZODIAC_TO_NAKSHATRAS[canonicalZodiac];
                 const hashSeed = String(userOrMeta.full_name || userOrMeta.name || userOrMeta.id || 'seed');
                 const seedNum = hashSeed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
                 const chosenNakshatra = candidates[seedNum % candidates.length];
@@ -574,20 +642,28 @@ export class AstrologyService {
         totalScore += ganaScore;
         debug.push({ name: 'Gana', s: ganaScore, t: 6, v1: gana1, v2: gana2, desc: ganaDesc });
 
-        // 7. Bhakoot (7 Points) - Emotional Connection & Prosperity
-        const rashiDiff = Math.abs(rashi1 - rashi2);
+        // 7. Bhakoot (7 Points) - Circular 12-Rashi Distance (Emotional Connection & Prosperity)
+        const rawDiff = Math.abs(rashi1 - rashi2);
+        const rashiDist = Math.min(rawDiff, 12 - rawDiff);
         let bhakootScore = 7;
         let bhakootDesc = "Auspicious emotional and family alignment.";
-        if ([1, 4, 5].includes(rashiDiff)) {
+        if ([1, 4, 5].includes(rashiDist)) {
             bhakootScore = 0;
-            if (rashiDiff === 1) bhakootDesc = "Challenging relationship dynamic (Dwirdwadashe - 2/12 alignment).";
-            else if (rashiDiff === 4) bhakootDesc = "Challenging spiritual alignment (Navapanchama - 5/9 alignment).";
-            else if (rashiDiff === 5) bhakootDesc = "Challenging temperament alignment (Shadashtaka - 6/8 alignment).";
-        } else if (rashiDiff === 0) {
+            if (rashiDist === 1) bhakootDesc = "Challenging relationship dynamic (Dwirdwadashe - 2/12 alignment).";
+            else if (rashiDist === 4) bhakootDesc = "Challenging spiritual alignment (Navapanchama - 5/9 alignment).";
+            else if (rashiDist === 5) bhakootDesc = "Challenging temperament alignment (Shadashtaka - 6/8 alignment).";
+        } else if (rashiDist === 0) {
             bhakootDesc = "Same moon sign indicates deep mutual understanding.";
         }
         totalScore += bhakootScore;
-        debug.push({ name: 'Bhakoot', s: bhakootScore, t: 7, desc: bhakootDesc });
+        debug.push({
+            name: 'Bhakoot',
+            s: bhakootScore,
+            t: 7,
+            v1: AstrologyService.RASHIS[rashi1],
+            v2: AstrologyService.RASHIS[rashi2],
+            desc: bhakootDesc
+        });
 
         // 8. Nadi (8 Points) - Genetic Compatibility & Child Health
         const nadi1 = this.getNadi(i1);

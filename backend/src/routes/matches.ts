@@ -1490,7 +1490,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                         id: c.id,
                         full_name: c.full_name,
                         dob: meta.dob,
-                        horoscope: meta.horoscope
+                        horoscope: meta.horoscope,
+                        astrology: meta.astrology,
+                        religion: meta.religion
                     });
                     return {
                         ...meta.horoscope,
@@ -1504,8 +1506,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     };
                 })(),
                 kundli: astrologyService.calculateCompatibility(
-                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
-                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope, astrology: meMeta.astrology, religion: meMeta.religion },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope, astrology: meta.astrology, religion: meta.religion }
                 ),
 
             };
@@ -2152,7 +2154,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                         id: c.id,
                         full_name: c.full_name,
                         dob: meta.dob || c.dob,
-                        horoscope: meta.horoscope
+                        horoscope: meta.horoscope,
+                        astrology: meta.astrology,
+                        religion: meta.religion
                     });
                     return {
                         ...meta.horoscope,
@@ -2188,8 +2192,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(
-                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
-                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope, astrology: meMeta.astrology, religion: meMeta.religion },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob || c.dob, horoscope: meta.horoscope, astrology: meta.astrology, religion: meta.religion }
                 ),
                 isVerified: isIdVerified,
                 isPremium: c.is_premium || false,
@@ -2269,7 +2273,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                         id: c.id,
                         full_name: c.full_name,
                         dob: meta.dob || c.dob,
-                        horoscope: meta.horoscope
+                        horoscope: meta.horoscope,
+                        astrology: meta.astrology,
+                        religion: meta.religion
                     });
                     return {
                         ...meta.horoscope,
@@ -2298,8 +2304,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(
-                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
-                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope, astrology: meMeta.astrology, religion: meMeta.religion },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob || c.dob, horoscope: meta.horoscope, astrology: meta.astrology, religion: meta.religion }
                 ),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred,

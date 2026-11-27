@@ -47,6 +47,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [matchStatus, setMatchStatus] = useState<string | null>(profile?.match_status || null);
     const [loadingInterest, setLoadingInterest] = useState(false);
     const [livePrivacy, setLivePrivacy] = useState<{ photo_privacy?: string; isBlurred?: boolean; match_status?: string | null } | null>(null);
+    const [liveAstrology, setLiveAstrology] = useState<{ kundli?: any; horoscope?: any; religion?: any } | null>(null);
 
     const isOwnProfile = Boolean(
         currentUser &&
@@ -54,9 +55,19 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         String(currentUser.id || currentUser.userId) === String(profile.id || profile.user_id)
     );
 
+    const effectiveKundli = (liveAstrology?.kundli && (liveAstrology.kundli.score > 0 || (Array.isArray(liveAstrology.kundli.details) && liveAstrology.kundli.details.length > 0)))
+        ? liveAstrology.kundli
+        : (profile?.kundli || null);
+    const hasValidKundli = Boolean(
+        effectiveKundli &&
+        typeof effectiveKundli.score === 'number' &&
+        (effectiveKundli.score > 0 || (Array.isArray(effectiveKundli.details) && effectiveKundli.details.length > 0))
+    );
+
     useEffect(() => {
         setMatchStatus(profile?.match_status || null);
         setLivePrivacy(null);
+        setLiveAstrology(null);
         setCurrentPhotoIndex(0);
         setIsFullscreen(false);
     }, [profile?.id, profile?.match_status]);
@@ -72,6 +83,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     isBlurred: Boolean(full.isBlurred),
                     match_status: full.match_status || null
                 });
+                if (full.kundli || full.horoscope || full.religion) {
+                    setLiveAstrology({
+                        kundli: full.kundli,
+                        horoscope: full.horoscope,
+                        religion: full.religion
+                    });
+                }
                 if (full.match_status) {
                     setMatchStatus(full.match_status);
                 }
@@ -181,8 +199,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         ...profile,
         career: profile.career || {},
         family: profile.family || {},
-        religion: profile.religion || {},
-        horoscope: profile.horoscope || {},
+        religion: liveAstrology?.religion || profile.religion || {},
+        horoscope: liveAstrology?.horoscope || profile.horoscope || {},
         photos: Array.isArray(profile.photos) ? profile.photos : [],
         location: profile.location || {},
         match_reasons: Array.isArray(profile.match_reasons) ? profile.match_reasons : [],
@@ -526,14 +544,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     {profile.managed_by === 'Parent' ? '👨‍👩‍👧 Managed by Parent' : profile.managed_by === 'Sibling' ? '👫 Managed by Sibling' : `👤 Managed by ${profile.managed_by}`}
                                 </span>
                             )}
-                            {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                            {!isOwnProfile && hasValidKundli && (
                                 <button
                                     type="button"
                                     onClick={() => setShowKundli(true)}
                                     className="inline-flex items-center gap-1 text-orange-200 text-[11px] font-bold bg-orange-950/80 border border-orange-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm active:scale-95 cursor-pointer"
                                     title="View Vedic Kundli Milan"
                                 >
-                                    <span>🕉️</span> {profile.kundli.score}/36 Guna
+                                    <span>🕉️</span> {effectiveKundli.score}/36 Guna
                                 </button>
                             )}
                         </div>
@@ -649,14 +667,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
                                     <span>❤️</span> {profile.total_likes || 0} Likes
                                 </div>
-                                {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                {!isOwnProfile && hasValidKundli && (
                                     <button
                                         type="button"
                                         onClick={() => setShowKundli(true)}
                                         className="bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 dark:border-orange-800/50 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                                         title="View Vedic Kundli Milan"
                                     >
-                                        <span>🕉️</span> {profile.kundli.score}/36 Guna
+                                        <span>🕉️</span> {effectiveKundli.score}/36 Guna
                                     </button>
                                 )}
                                 <button
@@ -923,13 +941,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
                                             <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
-                                        {profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                        {!isOwnProfile && hasValidKundli && (
                                             <button
                                                 type="button"
                                                 onClick={() => setShowKundli(true)}
                                                 className="bg-orange-100/80 dark:bg-orange-950/40 hover:bg-orange-200/90 px-4 py-2 rounded-xl text-xs font-bold text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50 shadow-sm flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
                                             >
-                                                <span>🕉️</span> {profile.kundli.score}/36 Guna Match
+                                                <span>🕉️</span> {effectiveKundli.score}/36 Guna Match
                                             </button>
                                         )}
                                         <div className="bg-pink-100/50 dark:bg-pink-900/20 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 dark:text-pink-300 border border-pink-100 dark:border-pink-900/50 shadow-sm flex items-center gap-2">
@@ -973,30 +991,30 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <section className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/50">
                                     <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                                        <h3 className="font-bold text-purple-900 dark:text-purple-100">Horoscope & Faith</h3>
-                                        {!isOwnProfile && (
+                                        <h3 className="font-bold text-purple-900 dark:text-purple-100">Horoscope &amp; Faith</h3>
+                                        {!isOwnProfile && hasValidKundli && (
                                             <button
                                                 type="button"
                                                 onClick={() => setShowKundli(true)}
                                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm transition-transform active:scale-95 cursor-pointer"
                                             >
                                                 <span>🕉️</span>
-                                                <span>Kundli Match {profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 ? `(${profile.kundli.score}/36 Guna)` : ''}</span>
+                                                <span>Kundli Match ({effectiveKundli.score}/36 Guna)</span>
                                             </button>
                                         )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                        <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
-                                        <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
-                                        <InfoCard label="Inter-Caste" value={profile.religion?.interCasteOpen || "-"} />
-                                        <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
-                                        <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="✨" />
-                                        <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign ? `${getZodiacSymbol(profile.horoscope.zodiacSign)} ${profile.horoscope.zodiacSign}` : "-"} />
-                                        <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
-                                        <InfoCard label="Time of Birth" value={profile.horoscope?.birthTime || "-"} />
-                                        <InfoCard label="Birth Place" value={profile.horoscope?.birthPlace || "-"} />
+                                        <InfoCard label="Religion" value={safeProfile.religion?.faith || safeProfile.religion?.religion || "-"} />
+                                        <InfoCard label="Caste" value={safeProfile.religion?.caste || "-"} />
+                                        <InfoCard label="Inter-Caste" value={safeProfile.religion?.interCasteOpen || "-"} />
+                                        <InfoCard label="Gothra" value={safeProfile.horoscope?.gothra || safeProfile.religion?.gothra || "-"} />
+                                        <InfoCard label="Manglik" value={safeProfile.horoscope?.manglik || "-"} icon="✨" />
+                                        <InfoCard label="Zodiac" value={safeProfile.horoscope?.zodiacSign ? `${getZodiacSymbol(safeProfile.horoscope.zodiacSign)} ${safeProfile.horoscope.zodiacSign}` : "-"} />
+                                        <InfoCard label="Nakshatra" value={safeProfile.horoscope?.nakshatra || "-"} />
+                                        <InfoCard label="Time of Birth" value={safeProfile.horoscope?.birthTime || "-"} />
+                                        <InfoCard label="Birth Place" value={safeProfile.horoscope?.birthPlace || "-"} />
                                     </div>
-                                    {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                    {!isOwnProfile && hasValidKundli && (
                                         <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20 border border-orange-200 dark:border-orange-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-11 h-11 rounded-xl bg-orange-500/10 dark:bg-orange-400/15 border border-orange-300 dark:border-orange-700/50 flex items-center justify-center text-2xl shrink-0">
@@ -1005,12 +1023,12 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                 <div>
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">Vedic Kundli Compatibility</span>
-                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${profile.kundli.score >= 18 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'}`}>
-                                                            {profile.kundli.score}/36 Guna
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${effectiveKundli.score >= 18 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'}`}>
+                                                            {effectiveKundli.score}/36 Guna
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                                                        {profile.kundli.verdict || (profile.kundli.score >= 18 ? 'Auspicious Match (Uttama Guna)' : 'Needs Consideration')}
+                                                        {effectiveKundli.verdict || (effectiveKundli.score >= 18 ? 'Auspicious Match (Uttama Guna)' : 'Needs Consideration')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1211,11 +1229,11 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
             </div>
 
             {
-                showKundli && (
+                showKundli && effectiveKundli && (
                     <KundliModal
                         isOpen={showKundli}
                         onClose={() => setShowKundli(false)}
-                        data={profile.kundli || { score: 18, total: 36, details: [] }}
+                        data={effectiveKundli}
                         names={{ me: currentUser?.full_name || 'You', partner: profile.name }}
                     />
                 )

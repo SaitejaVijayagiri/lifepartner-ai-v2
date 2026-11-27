@@ -67,6 +67,12 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
     const toast = useToast();
     const [isPlaying, setIsPlaying] = useState(false); // Audio State
     const [showKundli, setShowKundli] = useState(false); // Modal State
+    const kundliScore = match?.kundli?.score;
+    const hasValidKundli = Boolean(
+        match?.kundli &&
+        typeof kundliScore === 'number' &&
+        (kundliScore > 0 || (Array.isArray(match.kundli.details) && match.kundli.details.length > 0))
+    );
     const [showReport, setShowReport] = useState(false); // Report Modal State
     const [showDMModal, setShowDMModal] = useState(false);
     const [dmText, setDmText] = useState("");
@@ -475,10 +481,31 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                             </div>
                         </div>
 
-                        {/* Right: Match Score */}
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 border border-emerald-400/50 backdrop-blur-md shadow-lg shadow-emerald-500/10 shrink-0">
-                            <span className="text-xs sm:text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-green-400">{match?.score ?? 85}%</span>
-                            <span className="text-[8px] font-bold text-emerald-200 tracking-wider uppercase">Match</span>
+                        {/* Right: Match Score + Quick Kundli */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 border border-emerald-400/50 backdrop-blur-md shadow-lg shadow-emerald-500/10">
+                                <span className="text-xs sm:text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-green-400">{match?.score ?? 85}%</span>
+                                <span className="text-[8px] font-bold text-emerald-200 tracking-wider uppercase">Match</span>
+                            </div>
+                            {hasValidKundli && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (onShowKundli) {
+                                            onShowKundli(match.kundli);
+                                        } else {
+                                            setShowKundli(true);
+                                        }
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/50 text-amber-200 text-[10px] font-extrabold backdrop-blur-md transition-transform active:scale-95 cursor-pointer"
+                                    title="View Vedic Kundli Match"
+                                >
+                                    <span>🕉️</span>
+                                    <span>{kundliScore}/36</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -830,8 +857,8 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                 <div className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-20 ${isPhotoBlurred ? 'h-72' : 'h-56 sm:h-52'}`} />
             </div>
 
-            {/* Glowing Match Score (Floating Top Right) */}
-            <div className="absolute top-4 right-4 z-30">
+            {/* Glowing Match Score & Quick Kundli (Floating Top Right) */}
+            <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-1.5">
                 <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                     {/* Pulsing Outer Ring */}
                     <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
@@ -843,6 +870,25 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                         <span className="text-[8px] sm:text-[9px] font-bold text-emerald-200 tracking-widest uppercase mt-0.5">Match</span>
                     </div>
                 </div>
+                {hasValidKundli && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onShowKundli) {
+                                onShowKundli(match.kundli);
+                            } else {
+                                setShowKundli(true);
+                            }
+                        }}
+                        className="pointer-events-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 hover:bg-orange-950/90 text-amber-200 border border-amber-400/50 backdrop-blur-md text-[10px] font-extrabold shadow-lg transition-transform active:scale-95 cursor-pointer"
+                        title="View Vedic Kundli Match"
+                    >
+                        <span>🕉️</span>
+                        <span>{kundliScore}/36</span>
+                    </button>
+                )}
             </div>
 
             {/* Connected Badge (Top Left) */}
@@ -855,7 +901,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             )}
 
             {/* Status Stack: Stories, Voice Bio */}
-            <div className={`absolute z-30 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
+            <div className={`absolute z-30 flex flex-col gap-2 items-start max-w-[68%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story & Highlight Badges */}
                 {Array.isArray(match?.stories) && match.stories.length > 0 && (() => {
                     const highlightedStories = filterHighlights(match.stories);

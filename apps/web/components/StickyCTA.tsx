@@ -13,8 +13,8 @@ export default function StickyCTA() {
     const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
     const pathname = usePathname();
 
-    // Only show on public pages
-    const isPublicPage = pathname === '/';
+    // Show on secondary SEO landing pages (main '/' already mounts FloatingMobileSignupBar)
+    const isPublicPage = pathname === '/for-women' || pathname === '/matrimony' || pathname === '/india' || pathname === '/dating';
 
     useEffect(() => {
         const handleScroll = () => {

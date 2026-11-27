@@ -4,16 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles, Heart } from 'lucide-react';
 
 export default function AnimatedSplash() {
-    const [visible, setVisible] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                return !sessionStorage.getItem('splash_shown');
-            } catch (_) {
-                return false;
-            }
-        }
-        return false;
-    });
+    const [visible, setVisible] = useState(false);
     const [animatingOut, setAnimatingOut] = useState(false);
 
     const dismissSplash = () => {
@@ -25,28 +16,42 @@ export default function AnimatedSplash() {
     };
 
     useEffect(() => {
-        if (!visible) return;
+        if (typeof window === 'undefined') return;
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+        let outTimer: ReturnType<typeof setTimeout> | null = null;
 
         try {
+            const isStandaloneOrNative = Boolean(
+                document.documentElement.hasAttribute('data-capacitor') ||
+                (window as any).AndroidBridge ||
+                (window as any).androidBridge ||
+                window.matchMedia('(display-mode: standalone)').matches ||
+                (window.navigator as any).standalone === true
+            );
+
+            // Show splash only inside native/installed app containers and after hydration (zero SSR mismatch)
+            if (!isStandaloneOrNative || sessionStorage.getItem('splash_shown')) {
+                return;
+            }
             sessionStorage.setItem('splash_shown', 'true');
+            setVisible(true);
+            document.body.style.overflow = 'hidden';
+
+            outTimer = setTimeout(() => {
+                setAnimatingOut(true);
+                hideTimer = setTimeout(() => {
+                    setVisible(false);
+                    document.body.style.overflow = '';
+                }, 400);
+            }, 900);
         } catch (_) {}
 
-        // Prevent scroll while splash is active
-        document.body.style.overflow = 'hidden';
-
-        const timer = setTimeout(() => {
-            setAnimatingOut(true);
-            setTimeout(() => {
-                setVisible(false);
-                document.body.style.overflow = '';
-            }, 400); // match transition duration
-        }, 900); // Snappy 900ms splash on first launch
-
         return () => {
-            clearTimeout(timer);
+            if (outTimer) clearTimeout(outTimer);
+            if (hideTimer) clearTimeout(hideTimer);
             document.body.style.overflow = '';
         };
-    }, [visible]);
+    }, []);
 
     if (!visible) return null;
 

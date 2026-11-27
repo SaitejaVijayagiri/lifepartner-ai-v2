@@ -148,4 +148,96 @@ describe('Auth Routes (Integration)', () => {
             }));
         });
     });
+
+    describe('POST /auth/google', () => {
+        const origSecret = process.env.GOOGLE_CLIENT_SECRET;
+        const origClientId = process.env.GOOGLE_CLIENT_ID;
+        const origFetch = global.fetch;
+
+        afterEach(() => {
+            if (origSecret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
+            else process.env.GOOGLE_CLIENT_SECRET = origSecret;
+            if (origClientId === undefined) delete process.env.GOOGLE_CLIENT_ID;
+            else process.env.GOOGLE_CLIENT_ID = origClientId;
+            global.fetch = origFetch;
+        });
+
+        it('returns 503 with clear message when GOOGLE_CLIENT_SECRET is missing', async () => {
+            delete process.env.GOOGLE_CLIENT_SECRET;
+
+            const res = await request(app)
+                .post('/auth/google')
+                .send({ code: 'auth-code-123' });
+
+            expect(res.status).toBe(503);
+            expect(res.body.error).toContain('Google Sign-In is temporarily unavailable');
+        });
+
+        it('returns 503 when Google OAuth responds with invalid_client', async () => {
+            process.env.GOOGLE_CLIENT_ID = 'bad-client-id';
+            process.env.GOOGLE_CLIENT_SECRET = 'bad-secret';
+            global.fetch = jest.fn().mockResolvedValue({
+                json: async () => ({
+                    error: 'invalid_client',
+                    error_description: 'The OAuth client was not found.'
+                })
+            }) as any;
+
+            const res = await request(app)
+                .post('/auth/google')
+                .send({ code: 'auth-code-123', redirect_uri: 'https://www.lifepartnerai.in/auth/callback/google' });
+
+            expect(res.status).toBe(503);
+            expect(res.body.error).toContain('Google Sign-In is temporarily misconfigured');
+        });
+
+        it('creates a new verified Google OAuth user and trims client credentials', async () => {
+            process.env.GOOGLE_CLIENT_ID = ' 326304538770-test.apps.googleusercontent.com\n';
+            process.env.GOOGLE_CLIENT_SECRET = ' secret-value \n';
+
+            global.fetch = jest.fn()
+                .mockResolvedValueOnce({
+                    json: async () => ({ access_token: 'google-access-token' })
+                })
+                .mockResolvedValueOnce({
+                    json: async () => ({
+                        id: 'google-uid-999',
+                        email: 'NewGoogleUser@Gmail.com',
+                        name: 'Ananya Rao',
+                        picture: 'https://lh3.googleusercontent.com/avatar.jpg'
+                    })
+                }) as any;
+
+            (prisma.users.findFirst as jest.Mock).mockResolvedValue(null);
+            (prisma.users.findUnique as jest.Mock).mockResolvedValue(null);
+            (prisma.users.create as jest.Mock).mockResolvedValue({
+                id: 'google-user-1',
+                full_name: 'Ananya Rao',
+                gender: 'Female',
+                age: 25,
+                avatar_url: 'https://lh3.googleusercontent.com/avatar.jpg',
+                is_premium: true,
+                coins: 100
+            });
+            (prisma.profiles as any).findUnique = jest.fn().mockResolvedValue({
+                metadata: { gender: 'Female', age: 25, onboarding_completed: false },
+                photos: []
+            });
+
+            const res = await request(app)
+                .post('/auth/google')
+                .send({
+                    code: 'valid-code',
+                    gender: 'Female',
+                    age: 25,
+                    redirect_uri: 'https://www.lifepartnerai.in/auth/callback/google'
+                });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.isNewUser).toBe(true);
+            expect(res.body.requiresOnboarding).toBe(true);
+            expect(res.body.token).toBeTruthy();
+        });
+    });
 });

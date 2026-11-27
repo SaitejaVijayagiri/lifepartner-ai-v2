@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 // import { pool } from '../db';
@@ -7,6 +8,25 @@ import { Resend } from 'resend';
 import validateEmail from 'deep-email-validator';
 import { authenticateToken } from '../middleware/auth';
 import { trackGrowthEvent, parseTrafficSource } from '../services/growthAnalytics';
+import { EmailService } from '../services/email';
+
+const DEFAULT_GOOGLE_CLIENT_ID = '326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com';
+
+async function generateUniqueReferralCode(tx: any, rawName?: string | null): Promise<string> {
+    const safeName = rawName || 'LP';
+    const baseName = safeName.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const suffix = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars => <=10 total
+        const candidate = `${baseName}${suffix}`;
+        if (typeof tx?.users?.findUnique === 'function') {
+            const existing = await tx.users.findUnique({ where: { referral_code: candidate } });
+            if (!existing) return candidate;
+        } else {
+            return candidate;
+        }
+    }
+    return `LP${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+}
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock');
@@ -199,11 +219,8 @@ router.post('/register', async (req, res) => {
                 }
             }
 
-            // Generate Self Referral Code
-            const safeName = full_name || "User";
-            const baseName = safeName.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
-            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-            const myReferralCode = `${baseName}${randomSuffix}`;
+            // Generate Self Referral Code (collision-safe)
+            const myReferralCode = await generateUniqueReferralCode(tx, full_name);
 
             const isFemale = cleanGender === 'Female';
             const user = await tx.users.create({
@@ -300,8 +317,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-
-import { EmailService } from '../services/email';
 
 // 2. Verify OTP
 router.post('/verify-otp', async (req, res) => {
@@ -742,21 +757,45 @@ router.post('/google', async (req, res) => {
             ? pendingCountry.trim()
             : undefined;
 
+        const cleanGoogleClientId = process.env.GOOGLE_CLIENT_ID?.trim() || DEFAULT_GOOGLE_CLIENT_ID;
+        const cleanGoogleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+        const resolvedRedirectUri = req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI?.trim() || 'https://www.lifepartnerai.in/auth/callback/google';
+
+        if (!cleanGoogleClientSecret) {
+            console.error('[Google OAuth] GOOGLE_CLIENT_SECRET is missing in server environment.');
+            return res.status(503).json({
+                error: 'Google Sign-In is temporarily unavailable on the server. Please use Email Sign-Up or try again shortly.'
+            });
+        }
+
         // 1. Exchange Code for Tokens
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 code,
-                client_id: process.env.GOOGLE_CLIENT_ID!,
-                client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                redirect_uri: req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://www.lifepartnerai.in/auth/callback/google',
+                client_id: cleanGoogleClientId,
+                client_secret: cleanGoogleClientSecret,
+                redirect_uri: resolvedRedirectUri,
                 grant_type: 'authorization_code'
             })
         });
 
         const tokens = await tokenRes.json();
-        if (tokens.error) throw new Error(tokens.error_description || tokens.error);
+        if (tokens.error) {
+            console.error('[Google OAuth Token Exchange Error]', {
+                error: tokens.error,
+                error_description: tokens.error_description,
+                clientIdPrefix: cleanGoogleClientId.slice(0, 18),
+                redirectUri: resolvedRedirectUri
+            });
+            if (tokens.error === 'invalid_client' || String(tokens.error_description || '').toLowerCase().includes('oauth client was not found')) {
+                return res.status(503).json({
+                    error: 'Google Sign-In is temporarily misconfigured on the server. Please use Email Sign-Up right above or try again shortly.'
+                });
+            }
+            throw new Error(tokens.error_description || tokens.error);
+        }
 
         // 2. Get User Profile
         const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -860,10 +899,9 @@ router.post('/google', async (req, res) => {
             // Explicit user choice from UI takes precedence over name guessing
             const resolvedGender = cleanGoogleGender || (nameIsFemale ? 'Female' : null);
             const isFemale = resolvedGender === 'Female';
-            const baseName = String(name || 'LP').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
-            const myReferralCode = `${baseName}${Math.floor(1000 + Math.random() * 9000)}`;
 
             user = await prisma.$transaction(async (tx: any) => {
+                const myReferralCode = await generateUniqueReferralCode(tx, name);
                 const newUser = await tx.users.create({
                     data: {
                         full_name: name,
@@ -909,6 +947,14 @@ router.post('/google', async (req, res) => {
             select: { metadata: true, photos: true }
         });
         const googleMeta = (userProfile?.metadata as any) || {};
+        if (isNewUser) {
+            trackGrowthEvent('registration_completed', {
+                userId: user!.id,
+                gender: (user as any).gender || googleMeta.gender || null,
+                country: cleanGoogleCountry || (user as any).location_name || null,
+                metadata: { method: 'google_oauth' }
+            }).catch(() => {});
+        }
         const googleHasAge = Boolean((user as any).age || googleMeta.age || googleMeta.dob);
         const googleHasGender = Boolean((user as any).gender || googleMeta.gender);
         const googleHasCity = Boolean((user as any).city || googleMeta.location?.city);

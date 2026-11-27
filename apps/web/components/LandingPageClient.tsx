@@ -60,6 +60,7 @@ export default function LandingPageClient() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
+  const [genderError, setGenderError] = useState(false);
   const [signupOtpStep, setSignupOtpStep] = useState(false);
   const [signupOtp, setSignupOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
@@ -73,9 +74,12 @@ export default function LandingPageClient() {
 
   const handleGoogleSignIn = () => {
     if (!signupForm.gender) {
+      setGenderError(true);
       toast.error("Please select whether you are Female or Male before continuing with Google.");
+      document.getElementById('hero-gender-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    setGenderError(false);
 
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
     const redirectUri = `${window.location.origin}/auth/callback/google`;
@@ -108,12 +112,15 @@ export default function LandingPageClient() {
 
   const handleInstantRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupForm.full_name || !signupForm.email || !signupForm.password) {
-      toast.error("Please fill in your name, email, and password.");
+    if (!signupForm.gender) {
+      setGenderError(true);
+      toast.error("Please select whether you are Female or Male.");
+      document.getElementById('hero-gender-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (!signupForm.gender) {
-      toast.error("Please select whether you are Female or Male.");
+    setGenderError(false);
+    if (!signupForm.full_name || !signupForm.email || !signupForm.password) {
+      toast.error("Please fill in your name, email, and password.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -121,13 +128,13 @@ export default function LandingPageClient() {
       toast.error("Please enter a valid email address.");
       return;
     }
-    if (signupForm.password.length < 6) {
+    if (signupForm.password.trim().length < 6) {
       toast.error("Password must be at least 6 characters long.");
       return;
     }
-    const ageNum = parseInt(signupForm.age);
-    if (!signupForm.age || isNaN(ageNum) || ageNum < 18 || ageNum > 80) {
-      toast.error("Please enter a valid age (18 - 80 years).");
+    const ageNum = parseInt(signupForm.age, 10);
+    if (!signupForm.age || isNaN(ageNum) || ageNum < 18 || ageNum > 99) {
+      toast.error("Please enter a valid age (18 - 99 years).");
       return;
     }
 
@@ -142,7 +149,9 @@ export default function LandingPageClient() {
     try {
       const res = await api.auth.register({
         ...signupForm,
+        full_name: signupForm.full_name.trim(),
         age: ageNum,
+        ...(visitorGeo.country && visitorGeo.country !== 'Worldwide' ? { location_name: visitorGeo.country } : {}),
         email: signupForm.email.trim().toLowerCase(),
         password: signupForm.password.trim()
       });
@@ -626,12 +635,15 @@ export default function LandingPageClient() {
                   /* Instant Quick Registration Form */
                   <form onSubmit={handleInstantRegister} className="space-y-3">
                     {/* Prominent Top Gender Toggle so Female Perks are Front & Center */}
-                    <div>
-                      <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1.5 uppercase tracking-wider">I am joining as:</label>
+                    <div id="hero-gender-selector" className={genderError && !signupForm.gender ? 'rounded-2xl p-2 -m-2 bg-rose-50/70 dark:bg-rose-950/30 ring-2 ring-rose-400 transition-all' : ''}>
+                      <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1.5 uppercase tracking-wider">
+                        I am joining as: {genderError && !signupForm.gender && <span className="text-rose-600 dark:text-rose-400 font-extrabold normal-case ml-1">(Please choose one)</span>}
+                      </label>
                       <div className="grid grid-cols-2 gap-2.5">
                         <button
                           type="button"
                           onClick={() => {
+                            setGenderError(false);
                             setSignupForm({ ...signupForm, gender: 'Female', looking_for: 'Male' });
                             localStorage.setItem('pendingUserGender', 'Female');
                             growthTracker.trackRegistrationStarted('Female');
@@ -649,6 +661,7 @@ export default function LandingPageClient() {
                         <button
                           type="button"
                           onClick={() => {
+                            setGenderError(false);
                             setSignupForm({ ...signupForm, gender: 'Male', looking_for: 'Female' });
                             localStorage.setItem('pendingUserGender', 'Male');
                             growthTracker.trackRegistrationStarted('Male');
@@ -688,13 +701,13 @@ export default function LandingPageClient() {
                     </button>
 
                     <div className="relative flex items-center justify-center my-1.5">
-                      <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
-                      <span className="bg-white dark:bg-gray-950 px-2.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or fast email signup</span>
-                      <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
+                      <div className="border-t border-gray-200 dark:border-gray-800 flex-1"></div>
+                      <span className="bg-white dark:bg-gray-950 px-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider whitespace-nowrap shrink-0">or fast email signup</span>
+                      <div className="border-t border-gray-200 dark:border-gray-800 flex-1"></div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
+                      <div className="flex flex-col">
                         <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Your Full Name</label>
                         <input
                           type="text"
@@ -705,7 +718,7 @@ export default function LandingPageClient() {
                           className="w-full h-11 px-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
                         />
                       </div>
-                      <div>
+                      <div className="flex flex-col">
                         <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Email Address</label>
                         <input
                           type="email"
@@ -718,9 +731,9 @@ export default function LandingPageClient() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                      <div className="col-span-2 sm:col-span-1">
-                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Password</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 items-start">
+                      <div className="col-span-2 sm:col-span-1 flex flex-col">
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1 leading-tight">Password</label>
                         <div className="relative">
                           <input
                             type={showPassword ? 'text' : 'password'}
@@ -740,13 +753,13 @@ export default function LandingPageClient() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Age (18+)</label>
+                      <div className="flex flex-col">
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1 leading-tight">Age (18+)</label>
                         <input
                           type="number"
                           required
                           min="18"
-                          max="80"
+                          max="99"
                           value={signupForm.age}
                           onChange={(e) => setSignupForm({ ...signupForm, age: e.target.value })}
                           placeholder="e.g. 24"
@@ -754,8 +767,8 @@ export default function LandingPageClient() {
                         />
                       </div>
 
-                      <div>
-                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">My Goal</label>
+                      <div className="flex flex-col">
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1 leading-tight">My Goal</label>
                         <select
                           value={signupForm.intent}
                           onChange={(e) => setSignupForm({ ...signupForm, intent: e.target.value })}

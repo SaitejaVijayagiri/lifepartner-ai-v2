@@ -85,38 +85,38 @@ export default function Navbar() {
                 </div>
 
                 {/* Full Desktop Navigation (xl: 1280px+) */}
-                <div className="hidden xl:flex space-x-6 2xl:space-x-8 items-center">
+                <div className="hidden xl:flex space-x-4 2xl:space-x-7 items-center whitespace-nowrap">
                     <Link
                         href="/#app-features"
-                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
+                        className="text-xs 2xl:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide whitespace-nowrap"
                     >
                         {t('navFeatures')}
                     </Link>
                     <Link
                         href="/#stories-snaps-music"
-                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1"
+                        className="text-xs 2xl:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1 whitespace-nowrap"
                     >
-                        {t('navStories')} <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
+                        {t('navStories')} <span className="hidden 2xl:inline-block bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
                     </Link>
                     <Link
                         href="/#how-life-partner-connects"
-                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
+                        className="text-xs 2xl:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide whitespace-nowrap"
                     >
                         {t('navWorkflow')}
                     </Link>
-                    <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
-                        {t('navBlog')} <span className="bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Guides</span>
+                    <Link href="/blog" className="text-xs 2xl:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1 whitespace-nowrap">
+                        {t('navBlog')} <span className="hidden 2xl:inline-block bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Guides</span>
                     </Link>
-                    <Link href="/for-women" className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1">
+                    <Link href="/for-women" className="text-xs 2xl:text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1 whitespace-nowrap">
                         <span>For Women</span> <span className="bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">👑 VIP Free</span>
                     </Link>
                 </div>
 
                 {/* Desktop Actions + Language Selector + Download App */}
-                <div className="hidden lg:flex items-center gap-2.5 sm:gap-3 shrink-0">
+                <div className="hidden lg:flex items-center gap-2 xl:gap-2.5 shrink-0 whitespace-nowrap">
                     <button
                         onClick={() => setIsDownloadModalOpen(true)}
-                        className="hide-in-native-app hidden xl:flex px-3.5 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all items-center gap-1.5 shadow-sm cursor-pointer"
+                        className="hide-in-native-app hidden 2xl:flex px-3.5 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
                     >
                         <Smartphone size={14} className="text-purple-600 dark:text-purple-400" />
                         <span>Download App</span>

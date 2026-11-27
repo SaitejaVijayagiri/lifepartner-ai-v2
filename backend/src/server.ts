@@ -169,6 +169,7 @@ app.get('/health', async (req, res) => {
         status: 'ok',
         db: dbStatus,
         error: dbError,
+        googleOAuthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim()),
         env: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
     });

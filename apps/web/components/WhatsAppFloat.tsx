@@ -11,7 +11,7 @@ export default function WhatsAppFloat() {
             href={shareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-40 bg-[#25D366] text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group flex items-center gap-2 overflow-hidden hover:pr-6"
+            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-30 bg-[#25D366] text-white p-3.5 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group flex items-center gap-2 overflow-hidden hover:pr-5"
             aria-label="Share on WhatsApp"
         >
             <MessageCircle size={24} fill="white" className="group-hover:animate-bounce" />

@@ -134,11 +134,13 @@ function RegisterForm() {
 
     const handleRegister = async () => {
         try {
+            const trimmedName = form.full_name.trim();
             if (!form.gender) {
+                document.getElementById('register-gender-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 toast.error('Please select whether you are joining as Female or Male.');
                 return;
             }
-            if (!form.full_name || !form.email || !form.password) {
+            if (!trimmedName || !form.email.trim() || !form.password) {
                 toast.error('Please fill in all fields.');
                 return;
             }
@@ -160,23 +162,25 @@ function RegisterForm() {
             // Save pending demographic details so they survive OTP flow
             localStorage.setItem('pendingUserGender', form.gender);
             localStorage.setItem('pendingUserAge', String(parsedAge));
-            localStorage.setItem('pendingUserName', form.full_name);
+            localStorage.setItem('pendingUserName', trimmedName);
 
             // Show 'slow' hint after 6s — common on Render free tier cold starts
             const slowTimer = setTimeout(() => setSlowRequest(true), 6000);
             try {
                 const savedCountry = searchParams.get('country') || localStorage.getItem('pendingUserCountry') || '';
+                const cleanEmail = form.email.trim().toLowerCase();
                 const res = await api.auth.register({
                     ...form,
+                    full_name: trimmedName,
                     age: parsedAge,
                     gender: form.gender,
                     intent: intentParam,
                     ...(savedCountry && savedCountry !== 'Worldwide' ? { location_name: savedCountry } : {}),
-                    email: form.email.trim().toLowerCase(),
+                    email: cleanEmail,
                     password: form.password.trim()
                 });
                 if (res.requiresVerification) {
-                    localStorage.setItem('pendingVerificationEmail', form.email);
+                    localStorage.setItem('pendingVerificationEmail', cleanEmail);
                     setShowOtp(true);
                 } else if (res.token) {
                     localStorage.removeItem('matches_cache_v2');
@@ -187,7 +191,7 @@ function RegisterForm() {
                     localStorage.setItem('token', res.token);
                     localStorage.setItem('user', JSON.stringify({
                         id: res.userId,
-                        name: form.full_name,
+                        name: trimmedName,
                         gender: form.gender,
                         age: parsedAge,
                         is_premium: form.gender === 'Female',
@@ -435,23 +439,31 @@ function RegisterForm() {
             </div>
 
             {/* Right Panel: Clean Form */}
-            <div className="w-full lg:w-7/12 flex items-center justify-center p-4 relative z-10">
-                <div className="max-w-sm w-full bg-white dark:bg-gray-950 p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100">
+            <div className="w-full lg:w-7/12 lg:h-full lg:overflow-y-auto flex items-start justify-center p-4 sm:p-6 lg:py-8 relative z-10">
+                <div className="max-w-sm w-full my-auto bg-white dark:bg-gray-950 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-5 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100 dark:ring-gray-800">
+                    <div className="flex items-center justify-between lg:hidden">
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                        >
+                            ← Back to Home
+                        </Link>
+                    </div>
                     <div className="text-center">
-                        <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-6 border border-gray-200 dark:border-gray-800">
-                            <Link href="/login" className="flex-1">
+                        <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-5 border border-gray-200 dark:border-gray-800">
+                            <Link href="/login" className="block">
                                 <button
                                     type="button"
-                                    className="w-full py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+                                    className="w-full py-2.5 px-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all truncate"
                                 >
                                     Sign In
                                 </button>
                             </Link>
                             <button
                                 type="button"
-                                className="flex-1 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition-all"
+                                className="w-full py-2.5 px-2 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition-all truncate"
                             >
-                                Create New Account
+                                Create Account
                             </button>
                         </div>
                         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Create Account</h2>
@@ -473,7 +485,7 @@ function RegisterForm() {
 
                     <div className="space-y-4">
                         {/* Gender Selection at the top so women immediately see Free Queen VIP */}
-                        <div className="space-y-1">
+                        <div id="register-gender-selector" className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">I am joining as</label>
                             <div className="grid grid-cols-2 gap-2">
                                 <button
@@ -520,7 +532,7 @@ function RegisterForm() {
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Full Name</label>
                             <Input
                                 placeholder="e.g. Aditi Rao"
-                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.full_name}
                                 onChange={e => setForm({ ...form, full_name: e.target.value })}
                             />
@@ -534,30 +546,30 @@ function RegisterForm() {
                                 min={18}
                                 max={99}
                                 placeholder="e.g. 24"
-                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.age}
                                 onChange={e => setForm({ ...form, age: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Email Address</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Email Address</label>
                             <Input
                                 type="email"
                                 placeholder="aditi@example.com"
-                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.email}
                                 onChange={e => setForm({ ...form, email: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Password</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Password</label>
                             <div className="relative">
                                 <Input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Min 6 characters"
-                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
+                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
                                     onKeyDown={e => {
@@ -575,10 +587,10 @@ function RegisterForm() {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Referral Code (Optional)</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Referral Code (Optional)</label>
                             <Input
                                 placeholder="Have a code?"
-                                className="h-12 bg-indigo-50 border-indigo-100 text-indigo-700 placeholder:text-indigo-300 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-bold uppercase tracking-widest text-sm"
+                                className="h-12 bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900 text-indigo-700 dark:text-indigo-200 placeholder:text-indigo-300 dark:placeholder:text-indigo-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-bold uppercase tracking-widest text-sm"
                                 value={form.referralCode}
                                 onChange={e => {
                                     setForm({ ...form, referralCode: e.target.value });
@@ -590,7 +602,7 @@ function RegisterForm() {
                     </div>
 
                     <Button
-                        className="w-full h-12 bg-indigo-600 text-white hover:bg-indigo-700 text-lg font-bold tracking-wide shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] rounded-xl"
+                        className="w-full h-12 bg-indigo-600 text-white hover:bg-indigo-700 text-lg font-bold tracking-wide shadow-lg shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02] rounded-xl"
                         onClick={handleRegister}
                         disabled={loading}
                     >
@@ -621,6 +633,7 @@ function RegisterForm() {
                             onClick={() => {
                                 const selectedGender = form.gender || '';
                                 if (!selectedGender) {
+                                    document.getElementById('register-gender-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                     toast.error("Please select whether you are Female or Male above before continuing with Google.");
                                     return;
                                 }
@@ -632,15 +645,15 @@ function RegisterForm() {
                                 const selectedCountry = localStorage.getItem('pendingUserCountry') || '';
                                 startGoogleOAuthFlow({ gender: selectedGender, age: selectedAge, intent: intentParam, country: selectedCountry });
                             }}
-                            className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"
+                            className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600"
                         >
                             <img src="/icons/google.svg" className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" alt="Google" />
-                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-gray-100">Continue with Google</span>
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white">Continue with Google</span>
                         </button>
                     </div>
 
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 pt-2">
-                        Already have an account? <Link href="/login" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Log in</Link>
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
+                        Already have an account? <Link href="/login" className="text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Log in</Link>
                     </p>
                 </div>
             </div>

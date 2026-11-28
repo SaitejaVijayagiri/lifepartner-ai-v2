@@ -152,11 +152,6 @@ export default function InstantCameraModal({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Apply filter to canvas if selected
-        if (selectedFilter !== 'none') {
-            ctx.filter = selectedFilter;
-        }
-
         // Calculate zoom crop box
         const sw = canvas.width / zoom;
         const sh = canvas.height / zoom;
@@ -250,6 +245,29 @@ export default function InstantCameraModal({
         setZoom(1);
     };
 
+    const renderFilteredDataUrl = (sourceUrl: string, filterCss: string): Promise<string> => {
+        if (!filterCss || filterCss === 'none') return Promise.resolve(sourceUrl);
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width || 720;
+                    canvas.height = img.naturalHeight || img.height || 1280;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return resolve(sourceUrl);
+                    ctx.filter = filterCss;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                } catch {
+                    resolve(sourceUrl);
+                }
+            };
+            img.onerror = () => resolve(sourceUrl);
+            img.src = sourceUrl;
+        });
+    };
+
     // Post / Send Instant Snap
     const submitInstant = async () => {
         if (!capturedImage || isUploading || isSubmittingRef.current) return;
@@ -259,15 +277,19 @@ export default function InstantCameraModal({
             const finalCaption = selectedMusicTrack
                 ? `${caption.trim()} [🎵 ${selectedMusicTrack.title} - ${selectedMusicTrack.artist}]`.trim()
                 : caption.trim();
+            const mediaPayload = await renderFilteredDataUrl(capturedImage, selectedFilter);
 
             const res = await api.post('/instants', {
-                mediaUrl: capturedImage,
+                mediaUrl: mediaPayload,
                 caption: finalCaption,
                 receiverId: recipientId || null
             });
 
             if (res?.success) {
                 toast.success(recipientName ? `Instant Snap sent to ${recipientName}! ⚡` : 'Instant Snap posted! ⚡');
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('instant:created'));
+                }
                 onSuccess();
                 onClose();
             } else {
@@ -286,7 +308,7 @@ export default function InstantCameraModal({
     useEffect(() => { setMounted(true); }, []);
 
     const content = (
-        <div className="fixed inset-0 z-[99999] w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] w-full h-[100dvh] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
             <div className="relative w-full h-full flex-1 bg-slate-950 overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white">

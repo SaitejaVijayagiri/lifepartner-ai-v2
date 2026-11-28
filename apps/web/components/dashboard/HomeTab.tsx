@@ -15,6 +15,8 @@ const AnonymousStrangerChat = dynamic(() => import('@/components/AnonymousStrang
 const LiveSinglesRadar = dynamic(() => import('@/components/LiveSinglesRadar'), { ssr: false });
 const AISoulmateSpotlight = dynamic(() => import('@/components/AISoulmateSpotlight'), { ssr: false });
 const CompatibilityModal = dynamic(() => import('@/components/CompatibilityModal'), { ssr: false });
+const InstantsBar = dynamic(() => import('@/components/InstantsBar'), { ssr: false });
+const InstantCameraModal = dynamic(() => import('@/components/InstantCameraModal'), { ssr: false });
 
 interface HomeTabProps {
     currentUser: any;
@@ -52,6 +54,7 @@ export default function HomeTab({
     const [showNoConnectionsModal, setShowNoConnectionsModal] = React.useState(false);
     const [isSendingShare, setIsSendingShare] = React.useState(false);
     const [compatibilityModalData, setCompatibilityModalData] = React.useState<{ id: string; name: string; photoUrl?: string } | null>(null);
+    const [showInstantCamera, setShowInstantCamera] = React.useState(false);
     const toast = useToast();
 
     const topMatches = (Array.isArray(matches) ? matches : []).slice(0, 4);
@@ -123,12 +126,13 @@ export default function HomeTab({
     return (
         <div className="w-full space-y-5 sm:space-y-6 animate-in fade-in duration-300">
             
-            {/* 1. Stories Feed */}
+            {/* 1. Stories & Instant Snaps Feed */}
             <StoriesFeed
                 currentUser={currentUser}
                 setCurrentUser={setCurrentUser}
                 onOpenStory={onOpenStory}
             />
+            <InstantsBar />
 
             {/* 2. Clean Compact Greeting + Quick Action Pills */}
             <div className="space-y-3">
@@ -144,6 +148,14 @@ export default function HomeTab({
                 </div>
 
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button
+                        type="button"
+                        onClick={() => setShowInstantCamera(true)}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                    >
+                        <Zap size={13} className="text-amber-500 fill-amber-500" />
+                        <span>Instant Snap</span>
+                    </button>
                     <button
                         type="button"
                         onClick={() => onJoinLiveRoom()}
@@ -447,6 +459,14 @@ export default function HomeTab({
                     targetName={compatibilityModalData.name}
                     targetPhotoUrl={compatibilityModalData.photoUrl}
                     onOpenChat={openChat}
+                />
+            )}
+            {showInstantCamera && (
+                <InstantCameraModal
+                    onClose={() => setShowInstantCamera(false)}
+                    onSuccess={() => {
+                        setShowInstantCamera(false);
+                    }}
                 />
             )}
         </div>

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera, Zap, Plus, Check, Eye, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
 import { useToast } from '@/components/ui/Toast';
+import { useSocket } from '@/context/SocketContext';
 
 interface InstantItem {
     id: string;
@@ -27,6 +28,7 @@ interface InstantsBarProps {
 
 export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) {
     const toast = useToast();
+    const { socket } = useSocket() as any;
     const [instants, setInstants] = useState<InstantItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCamera, setShowCamera] = useState(false);
@@ -34,7 +36,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
 
     const [snapBackRecipient, setSnapBackRecipient] = useState<{ id: string; name: string } | null>(null);
 
-    const fetchInstants = async () => {
+    const fetchInstants = useCallback(async () => {
         try {
             const res = await api.get('/instants/feed');
             if (res?.success && Array.isArray(res.instants)) {
@@ -45,11 +47,21 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchInstants();
-    }, []);
+        const handleCreated = () => fetchInstants();
+        window.addEventListener('instant:created', handleCreated);
+        return () => window.removeEventListener('instant:created', handleCreated);
+    }, [fetchInstants]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleNewInstant = () => fetchInstants();
+        socket.on('instant:new', handleNewInstant);
+        return () => socket.off('instant:new', handleNewInstant);
+    }, [socket, fetchInstants]);
 
     const handleInstantViewed = (viewedId: string) => {
         setInstants(prev =>
@@ -88,7 +100,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
     }, [instants]);
 
     return (
-        <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 shadow-sm mb-4">
+        <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 sm:p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2 px-1">
                 <div className="flex items-center space-x-2">
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400">
@@ -105,8 +117,9 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                 {/* Take Snap Button */}
                 <div className="flex flex-col items-center space-y-1 flex-shrink-0">
                     <button
+                        type="button"
                         onClick={() => setShowCamera(true)}
-                        className="relative group w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-pink-500 p-[2px] shadow-md hover:scale-105 transition-transform"
+                        className="relative group w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-pink-500 p-[2px] shadow-md hover:scale-105 transition-transform cursor-pointer"
                     >
                         <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center text-white">
                             <Camera className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
@@ -122,6 +135,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                 {displayInstants.map(instant => {
                     const isViewed = instant.hasViewed;
                     const isShielded = Boolean(instant.isBlurred || instant.photo_privacy === 'blurred_until_accept');
+                    const isMuted = isShielded || (isViewed && !instant.isOwn);
 
                     return (
                         <div
@@ -132,15 +146,20 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                                     toast.info('Privacy Shield is active — connect to view this snap.');
                                     return;
                                 }
-                                if (isViewed && !instant.isOwn) return;
+                                if (isViewed && !instant.isOwn) {
+                                    toast.info('Snap already viewed — view-once snaps disappear after opening.');
+                                    return;
+                                }
                                 setViewingInstantId(instant.id);
                             }}
                         >
                             <div
                                 className={`relative w-14 h-14 rounded-full p-[2px] transition-transform ${
-                                    isShielded || isViewed
+                                    isMuted
                                         ? 'bg-slate-300 dark:bg-slate-700 opacity-75'
-                                        : 'bg-gradient-to-tr from-amber-400 via-pink-500 to-rose-500 animate-pulse shadow-md group-hover:scale-105'
+                                        : instant.isOwn
+                                            ? 'bg-gradient-to-tr from-indigo-500 via-amber-500 to-rose-500 shadow-md group-hover:scale-105'
+                                            : 'bg-gradient-to-tr from-amber-400 via-pink-500 to-rose-500 animate-pulse shadow-md group-hover:scale-105'
                                 }`}
                             >
                                 <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-slate-900 bg-slate-100">
@@ -159,12 +178,14 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                                 {/* Icon Overlay Badge */}
                                 <div
                                     className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold ${
-                                        isShielded || isViewed
-                                            ? 'bg-slate-400 text-white'
-                                            : 'bg-amber-500 text-slate-950 shadow-sm'
+                                        instant.isOwn
+                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                            : isMuted
+                                                ? 'bg-slate-400 text-white'
+                                                : 'bg-amber-500 text-slate-950 shadow-sm'
                                     }`}
                                 >
-                                    {isShielded || isViewed ? <Lock className="w-2.5 h-2.5" /> : <Zap className="w-2.5 h-2.5 fill-slate-950" />}
+                                    {instant.isOwn ? <Eye className="w-2.5 h-2.5" /> : isMuted ? <Lock className="w-2.5 h-2.5" /> : <Zap className="w-2.5 h-2.5 fill-slate-950" />}
                                 </div>
                             </div>
 

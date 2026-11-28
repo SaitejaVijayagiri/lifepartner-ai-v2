@@ -728,7 +728,7 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
         if (rows && rows.length > 0 && rows[0].media_url) {
             const mediaUrl = rows[0].media_url;
             if (mediaUrl.includes('r2.dev') || mediaUrl.includes('r2.cloudflarestorage.com') || mediaUrl.includes('/photo/r2/')) {
-                const match = mediaUrl.match(/instants\/[^\/\?]+/);
+                const match = mediaUrl.match(/instants\/[^\?#\s]+/);
                 if (match) {
                     deleteFromR2(match[0]).catch(e => console.warn('[R2] Instant cleanup warning:', e));
                 }

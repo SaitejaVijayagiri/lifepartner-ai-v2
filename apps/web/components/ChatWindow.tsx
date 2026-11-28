@@ -3653,6 +3653,20 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     )}
                 </div>
 
+                <button
+                    type="button"
+                    onClick={() => {
+                        setShowAttachmentMenu(false);
+                        setShowInstantCamera(true);
+                    }}
+                    disabled={isUploadingMedia || isRecording}
+                    className="p-2 sm:p-2.5 rounded-full sm:rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/70 dark:border-amber-800/60 transition-all flex-shrink-0 cursor-pointer disabled:opacity-50"
+                    title="Send Instant Snap (View Once) ⚡"
+                    aria-label="Send Instant Snap"
+                >
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-500" />
+                </button>
+
                 <input
                     ref={inputRef}
                     type="text"

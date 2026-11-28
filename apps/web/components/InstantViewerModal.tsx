@@ -191,23 +191,16 @@ export default function InstantViewerModal({
                     setLikesCount(res.instant.likesCount ?? 0);
                     if (onViewed) onViewed(instantId);
                 } else if (res?.error) {
-                    if (initialMediaUrl) {
-                        setMediaUrl(initialMediaUrl);
-                    } else {
-                        setError(res.error);
-                    }
+                    setMediaUrl(null);
+                    setError(res.error);
                 } else {
-                    if (initialMediaUrl) {
-                        setMediaUrl(initialMediaUrl);
-                    } else {
-                        setError('This Instant snap has already been viewed or expired.');
-                    }
+                    setMediaUrl(null);
+                    setError('This Instant snap has already been viewed or expired.');
                 }
             } catch (err: any) {
                 console.error('[InstantViewer] View error:', err);
-                if (initialMediaUrl) {
-                    setMediaUrl(initialMediaUrl);
-                } else if (err.status === 410) {
+                setMediaUrl(null);
+                if (err.status === 410) {
                     setError('This Instant snap has already been viewed and expired.');
                 } else {
                     setError(err.message || 'Failed to open Instant snap.');
@@ -282,7 +275,7 @@ export default function InstantViewerModal({
     useEffect(() => { setMounted(true); }, []);
 
     const content = (
-        <div className="fixed inset-0 z-[99999] w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] w-full h-[100dvh] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
             <div className="relative w-full h-full flex-1 flex flex-col justify-between bg-black overflow-hidden">
                 {/* Top Progress Bar */}
                 <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">

@@ -10,8 +10,10 @@ const router = express.Router();
 router.get('/pending', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const { getPendingCallForUser } = require('../socket');
-        const pending = getPendingCallForUser ? getPendingCallForUser(userId) : null;
+        const { getPendingCallForUserAsync, getPendingCallForUser } = require('../socket');
+        const pending = getPendingCallForUserAsync
+            ? await getPendingCallForUserAsync(userId)
+            : (getPendingCallForUser ? getPendingCallForUser(userId) : null);
         if (pending) {
             return res.json({ hasPendingCall: true, call: pending });
         }

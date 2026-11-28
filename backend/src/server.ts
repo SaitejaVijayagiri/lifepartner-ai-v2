@@ -54,6 +54,12 @@ import path from 'path';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { withCronLock } from './utils/cronLock';
+import {
+    closeRedis,
+    createRedisRateLimitStore,
+    isRedisConfigured,
+    isRedisReady
+} from './services/redisClient';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -63,10 +69,20 @@ app.set('trust proxy', true);
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
+const extractClientIp = (req: any): string => (
+    req.headers['cf-connecting-ip'] ||
+    req.headers['x-real-ip'] ||
+    (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
+    req.ip ||
+    '127.0.0.1'
+);
+
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 2500,
-    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
+    keyGenerator: extractClientIp,
+    store: createRedisRateLimitStore('lp:rl:global:'),
+    passOnStoreError: true,
     skip: (req) => req.path === '/health' || req.path === '/healthz' || req.path === '/' || req.method === 'OPTIONS',
     standardHeaders: true,
     legacyHeaders: false,
@@ -77,7 +93,9 @@ const globalLimiter = rateLimit({
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 200,
-    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
+    keyGenerator: extractClientIp,
+    store: createRedisRateLimitStore('lp:rl:auth:'),
+    passOnStoreError: true,
     standardHeaders: true,
     legacyHeaders: false,
     validate: false,
@@ -86,7 +104,9 @@ const authLimiter = rateLimit({
 const contactLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 30,
-    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
+    keyGenerator: extractClientIp,
+    store: createRedisRateLimitStore('lp:rl:contact:'),
+    passOnStoreError: true,
     validate: false,
     message: "Too many contact requests, please try again later."
 });
@@ -170,6 +190,7 @@ app.get('/health', async (req, res) => {
     res.status(200).json({
         status: 'ok',
         db: dbStatus,
+        redis: isRedisConfigured() ? (isRedisReady() ? 'connected' : 'connecting') : 'disabled',
         error: dbError,
         googleOAuthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim()),
         env: process.env.NODE_ENV,
@@ -217,7 +238,7 @@ console.log("------------------------------------------------");
 import { prisma } from './prisma';
 
 const { createServer } = require('http');
-const { initSocket } = require('./socket');
+const { initSocket, closeSocketServer } = require('./socket');
 
 export const httpServer = createServer(app);
 // Keep-alive > 60s prevents HTTP 502 race conditions behind Google Cloud Load Balancing
@@ -297,3 +318,39 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
     console.error('⚠️ Uncaught Exception:', err);
 });
+
+// Graceful Cloud Run / container shutdown (cleans distributed presence, sockets, Redis, and DB pool)
+if (!process.env.JEST_WORKER_ID) {
+    let isShuttingDown = false;
+    const shutdownGracefully = async (signal: string) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        console.log(`🛑 Received ${signal}; draining HTTP, Socket.IO, Redis, and PostgreSQL connections...`);
+
+        const forceExitTimer = setTimeout(() => {
+            console.warn('⚠️ Graceful shutdown timeout reached; forcing exit.');
+            process.exit(0);
+        }, 8000);
+        if (typeof forceExitTimer.unref === 'function') forceExitTimer.unref();
+
+        try {
+            await closeSocketServer();
+        } catch {}
+
+        await Promise.race([
+            new Promise<void>((resolve) => httpServer.close(() => resolve())),
+            new Promise<void>((resolve) => setTimeout(resolve, 2500))
+        ]);
+
+        await Promise.allSettled([
+            closeRedis(),
+            prisma.$disconnect()
+        ]);
+
+        console.log('✅ Graceful shutdown complete.');
+        process.exit(0);
+    };
+
+    process.on('SIGTERM', () => { void shutdownGracefully('SIGTERM'); });
+    process.on('SIGINT', () => { void shutdownGracefully('SIGINT'); });
+}

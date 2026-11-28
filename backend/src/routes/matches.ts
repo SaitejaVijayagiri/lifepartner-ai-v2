@@ -10,6 +10,7 @@ import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, redac
 import { getApprovedVerificationUserIds, hasMetadataIdVerification, isUserIdVerified } from '../utils/idVerification';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 import { AIMatchEngine } from '../services/aiMatchEngine';
+import { onCacheInvalidation, publishCacheInvalidation } from '../services/redisClient';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -42,25 +43,42 @@ class LRUCache<K, V> {
         this.cache.set(key, val);
     }
 
-    delete(key: K) {
-        return this.cache.delete(key);
+    delete(key: K, broadcast = true) {
+        const deleted = this.cache.delete(key);
+        if (broadcast && typeof key === 'string') {
+            publishCacheInvalidation({ target: 'match', op: 'delete', key });
+        }
+        return deleted;
     }
 
-    deletePrefix(prefix: string) {
+    deletePrefix(prefix: string, broadcast = true) {
         for (const key of Array.from(this.cache.keys())) {
             if (typeof key === 'string' && key.startsWith(prefix)) {
                 this.cache.delete(key as unknown as K);
             }
         }
+        if (broadcast) {
+            publishCacheInvalidation({ target: 'match', op: 'prefix', key: prefix });
+        }
     }
 
-    clear() {
+    clear(broadcast = true) {
         this.cache.clear();
+        if (broadcast) {
+            publishCacheInvalidation({ target: 'match', op: 'clear' });
+        }
     }
 }
 
 // In-memory match cache: userId -> { data, expiresAt } (Max 1000 entries, LRU-evicted)
 export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(1000);
+
+onCacheInvalidation((msg) => {
+    if (msg.target !== 'match') return;
+    if (msg.op === 'delete' && msg.key) matchCache.delete(msg.key, false);
+    else if (msg.op === 'prefix' && msg.key) matchCache.deletePrefix(msg.key, false);
+    else if (msg.op === 'clear') matchCache.clear(false);
+});
 const MATCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased for better scaling)
 
 // Helper: Sanitize avatar_url — imported from shared utility

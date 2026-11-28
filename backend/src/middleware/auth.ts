@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
+import { onCacheInvalidation, publishCacheInvalidation } from '../services/redisClient';
 
 interface CachedAuthUser {
     is_banned: boolean | null;
@@ -14,9 +15,17 @@ const AUTH_CACHE_MAX = 5000;
 const AUTH_CACHE_TTL_MS = 15 * 1000;
 const authStatusCache = new Map<string, CachedAuthUser>();
 
+onCacheInvalidation((msg) => {
+    if (msg.target === 'auth') {
+        if (msg.op === 'delete' && msg.key) authStatusCache.delete(msg.key);
+        else if (msg.op === 'clear') authStatusCache.clear();
+    }
+});
+
 export function invalidateAuthCache(userId?: string | null) {
     if (!userId) return;
     authStatusCache.delete(userId);
+    publishCacheInvalidation({ target: 'auth', op: 'delete', key: userId });
 }
 
 async function getAuthUserStatus(userId: string) {

@@ -448,9 +448,10 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
 
         // Send Push Notification for chat message (suppressed ONLY if recipient is actively viewing this specific chat)
         try {
-            const { isUserActiveInChat } = require('../socket');
+            const { isUserActiveInChatAsync, isUserActiveInChat } = require('../socket');
             const targetReceiver = newMessageRecord?.receiver_id || connectionId;
-            const isViewing = isUserActiveInChat(targetReceiver, senderId) || isUserActiveInChat(connectionId, senderId);
+            const checkActive = isUserActiveInChatAsync || isUserActiveInChat;
+            const isViewing = (await checkActive(targetReceiver, senderId)) || (await checkActive(connectionId, senderId));
 
             if (isViewing) {
                 console.log(`[Chat Push Suppressed] Recipient ${targetReceiver} is actively viewing this chat with ${senderId}. Skipping push notification.`);
@@ -589,8 +590,9 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
         // Send Push Notification if recipient is offline
         try {
             const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            const { isUserActiveInChat } = require('../socket');
-            const isViewing = isUserActiveInChat(recipientId, userId);
+            const { isUserActiveInChatAsync, isUserActiveInChat } = require('../socket');
+            const checkActive = isUserActiveInChatAsync || isUserActiveInChat;
+            const isViewing = await checkActive(recipientId, userId);
             const hasReacted = reactions[userId] === emoji;
             
             if (recipientId && recipientId !== userId && hasReacted && !isViewing) {
@@ -676,8 +678,9 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
         // Send Push Notification if recipient is offline
         try {
             const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            const { isUserActiveInChat } = require('../socket');
-            const isViewing = isUserActiveInChat(recipientId, userId);
+            const { isUserActiveInChatAsync, isUserActiveInChat } = require('../socket');
+            const checkActive = isUserActiveInChatAsync || isUserActiveInChat;
+            const isViewing = await checkActive(recipientId, userId);
             
             if (recipientId && recipientId !== userId && !isLiked && !isViewing) {
                 const reactor = await prisma.users.findUnique({

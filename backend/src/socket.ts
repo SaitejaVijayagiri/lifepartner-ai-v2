@@ -1,9 +1,18 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
+import { createAdapter } from '@socket.io/redis-adapter';
 import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
 import { SpeedDatingManager } from './services/SpeedDatingManager';
 import { sanitizeContent } from './utils/contentFilter';
+import {
+    applyRemoteCacheInvalidation,
+    CacheInvalidationMessage,
+    createSocketRedisClients,
+    getRedisClient,
+    isRedisReady,
+    setClusterCacheBroadcaster
+} from './services/redisClient';
 import {
     sanitizePhotoUrl,
     isNotificationPhotoBlurred,
@@ -14,18 +23,56 @@ import {
 } from './utils/photoUrl';
 
 let io: Server;
+let hasRedisAdapter = false;
 // Exact set of active socket IDs per user (guarantees accurate presence count without false duplicates)
 const userSockets = new Map<string, Set<string>>();
 // userId -> count of active sockets (kept for backwards compatibility)
 const onlineUsers = new Map<string, number>();
+// Users known to be online on sibling Cloud Run / cluster replicas
+const clusterOnlineUsers = new Set<string>();
 
 // userId -> active partnerId that user is currently chatting with
 // (used to suppress push notifications when recipient is actively viewing the conversation)
 const activeChats = new Map<string, string>();
 
-// Track users explicitly in the Verified Lounge
-// socketId -> { id, userId, name, photo, isVerified, isShielded }
-const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean, isShielded?: boolean }>();
+// Track users explicitly in the Verified Lounge (local sockets)
+// socketId -> { id, userId, name, photo, isVerified, isShielded, updatedAt }
+interface LoungeParticipant {
+    id?: string;
+    userId: string;
+    name: string;
+    photo: string;
+    isVerified?: boolean;
+    isShielded?: boolean;
+    updatedAt?: number;
+}
+const communityUsers = new Map<string, LoungeParticipant>();
+
+const REDIS_ONLINE_ZSET = 'lp:online:zset';
+const REDIS_ONLINE_SOCK_PREFIX = 'lp:online:user_sockets:';
+const REDIS_OFFLINE_AT_PREFIX = 'lp:offline_at:';
+const REDIS_ACTIVE_CHAT_PREFIX = 'lp:active_chat:';
+const REDIS_PENDING_CALL_PREFIX = 'lp:pending_call:';
+const REDIS_ONLINE_PUSH_PREFIX = 'lp:online_push:';
+const REDIS_LOUNGE_HASH = 'lp:lounge:users';
+
+const emitClusterEvent = (event: string, ...args: any[]) => {
+    if (!io || !hasRedisAdapter) return;
+    try {
+        io.serverSideEmit(event, ...args);
+    } catch {
+        // Non-fatal in single-node or test contexts
+    }
+};
+
+const isUserOnlineLocalOrCluster = (uId: string): boolean => {
+    if (!uId) return false;
+    const socketSet = userSockets.get(uId);
+    if (socketSet && socketSet.size > 0) return true;
+    if ((onlineUsers.get(uId) || 0) > 0) return true;
+    if (clusterOnlineUsers.has(uId)) return true;
+    return false;
+};
 
 const isUserAccountActive = (u: { is_banned?: boolean | null; is_deactivated?: boolean | null; deactivated_until?: Date | string | null } | null | undefined): boolean => {
     if (!u || u.is_banned) return false;
@@ -58,12 +105,31 @@ export const getPendingCallForUser = (userId: string) => {
     return call;
 };
 
-export const clearPendingCallForUser = (userId: string) => {
-    if (userId) pendingCalls.delete(userId);
+export const getPendingCallForUserAsync = async (userId: string): Promise<PendingCall | null> => {
+    const local = getPendingCallForUser(userId);
+    if (local) return local;
+    if (!userId || !isRedisReady()) return null;
+    try {
+        const raw = await getRedisClient()!.get(`${REDIS_PENDING_CALL_PREFIX}${userId}`);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as PendingCall;
+        if (!parsed || Date.now() - parsed.createdAt > 45000) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
 };
 
-const deliverPendingCall = (targetSocket: Socket, uId: string) => {
-    const call = getPendingCallForUser(uId);
+export const clearPendingCallForUser = (userId: string) => {
+    if (!userId) return;
+    pendingCalls.delete(userId);
+    if (isRedisReady()) {
+        getRedisClient()!.del(`${REDIS_PENDING_CALL_PREFIX}${userId}`).catch(() => {});
+    }
+};
+
+const deliverPendingCall = async (targetSocket: Socket, uId: string) => {
+    const call = await getPendingCallForUserAsync(uId);
     if (call) {
         console.log(`[Socket] Delivering active pending call from ${call.name} to ${uId}`);
         targetSocket.emit("callUser", {
@@ -117,7 +183,13 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
         
         if (userDetails) {
             const now = Date.now();
-            const memOfflineAt = lastTrueOfflineAt.get(targetUserId);
+            let memOfflineAt = lastTrueOfflineAt.get(targetUserId);
+            if (!memOfflineAt && isRedisReady()) {
+                try {
+                    const redisOfflineRaw = await getRedisClient()!.get(`${REDIS_OFFLINE_AT_PREFIX}${targetUserId}`);
+                    if (redisOfflineRaw) memOfflineAt = Number(redisOfflineRaw);
+                } catch {}
+            }
             const metaLastSeenStr = (userDetails.profiles?.metadata as any)?.last_seen_at;
             const dbLastSeenAt = metaLastSeenStr ? Date.parse(metaLastSeenStr) : NaN;
             const lastSeenMs = memOfflineAt ?? (Number.isFinite(dbLastSeenAt) ? dbLastSeenAt : NaN);
@@ -155,7 +227,7 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
             }
 
             for (const otherUserId of uniqueTargetUserIds) {
-                const isOtherOnline = (onlineUsers.get(otherUserId) || 0) > 0;
+                const isOtherOnline = isUserOnlineLocalOrCluster(otherUserId);
                 if (isOtherOnline) {
                     io.to(otherUserId).emit('userOnline', targetUserId);
                 }
@@ -165,6 +237,15 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
                 const pairKey = `${targetUserId}:${otherUserId}`;
                 const lastSent = lastOnlinePushSentAt.get(pairKey) || 0;
                 if (now - lastSent < ONLINE_PUSH_PAIR_COOLDOWN_MS) continue;
+                if (isRedisReady()) {
+                    try {
+                        const claimed = await getRedisClient()!.set(`${REDIS_ONLINE_PUSH_PREFIX}${pairKey}`, '1', 'EX', Math.floor(ONLINE_PUSH_PAIR_COOLDOWN_MS / 1000), 'NX');
+                        if (!claimed) {
+                            recordOnlinePushTimestamp(pairKey, now);
+                            continue;
+                        }
+                    } catch {}
+                }
                 recordOnlinePushTimestamp(pairKey, now);
 
                 const wittyMsgs = [
@@ -214,18 +295,36 @@ const PUBLIC_STATS_THROTTLE_MS = 5000;
 let publicStatsTimer: NodeJS.Timeout | null = null;
 const schedulePublicStatsBroadcast = () => {
     if (!io || publicStatsTimer) return;
-    publicStatsTimer = setTimeout(() => {
+    publicStatsTimer = setTimeout(async () => {
         publicStatsTimer = null;
         if (!io) return;
+        let onlineCount = userSockets.size + clusterOnlineUsers.size;
+        let loungeCount = new Set(Array.from(communityUsers.values()).map(u => u.userId)).size;
+        if (isRedisReady()) {
+            try {
+                const redis = getRedisClient()!;
+                const [rOnline, rLounge] = await Promise.all([
+                    redis.zcard(REDIS_ONLINE_ZSET),
+                    redis.hlen(REDIS_LOUNGE_HASH)
+                ]);
+                if (typeof rOnline === 'number' && rOnline > 0) onlineCount = Math.max(onlineCount, rOnline);
+                if (typeof rLounge === 'number' && rLounge > 0) loungeCount = Math.max(loungeCount, rLounge);
+            } catch {}
+        }
         io.to('public_updates').emit('public_stats', {
-            onlineCount: userSockets.size,
-            loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+            onlineCount,
+            loungeCount
         });
     }, PUBLIC_STATS_THROTTLE_MS);
 };
 
 const getSampledOnlineUserIds = (limit = 200): string[] => {
-    const keys = Array.from(userSockets.keys());
+    const combined = new Set<string>(userSockets.keys());
+    for (const id of clusterOnlineUsers) {
+        combined.add(id);
+        if (combined.size >= limit * 2) break;
+    }
+    const keys = Array.from(combined);
     return keys.length > limit ? keys.slice(-limit) : keys;
 };
 
@@ -241,7 +340,7 @@ const notifyConnectionsOffline = async (offlineUserId: string) => {
         });
         for (const conn of connectionsList) {
             const partnerId = conn.from_user_id === offlineUserId ? conn.to_user_id : conn.from_user_id;
-            if (partnerId && partnerId !== offlineUserId && (onlineUsers.get(partnerId) || 0) > 0) {
+            if (partnerId && partnerId !== offlineUserId && isUserOnlineLocalOrCluster(partnerId)) {
                 io.to(partnerId).emit('userOffline', offlineUserId);
             }
         }
@@ -283,9 +382,21 @@ export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string
     if (isFirstConnectionForSocket) {
         socketSet.add(socket.id);
         onlineUsers.set(targetUserId, socketSet.size);
+        const alreadyOnlineInCluster = clusterOnlineUsers.has(targetUserId);
+        clusterOnlineUsers.delete(targetUserId);
+
+        if (isRedisReady() && socket.id) {
+            const now = Date.now();
+            const sockHashKey = `${REDIS_ONLINE_SOCK_PREFIX}${targetUserId}`;
+            const redis = getRedisClient()!;
+            redis.hset(sockHashKey, socket.id, String(now))
+                .then(() => Promise.all([redis.expire(sockHashKey, 900), redis.zadd(REDIS_ONLINE_ZSET, now, targetUserId)]))
+                .catch(() => {});
+        }
 
         // Only notify partners/lounge on a true fresh online session (not a screen-lock reconnect)
-        if (socketSet.size === 1 && !wasWithinGraceWindow) {
+        if (socketSet.size === 1 && !wasWithinGraceWindow && !alreadyOnlineInCluster) {
+            emitClusterEvent('presence:delta', { uId: targetUserId, online: true });
             if (io) {
                 io.to('verified_lounge').emit('userOnline', targetUserId);
                 schedulePublicStatsBroadcast();
@@ -300,14 +411,31 @@ export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string
     }
 };
 
-const finalizeUserOffline = (uId: string) => {
+const finalizeUserOffline = async (uId: string) => {
     offlineGraceTimers.delete(uId);
     if ((userSockets.get(uId)?.size || 0) > 0) return;
 
+    // Verify with Redis that the user didn't already reconnect onto another Cloud Run instance
+    if (isRedisReady()) {
+        try {
+            const remoteCount = await getRedisClient()!.hlen(`${REDIS_ONLINE_SOCK_PREFIX}${uId}`);
+            if (remoteCount > 0) {
+                clusterOnlineUsers.add(uId);
+                return;
+            }
+            await Promise.all([
+                getRedisClient()!.zrem(REDIS_ONLINE_ZSET, uId),
+                getRedisClient()!.set(`${REDIS_OFFLINE_AT_PREFIX}${uId}`, String(Date.now()), 'EX', 86400)
+            ]);
+        } catch {}
+    }
+
     userSockets.delete(uId);
     onlineUsers.delete(uId);
+    clusterOnlineUsers.delete(uId);
     activeChats.delete(uId);
     lastTrueOfflineAt.set(uId, Date.now());
+    emitClusterEvent('presence:delta', { uId, online: false });
     if (io) {
         io.to('verified_lounge').emit('userOffline', uId);
         schedulePublicStatsBroadcast();
@@ -342,14 +470,22 @@ export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: 
         socket.data.trackedUserId = undefined;
     }
 
+    if (isRedisReady() && socket?.id) {
+        const sockHashKey = `${REDIS_ONLINE_SOCK_PREFIX}${uId}`;
+        getRedisClient()!.hdel(sockHashKey, socket.id).catch(() => {});
+    }
+
     const socketSet = userSockets.get(uId);
     if (socketSet) {
         socketSet.delete(socket.id);
         if (socketSet.size === 0) {
             userSockets.delete(uId);
             activeChats.delete(uId);
+            if (isRedisReady()) {
+                getRedisClient()!.del(`${REDIS_ACTIVE_CHAT_PREFIX}${String(uId).trim().toLowerCase()}`).catch(() => {});
+            }
             if (!offlineGraceTimers.has(uId)) {
-                const timer = setTimeout(() => finalizeUserOffline(uId), OFFLINE_GRACE_MS);
+                const timer = setTimeout(() => { void finalizeUserOffline(uId); }, OFFLINE_GRACE_MS);
                 if (typeof timer.unref === 'function') timer.unref();
                 offlineGraceTimers.set(uId, timer);
             }
@@ -357,21 +493,48 @@ export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: 
             onlineUsers.set(uId, socketSet.size);
         }
     } else if (!offlineGraceTimers.has(uId)) {
-        finalizeUserOffline(uId);
+        void finalizeUserOffline(uId);
     }
 };
 
-const broadcastCommunityUsers = async () => {
+const getGlobalLoungeParticipants = async (): Promise<LoungeParticipant[]> => {
+    const now = Date.now();
+    if (isRedisReady()) {
+        try {
+            const rawMap = await getRedisClient()!.hgetall(REDIS_LOUNGE_HASH);
+            const staleKeys: string[] = [];
+            const active: LoungeParticipant[] = [];
+            for (const [sockId, rawJson] of Object.entries(rawMap)) {
+                try {
+                    const parsed = JSON.parse(rawJson) as LoungeParticipant;
+                    if (!parsed?.userId || (parsed.updatedAt && now - parsed.updatedAt > 6 * 3600 * 1000)) {
+                        staleKeys.push(sockId);
+                        continue;
+                    }
+                    active.push(parsed);
+                } catch {
+                    staleKeys.push(sockId);
+                }
+            }
+            if (staleKeys.length > 0) {
+                getRedisClient()!.hdel(REDIS_LOUNGE_HASH, ...staleKeys).catch(() => {});
+            }
+            return active;
+        } catch {}
+    }
+    return Array.from(communityUsers.values());
+};
+
+const broadcastCommunityUsersLocal = async () => {
     if (!io) return;
     const room = io.sockets.adapter.rooms.get('verified_lounge');
+    schedulePublicStatsBroadcast();
     if (!room || room.size === 0) {
-        schedulePublicStatsBroadcast();
         return;
     }
 
-    const list = Array.from(communityUsers.values());
+    const list = await getGlobalLoungeParticipants();
     const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
-    schedulePublicStatsBroadcast();
 
     const viewerIds = new Set<string>();
     for (const sockId of room) {
@@ -414,6 +577,78 @@ const broadcastCommunityUsers = async () => {
     }
 };
 
+const broadcastCommunityUsers = async () => {
+    emitClusterEvent('lounge:roster_changed');
+    await broadcastCommunityUsersLocal();
+};
+
+const deliverCommunityMessageLocal = async (payload: {
+    id: string;
+    from: string;
+    user: { name: string; photo: string; isShielded?: boolean };
+    sanitizedText: string;
+    timestamp: string | Date;
+}) => {
+    if (!io) return;
+    const room = io.sockets.adapter.rooms.get('verified_lounge');
+    if (!room || room.size === 0) return;
+
+    const viewerIds = new Set<string>();
+    for (const sockId of room) {
+        const s = io.sockets.sockets.get(sockId);
+        const vId = s?.data?.user?.userId;
+        if (vId) viewerIds.add(vId);
+    }
+
+    const accessMap = new Map<string, { blockedSet: Set<string>; connectedSet: Set<string> }>();
+    await Promise.all(Array.from(viewerIds).map(async (vId) => {
+        const [blockedSet, connectedSet] = await Promise.all([
+            getBlockedUserIdSet(prisma, vId),
+            getConnectedUserIdSet(prisma, vId)
+        ]);
+        accessMap.set(vId, { blockedSet, connectedSet });
+    }));
+
+    for (const sockId of room) {
+        const s = io.sockets.sockets.get(sockId);
+        const vId = s?.data?.user?.userId;
+        if (!s || !vId) continue;
+        const access = accessMap.get(vId);
+        if (!access || access.blockedSet.has(payload.from)) continue;
+
+        const isBlurred = Boolean(payload.user.isShielded && vId !== payload.from && !access.connectedSet.has(payload.from));
+        s.emit('receive_community_message', {
+            id: payload.id,
+            text: payload.sanitizedText,
+            sender: {
+                id: payload.from,
+                userId: payload.from,
+                name: payload.user.name,
+                photo: isBlurred ? null : payload.user.photo,
+                isVerified: true,
+                photo_privacy: payload.user.isShielded ? 'blurred_until_accept' : 'public',
+                isBlurred
+            },
+            timestamp: payload.timestamp
+        });
+    }
+};
+
+const seedClusterPresenceFromRedis = async () => {
+    if (!isRedisReady()) return;
+    try {
+        const cutoff = Date.now() - 15 * 60 * 1000;
+        const recentIds = await getRedisClient()!.zrevrangebyscore(REDIS_ONLINE_ZSET, '+inf', cutoff, 'LIMIT', 0, 5000);
+        for (const id of recentIds) {
+            if (!userSockets.has(id)) {
+                clusterOnlineUsers.add(id);
+            }
+        }
+    } catch {
+        // Non-fatal
+    }
+};
+
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -422,6 +657,68 @@ export const initSocket = (httpServer: HttpServer) => {
         },
         maxHttpBufferSize: 1e7 // 10MB to safely handle larger media packets
     });
+
+    const adapterClients = createSocketRedisClients();
+    if (adapterClients) {
+        io.adapter(createAdapter(adapterClients.pubClient, adapterClients.subClient, {
+            key: process.env.SOCKET_REDIS_PREFIX || 'lp_socket',
+            requestsTimeout: 3000
+        }));
+        hasRedisAdapter = true;
+
+        setClusterCacheBroadcaster((msg: CacheInvalidationMessage) => {
+            emitClusterEvent('cache:invalidate', msg);
+        });
+
+        io.on('cache:invalidate', (msg: CacheInvalidationMessage) => {
+            applyRemoteCacheInvalidation(msg);
+        });
+
+        io.on('presence:delta', (data: { uId?: string; online?: boolean }) => {
+            if (!data?.uId) return;
+            if (data.online) {
+                if (!userSockets.has(data.uId)) {
+                    if (clusterOnlineUsers.size > 200_000) clusterOnlineUsers.clear();
+                    clusterOnlineUsers.add(data.uId);
+                }
+            } else {
+                clusterOnlineUsers.delete(data.uId);
+            }
+        });
+
+        io.on('lounge:roster_changed', () => {
+            broadcastCommunityUsersLocal().catch(console.error);
+        });
+
+        io.on('lounge:message', (payload: any) => {
+            if (payload) {
+                deliverCommunityMessageLocal(payload).catch(console.error);
+            }
+        });
+
+        if (adapterClients.pubClient.status === 'ready') {
+            seedClusterPresenceFromRedis().catch(() => {});
+        } else {
+            adapterClients.pubClient.once('ready', () => {
+                seedClusterPresenceFromRedis().catch(() => {});
+            });
+        }
+
+        // Refresh Redis TTLs for long-lived connections on this instance every 4 minutes
+        const heartbeatInterval = setInterval(() => {
+            if (!isRedisReady()) return;
+            const redis = getRedisClient()!;
+            const now = Date.now();
+            const entries = Array.from(userSockets.keys());
+            for (const uid of entries) {
+                redis.expire(`${REDIS_ONLINE_SOCK_PREFIX}${uid}`, 900).catch(() => {});
+                redis.zadd(REDIS_ONLINE_ZSET, now, uid).catch(() => {});
+            }
+        }, 4 * 60 * 1000);
+        if (typeof heartbeatInterval.unref === 'function') heartbeatInterval.unref();
+
+        console.log('✅ Socket.io Redis Adapter attached for horizontal scaling');
+    }
 
     // Initialize Speed Dating Matchmaker Loop
     SpeedDatingManager.getInstance().init(io);
@@ -477,7 +774,7 @@ export const initSocket = (httpServer: HttpServer) => {
         const loungeCount = new Set(loungeList.map(u => u.userId)).size;
 
         socket.emit('public_stats', {
-            onlineCount: onlineUsers.size || 1,
+            onlineCount: Math.max(onlineUsers.size + clusterOnlineUsers.size, 1),
             loungeCount: loungeCount
         });
 
@@ -489,8 +786,14 @@ export const initSocket = (httpServer: HttpServer) => {
         }
 
         const leaveCommunity = () => {
-            if (communityUsers.has(socket.id)) {
+            const hadLocal = communityUsers.has(socket.id);
+            if (hadLocal) {
                 communityUsers.delete(socket.id);
+            }
+            if (isRedisReady()) {
+                getRedisClient()!.hdel(REDIS_LOUNGE_HASH, socket.id).catch(() => {});
+            }
+            if (hadLocal) {
                 broadcastCommunityUsers().catch(console.error);
             }
         };
@@ -504,13 +807,13 @@ export const initSocket = (httpServer: HttpServer) => {
             // Broadcasting callEnded to everyone breaks ongoing calls between other users.
             if (socket.data.callPartnerId) {
                 io.to(socket.data.callPartnerId).emit('callEnded');
-                pendingCalls.delete(socket.data.callPartnerId);
+                clearPendingCallForUser(socket.data.callPartnerId);
                 socket.data.callPartnerId = null;
             }
 
             const activeUserId = socket.data.trackedUserId || socket.data.user?.userId || userId;
             if (activeUserId) {
-                pendingCalls.delete(activeUserId);
+                clearPendingCallForUser(activeUserId);
                 removeSocketFromOnlineUser(socket, activeUserId);
             }
 
@@ -538,7 +841,7 @@ export const initSocket = (httpServer: HttpServer) => {
             if (!userId) userId = uId;
             addSocketToOnlineUser(socket, uId);
             console.log(`Socket ${socket.id} joined personal room: ${uId}`);
-            deliverPendingCall(socket, uId);
+            void deliverPendingCall(socket, uId);
         });
 
         // Live Singles Radar - Real-Time Wave Interaction
@@ -591,7 +894,7 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.on('checkPendingCall', () => {
             const currentUserId = socket.data.user?.userId || socket.data.trackedUserId || userId;
             if (currentUserId) {
-                deliverPendingCall(socket, currentUserId);
+                void deliverPendingCall(socket, currentUserId);
             }
         });
 
@@ -614,7 +917,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 socket.join(uId);
                 addSocketToOnlineUser(socket, uId);
                 console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
-                deliverPendingCall(socket, uId);
+                void deliverPendingCall(socket, uId);
             } catch (err) {
                 console.warn(`Socket authentication error:`, err);
             }
@@ -626,10 +929,13 @@ export const initSocket = (httpServer: HttpServer) => {
             const targetPartner = data?.partnerId || data?.connectionId;
             if (currentUserId && targetPartner) {
                 const u = String(currentUserId).trim().toLowerCase();
-                const p = String(targetPartner).trim().toLowerCase();
+                let p = String(targetPartner).trim().toLowerCase();
+                if (data?.partnerId) p = String(data.partnerId).trim().toLowerCase();
+                if (data?.connectionId) p = String(data.connectionId).trim().toLowerCase();
                 activeChats.set(u, p);
-                if (data?.partnerId) activeChats.set(u, String(data.partnerId).trim().toLowerCase());
-                if (data?.connectionId) activeChats.set(u, String(data.connectionId).trim().toLowerCase());
+                if (isRedisReady()) {
+                    getRedisClient()!.set(`${REDIS_ACTIVE_CHAT_PREFIX}${u}`, p, 'EX', 7200).catch(() => {});
+                }
                 socket.data.activePartnerId = String(targetPartner);
                 console.log(`[Active Chat] User ${u} entered chat with partner ${p}`);
             }
@@ -640,6 +946,9 @@ export const initSocket = (httpServer: HttpServer) => {
             if (currentUserId) {
                 const u = String(currentUserId).trim().toLowerCase();
                 activeChats.delete(u);
+                if (isRedisReady()) {
+                    getRedisClient()!.del(`${REDIS_ACTIVE_CHAT_PREFIX}${u}`).catch(() => {});
+                }
                 socket.data.activePartnerId = null;
                 console.log(`[Active Chat] User ${u} left chat`);
             }
@@ -729,7 +1038,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 const userLocation = (callerData?.city || callerData?.location_name || (typeof meta.location?.city === 'string' ? meta.location.city : null) || null) as string | null;
 
                 // Cache active pending call for 45s so receiver can pick up even after launching via push notification
-                pendingCalls.set(userToCall, {
+                const pendingCallPayload: PendingCall = {
                     callerId: from,
                     userToCall,
                     signalData,
@@ -741,7 +1050,11 @@ export const initSocket = (httpServer: HttpServer) => {
                     isBlurred,
                     _speedDateMode,
                     createdAt: Date.now()
-                });
+                };
+                pendingCalls.set(userToCall, pendingCallPayload);
+                if (isRedisReady()) {
+                    getRedisClient()!.set(`${REDIS_PENDING_CALL_PREFIX}${userToCall}`, JSON.stringify(pendingCallPayload), 'EX', 45).catch(() => {});
+                }
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
@@ -805,8 +1118,8 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("answerCall", (data) => {
             io.to(data.to).emit("callAccepted", data.signal);
-            if (data?.to) pendingCalls.delete(data.to);
-            if (userId) pendingCalls.delete(userId);
+            if (data?.to) clearPendingCallForUser(data.to);
+            if (userId) clearPendingCallForUser(userId);
         });
 
         /**
@@ -821,8 +1134,8 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("endCall", ({ to }) => {
             io.to(to).emit("callEnded");
-            if (to) pendingCalls.delete(to);
-            if (userId) pendingCalls.delete(userId);
+            if (to) clearPendingCallForUser(to);
+            if (userId) clearPendingCallForUser(userId);
             if (userId) SpeedDatingManager.getInstance().endActiveMatch(userId);
             if (to) SpeedDatingManager.getInstance().endActiveMatch(to);
         });
@@ -1184,15 +1497,23 @@ export const initSocket = (httpServer: HttpServer) => {
             const isShielded = isPhotoPrivacyShieldEnabled(user.profiles?.metadata);
             const safePhoto = sanitizePhotoUrl(user.avatar_url, user.full_name || 'Verified Member');
 
-            // Add to Community Map
-            communityUsers.set(socket.id, {
+            const loungeParticipant: LoungeParticipant = {
                 id: currentUserId,
                 userId: currentUserId,
                 name: user.full_name || 'Verified Member',
                 photo: safePhoto,
                 isVerified: true,
-                isShielded
-            });
+                isShielded,
+                updatedAt: Date.now()
+            };
+            // Add to Community Map + distributed Redis hash
+            communityUsers.set(socket.id, loungeParticipant);
+            if (isRedisReady()) {
+                const redis = getRedisClient()!;
+                redis.hset(REDIS_LOUNGE_HASH, socket.id, JSON.stringify(loungeParticipant))
+                    .then(() => redis.expire(REDIS_LOUNGE_HASH, 86400))
+                    .catch(() => {});
+            }
 
             await broadcastCommunityUsers();
 
@@ -1289,48 +1610,15 @@ export const initSocket = (httpServer: HttpServer) => {
                     }
                 });
 
-                const room = io.sockets.adapter.rooms.get('verified_lounge');
-                if (!room) return;
-
-                const viewerIds = new Set<string>();
-                for (const sockId of room) {
-                    const s = io.sockets.sockets.get(sockId);
-                    const vId = s?.data?.user?.userId;
-                    if (vId) viewerIds.add(vId);
-                }
-
-                const accessMap = new Map<string, { blockedSet: Set<string>; connectedSet: Set<string> }>();
-                await Promise.all(Array.from(viewerIds).map(async (vId) => {
-                    const [blockedSet, connectedSet] = await Promise.all([
-                        getBlockedUserIdSet(prisma, vId),
-                        getConnectedUserIdSet(prisma, vId)
-                    ]);
-                    accessMap.set(vId, { blockedSet, connectedSet });
-                }));
-
-                for (const sockId of room) {
-                    const s = io.sockets.sockets.get(sockId);
-                    const vId = s?.data?.user?.userId;
-                    if (!s || !vId) continue;
-                    const access = accessMap.get(vId);
-                    if (!access || access.blockedSet.has(from)) continue;
-
-                    const isBlurred = Boolean(user.isShielded && vId !== from && !access.connectedSet.has(from));
-                    s.emit('receive_community_message', {
-                        id: saved.id,
-                        text: sanitizedText,
-                        sender: {
-                            id: from,
-                            userId: from,
-                            name: user.name,
-                            photo: isBlurred ? null : user.photo,
-                            isVerified: true,
-                            photo_privacy: user.isShielded ? 'blurred_until_accept' : 'public',
-                            isBlurred
-                        },
-                        timestamp: saved.created_at
-                    });
-                }
+                const loungePayload = {
+                    id: saved.id,
+                    from,
+                    user: { name: user.name, photo: user.photo, isShielded: user.isShielded },
+                    sanitizedText,
+                    timestamp: saved.created_at
+                };
+                emitClusterEvent('lounge:message', loungePayload);
+                await deliverCommunityMessageLocal(loungePayload);
             } catch (createErr) {
                 console.error("Failed to save lounge message:", createErr);
             }
@@ -1378,9 +1666,7 @@ export const getIO = () => {
 
 export const isUserOnline = (userId: string): boolean => {
     if (!userId) return false;
-    const socketSet = userSockets.get(userId);
-    if (socketSet && socketSet.size > 0) return true;
-    if (onlineUsers.has(userId) && (onlineUsers.get(userId) || 0) > 0) return true;
+    if (isUserOnlineLocalOrCluster(userId)) return true;
     if (io) {
         const room = io.sockets.adapter.rooms.get(userId);
         if (room && room.size > 0) return true;
@@ -1389,14 +1675,18 @@ export const isUserOnline = (userId: string): boolean => {
 };
 
 export const getOnlineUserIds = (): string[] => {
-    return Array.from(userSockets.keys());
+    const combined = new Set<string>(userSockets.keys());
+    for (const id of clusterOnlineUsers) {
+        combined.add(id);
+    }
+    return Array.from(combined);
 };
 
 export const isUserActiveInChat = (userId: string, partnerId: string): boolean => {
     if (!userId || !partnerId) return false;
     const u = String(userId).trim().toLowerCase();
     const p = String(partnerId).trim().toLowerCase();
-    
+
     // Check direct activeChats mapping with case-insensitivity & sub-string containment
     for (const [k, v] of activeChats.entries()) {
         const key = String(k).trim().toLowerCase();
@@ -1406,5 +1696,45 @@ export const isUserActiveInChat = (userId: string, partnerId: string): boolean =
         }
     }
     return false;
+};
+
+export const isUserActiveInChatAsync = async (userId: string, partnerId: string): Promise<boolean> => {
+    if (isUserActiveInChat(userId, partnerId)) return true;
+    if (!userId || !partnerId || !isRedisReady()) return false;
+    try {
+        const u = String(userId).trim().toLowerCase();
+        const p = String(partnerId).trim().toLowerCase();
+        const valRaw = await getRedisClient()!.get(`${REDIS_ACTIVE_CHAT_PREFIX}${u}`);
+        if (!valRaw) return false;
+        const val = valRaw.trim().toLowerCase();
+        return val === p || val.includes(p) || p.includes(val);
+    } catch {
+        return false;
+    }
+};
+
+export const closeSocketServer = async (): Promise<void> => {
+    // Clean up local sockets from distributed presence sets before shutting down
+    if (isRedisReady()) {
+        const redis = getRedisClient()!;
+        const cleanups: Promise<any>[] = [];
+        for (const [uid, sockSet] of userSockets.entries()) {
+            const ids = Array.from(sockSet);
+            if (ids.length > 0) {
+                cleanups.push(redis.hdel(`${REDIS_ONLINE_SOCK_PREFIX}${uid}`, ...ids));
+            }
+        }
+        const loungeIds = Array.from(communityUsers.keys());
+        if (loungeIds.length > 0) {
+            cleanups.push(redis.hdel(REDIS_LOUNGE_HASH, ...loungeIds));
+        }
+        await Promise.allSettled(cleanups);
+    }
+    if (io) {
+        await Promise.race([
+            new Promise<void>((resolve) => io.close(() => resolve())),
+            new Promise<void>((resolve) => setTimeout(resolve, 2500))
+        ]);
+    }
 };
 

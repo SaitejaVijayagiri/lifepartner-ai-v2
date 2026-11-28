@@ -3,7 +3,8 @@ import { prisma } from '../prisma';
 import { Resend } from 'resend';
 import { withCronLock } from '../utils/cronLock';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 const SAFETY_EMAIL_FROM = process.env.EMAIL_FROM || 'LifePartner Safety <no-reply@lifepartnerai.in>';
 
 export function initAngelTimer() {
@@ -101,6 +102,11 @@ export function initAngelTimer() {
                             RETURNING id
                         `;
                         if (!claimed || claimed.length === 0) continue;
+
+                        if (!resend) {
+                            console.warn('[AngelTimer] RESEND_API_KEY missing; skipping emergency SOS email.');
+                            continue;
+                        }
 
                         await resend.emails.send({
                             from: SAFETY_EMAIL_FROM,

@@ -22,9 +22,9 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
     const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
     const toast = useToast();
 
-    const fetchStories = async () => {
+    const fetchStories = async (force = false) => {
         try {
-            const res = await fetchAPI('/profile/stories/feed');
+            const res = await api.profile.getStoryFeed(force);
             if (res.feed && Array.isArray(res.feed)) {
                 const validFeed = res.feed
                     .map((u: any) => ({ ...u, stories: filterActive24hStories(u.stories) }))
@@ -191,14 +191,19 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                 <StoryCreator
                     storyFiles={storyFiles}
                     storyPreviewUrls={storyPreviewUrls}
-                    onClose={() => { setStoryPreviewUrls(null); setStoryFiles(null); }}
+                    onClose={() => {
+                        storyPreviewUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
+                        setStoryPreviewUrls(null);
+                        setStoryFiles(null);
+                    }}
                     onSuccess={async () => {
+                        storyPreviewUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
                         setStoryFiles(null);
                         setStoryPreviewUrls(null);
                         toast.success('🎉 Story published successfully!');
                         const me = await api.profile.getMe();
                         if (me) setCurrentUser(me);
-                        fetchStories();
+                        fetchStories(true);
                     }}
                 />
             )}

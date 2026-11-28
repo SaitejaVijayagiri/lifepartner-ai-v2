@@ -2,7 +2,7 @@
 'use client';
 import { getZodiacSymbol } from '@/lib/religionUtils';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, ArrowLeft, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
@@ -40,6 +40,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [sheetExpanded, setSheetExpanded] = useState(false);
     const [swipeStartX, setSwipeStartX] = useState(0);
     const [swipeStartY, setSwipeStartY] = useState(0);
+    const fsSwipeStartXRef = useRef<number>(0);
 
     const toast = useToast();
     const [copiedId, setCopiedId] = useState(false);
@@ -1259,22 +1260,20 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 }}
             />
             {/* Fullscreen Image Gallery — swipe only, no arrows (blocked when Privacy Shield is active) */}
-            {isFullscreen && !isPhotoBlurred && (() => {
-                let fsSwipeStartX = 0;
-                return (
-                    <div
-                        className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in duration-200 select-none"
-                        onClick={() => setIsFullscreen(false)}
-                        onTouchStart={(e) => { fsSwipeStartX = e.touches[0].clientX; }}
-                        onTouchEnd={(e) => {
-                            const delta = fsSwipeStartX - e.changedTouches[0].clientX;
-                            if (Math.abs(delta) > 50) {
-                                e.stopPropagation();
-                                if (delta > 0) setCurrentPhotoIndex(p => p < photos.length - 1 ? p + 1 : p);
-                                else setCurrentPhotoIndex(p => p > 0 ? p - 1 : p);
-                            }
-                        }}
-                    >
+            {isFullscreen && !isPhotoBlurred && (
+                <div
+                    className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in duration-200 select-none"
+                    onClick={() => setIsFullscreen(false)}
+                    onTouchStart={(e) => { fsSwipeStartXRef.current = e.touches[0].clientX; }}
+                    onTouchEnd={(e) => {
+                        const delta = fsSwipeStartXRef.current - e.changedTouches[0].clientX;
+                        if (Math.abs(delta) > 50) {
+                            e.stopPropagation();
+                            if (delta > 0) setCurrentPhotoIndex(p => p < photos.length - 1 ? p + 1 : p);
+                            else setCurrentPhotoIndex(p => p > 0 ? p - 1 : p);
+                        }
+                    }}
+                >
                         {/* Close button */}
                         <button
                             className="absolute top-4 right-4 z-50 text-white p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
@@ -1322,8 +1321,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             </div>
                         )}
                     </div>
-                );
-            })()}
+            )}
 
             <ReportModal
                 isOpen={showReportModal}

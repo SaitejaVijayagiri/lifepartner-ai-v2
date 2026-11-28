@@ -316,39 +316,46 @@ function detectCountry(req: Request, body: any): string {
     return 'US';
 }
 
-// Helper: Ensure site_views_counter & daily_site_analytics DB tables exist
-async function ensureSiteViewsTable() {
-    try {
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS site_views_counter (
-                id VARCHAR(50) PRIMARY KEY DEFAULT 'global',
-                total_views BIGINT DEFAULT 160650,
-                today_views INT DEFAULT 4250,
-                unique_visitors BIGINT DEFAULT 99020,
-                countries_count INT DEFAULT 88,
-                last_updated_date DATE DEFAULT CURRENT_DATE,
-                updated_at TIMESTAMP(6) DEFAULT now()
-            );
-        `);
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS daily_site_analytics (
-                date DATE PRIMARY KEY DEFAULT CURRENT_DATE,
-                views INT DEFAULT 0,
-                unique_visitors INT DEFAULT 0,
-                countries JSONB DEFAULT '{}',
-                top_paths JSONB DEFAULT '{}',
-                updated_at TIMESTAMP(6) DEFAULT now()
-            );
-        `);
-        // Seed default row if empty
-        await prisma.$executeRawUnsafe(`
-            INSERT INTO site_views_counter (id, total_views, today_views, unique_visitors, countries_count, last_updated_date)
-            VALUES ('global', 160650, 4250, 99020, 88, CURRENT_DATE)
-            ON CONFLICT (id) DO NOTHING;
-        `);
-    } catch (e: any) {
-        console.warn('[Analytics] DB init site_views_counter warning:', e.message);
-    }
+// Helper: Ensure site_views_counter & daily_site_analytics DB tables exist once per boot
+let siteViewsTableReady: Promise<void> | null = null;
+function ensureSiteViewsTable() {
+    if (siteViewsTableReady) return siteViewsTableReady;
+    if (typeof (prisma as any)?.$executeRawUnsafe !== 'function') return Promise.resolve();
+    siteViewsTableReady = (async () => {
+        try {
+            await prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS site_views_counter (
+                    id VARCHAR(50) PRIMARY KEY DEFAULT 'global',
+                    total_views BIGINT DEFAULT 160650,
+                    today_views INT DEFAULT 4250,
+                    unique_visitors BIGINT DEFAULT 99020,
+                    countries_count INT DEFAULT 88,
+                    last_updated_date DATE DEFAULT CURRENT_DATE,
+                    updated_at TIMESTAMP(6) DEFAULT now()
+                );
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS daily_site_analytics (
+                    date DATE PRIMARY KEY DEFAULT CURRENT_DATE,
+                    views INT DEFAULT 0,
+                    unique_visitors INT DEFAULT 0,
+                    countries JSONB DEFAULT '{}',
+                    top_paths JSONB DEFAULT '{}',
+                    updated_at TIMESTAMP(6) DEFAULT now()
+                );
+            `);
+            // Seed default row if empty
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO site_views_counter (id, total_views, today_views, unique_visitors, countries_count, last_updated_date)
+                VALUES ('global', 160650, 4250, 99020, 88, CURRENT_DATE)
+                ON CONFLICT (id) DO NOTHING;
+            `);
+        } catch (e: any) {
+            siteViewsTableReady = null;
+            console.warn('[Analytics] DB init site_views_counter warning:', e.message);
+        }
+    })();
+    return siteViewsTableReady;
 }
 ensureSiteViewsTable().catch(console.error);
 
@@ -450,14 +457,17 @@ router.get('/views', async (req: Request, res: Response) => {
             WHERE id = 'global';
         `);
 
-        // Fetch last 14 days of analytics
+        // Fetch latest 14 days in chronological order
         let dailyRows: any[] = [];
         try {
             dailyRows = await prisma.$queryRawUnsafe(`
-                SELECT to_char(date, 'YYYY-MM-DD') as date, views, unique_visitors, countries
-                FROM daily_site_analytics
-                ORDER BY date ASC
-                LIMIT 14;
+                SELECT date, views, unique_visitors, countries FROM (
+                    SELECT to_char(date, 'YYYY-MM-DD') as date, views, unique_visitors, countries, date as raw_date
+                    FROM daily_site_analytics
+                    ORDER BY raw_date DESC
+                    LIMIT 14
+                ) recent
+                ORDER BY raw_date ASC;
             `);
         } catch (_) {}
 
@@ -501,6 +511,7 @@ router.get('/views', async (req: Request, res: Response) => {
             countries_count: 88
         };
 
+        res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30');
         return res.status(200).json({
             success: true,
             total_views: Number(stats.total_views),
@@ -511,6 +522,7 @@ router.get('/views', async (req: Request, res: Response) => {
             top_countries: topCountries
         });
     } catch (err: any) {
+        res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30');
         return res.status(200).json({
             success: true,
             total_views: 160650,

@@ -2,6 +2,52 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 
+interface CachedAuthUser {
+    is_banned: boolean | null;
+    is_deactivated: boolean | null;
+    deactivated_until: Date | null;
+    is_verified: boolean | null;
+    expiresAt: number;
+}
+
+const AUTH_CACHE_MAX = 5000;
+const AUTH_CACHE_TTL_MS = 15 * 1000;
+const authStatusCache = new Map<string, CachedAuthUser>();
+
+export function invalidateAuthCache(userId?: string | null) {
+    if (!userId) return;
+    authStatusCache.delete(userId);
+}
+
+async function getAuthUserStatus(userId: string) {
+    const useCache = !process.env.JEST_WORKER_ID;
+    const now = Date.now();
+    if (useCache) {
+        const hit = authStatusCache.get(userId);
+        if (hit && hit.expiresAt > now) {
+            return hit;
+        }
+        if (hit) authStatusCache.delete(userId);
+    }
+
+    const user = await prisma.users.findUnique({
+        where: { id: userId },
+        select: { is_banned: true, is_deactivated: true, deactivated_until: true, is_verified: true }
+    });
+
+    if (useCache && user) {
+        if (authStatusCache.size >= AUTH_CACHE_MAX) {
+            const oldestKey = authStatusCache.keys().next().value;
+            if (oldestKey) authStatusCache.delete(oldestKey);
+        }
+        authStatusCache.set(userId, {
+            ...user,
+            expiresAt: now + AUTH_CACHE_TTL_MS
+        });
+    }
+    return user;
+}
+
 export const authenticateToken = (req: any, res: Response, next: NextFunction) => {
     let token = req.cookies?.token;
     if (!token) {
@@ -19,10 +65,7 @@ export const authenticateToken = (req: any, res: Response, next: NextFunction) =
         if (err) return res.sendStatus(401);
         
         try {
-            const user = await prisma.users.findUnique({
-                where: { id: decoded.userId },
-                select: { is_banned: true, is_deactivated: true, deactivated_until: true, is_verified: true }
-            });
+            const user = await getAuthUserStatus(decoded.userId);
 
             if (!user) return res.sendStatus(401);
             if (user.is_banned) {
@@ -40,6 +83,7 @@ export const authenticateToken = (req: any, res: Response, next: NextFunction) =
                         where: { id: decoded.userId },
                         data: { is_deactivated: false, deactivated_until: null }
                     });
+                    invalidateAuthCache(decoded.userId);
                 } else {
                     return res.status(403).json({ error: "Your account is temporarily deactivated." });
                 }

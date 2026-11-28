@@ -88,17 +88,19 @@ export class WebPushService {
         }
     }
 
-    public async sendToUser(userId: string, payload: any): Promise<number> {
+    public async sendToUser(userId: string, payload: any, preFetchedTokens?: { token: string; platform?: string | null }[]): Promise<number> {
         if (!this.initialized) return 0;
 
         try {
-            // Find subscriptions registered for this user
-            const tokens = await prisma.device_tokens.findMany({
-                where: {
-                    user_id: userId,
-                    platform: { in: ['web', 'webpush'] }
-                }
-            });
+            // Reuse tokens when passed by NotificationService to avoid duplicate DB roundtrips
+            const tokens = Array.isArray(preFetchedTokens)
+                ? preFetchedTokens.filter(t => t.platform === 'web' || t.platform === 'webpush' || t.token?.startsWith('{'))
+                : await prisma.device_tokens.findMany({
+                    where: {
+                        user_id: userId,
+                        platform: { in: ['web', 'webpush'] }
+                    }
+                });
 
             if (!tokens || tokens.length === 0) return 0;
 
@@ -131,15 +133,14 @@ export class WebPushService {
                 }).catch(() => {});
             }
 
-            for (const item of uniqueRecords) {
-                try {
-                    const res = await this.sendToSubscription(item.subObj, payload);
-                    if (res.success) {
-                        sentCount++;
-                    } else if (res.expired) {
-                        expiredTokens.push(item.token);
-                    }
-                } catch (_) {}
+            const sendResults = await Promise.allSettled(
+                uniqueRecords.map(item => this.sendToSubscription(item.subObj, payload).then(res => ({ res, token: item.token })))
+            );
+            for (const outcome of sendResults) {
+                if (outcome.status === 'fulfilled') {
+                    if (outcome.value.res.success) sentCount++;
+                    else if (outcome.value.res.expired) expiredTokens.push(outcome.value.token);
+                }
             }
 
             // Cleanup expired subscriptions

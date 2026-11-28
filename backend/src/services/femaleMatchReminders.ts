@@ -619,7 +619,10 @@ export async function runFemaleMatchesReminderCampaign() {
 export function initFemaleMatchRemindersCron() {
     // Schedule cron job to run every 3 days at 10:00 AM
     cron.schedule('0 10 */3 * *', () => {
-        runFemaleMatchesReminderCampaign();
+        const { withCronLock } = require('../utils/cronLock');
+        withCronLock('female_match_reminders', 3600, async () => {
+            await runFemaleMatchesReminderCampaign();
+        }).catch((err: any) => console.error('[CRON] Female Match Reminders error:', err?.message || err));
     });
     console.log('⏰ Smart Match Reminders Cron Job Scheduled (Every 3 days at 10:00 AM).');
 }

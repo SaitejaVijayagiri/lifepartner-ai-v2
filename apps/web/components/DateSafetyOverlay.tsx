@@ -171,10 +171,10 @@ export default function DateSafetyOverlay() {
 
     return (
         <>
-            {/* Minimal persistent bubble */}
+            {/* Minimal persistent bubble (stacked cleanly above mobile Guru button and below fullscreen Chat) */}
             <button 
                 onClick={() => setShowSOS(true)}
-                className="fixed bottom-24 right-4 z-[5000] w-14 h-14 bg-rose-600 rounded-full shadow-[0_0_20px_rgba(225,29,72,0.5)] flex items-center justify-center animate-pulse hover:scale-105 transition-transform"
+                className="fixed bottom-40 right-4 md:bottom-24 md:left-6 md:right-auto z-[1950] w-14 h-14 bg-rose-600 rounded-full shadow-[0_0_20px_rgba(225,29,72,0.5)] flex items-center justify-center animate-pulse hover:scale-105 transition-transform"
             >
                 <ShieldAlert className="text-white w-7 h-7" />
             </button>

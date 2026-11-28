@@ -293,11 +293,7 @@ export default function MatchesTab({
         setIsSearching(true);
         setAiFilters(null);
         try {
-            const minDelay = new Promise(resolve => setTimeout(resolve, 800));
-            const [results] = await Promise.all([
-                api.matches.search(query),
-                minDelay
-            ]);
+            const results = await api.matches.search(query);
             setMatches(results.matches || []);
             setAiFilters(results.filters || null);
             if ((results.matches || []).length === 0) {
@@ -1318,8 +1314,13 @@ export default function MatchesTab({
                 <StoryCreator 
                     storyFiles={storyFiles}
                     storyPreviewUrls={storyPreviewUrls}
-                    onClose={() => { setStoryPreviewUrls(null); setStoryFiles(null); }}
+                    onClose={() => {
+                        storyPreviewUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
+                        setStoryPreviewUrls(null);
+                        setStoryFiles(null);
+                    }}
                     onSuccess={async () => {
+                        storyPreviewUrls.forEach((u) => { try { URL.revokeObjectURL(u); } catch {} });
                         setStoryFiles(null);
                         setStoryPreviewUrls(null);
                         const me = await api.profile.getMe();

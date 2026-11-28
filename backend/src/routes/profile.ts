@@ -737,6 +737,44 @@ router.post('/mute/:id', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Registered before GET /:id so "referrals" is never shadowed as a profile id
+router.get('/referrals', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { referral_code: true }
+        });
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const [totalReferrals, referrals] = await Promise.all([
+            prisma.users.count({ where: { referred_by: userId } }),
+            prisma.users.findMany({
+                where: { referred_by: userId },
+                take: 100,
+                select: {
+                    id: true,
+                    full_name: true,
+                    created_at: true,
+                    is_verified: true
+                },
+                orderBy: { created_at: 'desc' }
+            })
+        ]);
+
+        res.json({
+            referralCode: user.referral_code,
+            totalReferrals,
+            referrals
+        });
+    } catch (e) {
+        console.error("Referral Fetch Error", e);
+        res.status(500).json({ error: "Failed to fetch referrals" });
+    }
+});
+
 // Get Public Profile by ID
 router.get('/:id', authenticateOptional, async (req: any, res) => {
     try {
@@ -1344,9 +1382,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         state: inputState,
                         ...(isFemaleUser 
                             ? { free_direct_messages: 999999, is_premium: true } 
-                            : (existingUser?.is_premium && !isFemaleUser
-                                ? { is_premium: false, free_direct_messages: 3 }
-                                : {})
+                            : {}
                         )
                     }
                 });
@@ -1919,15 +1955,17 @@ router.post('/stories', authenticateToken, (req, res, next) => {
 
         const finalStories = [...validStories, ...createdStories];
 
-        // Upsert Profile Stories
+        // Upsert Profile Stories (explicitly refresh updated_at so new 24h stories stay near top of feed)
         await prisma.profiles.upsert({
             where: { user_id: userId },
             create: {
                 user_id: userId,
-                stories: finalStories
+                stories: finalStories,
+                updated_at: new Date()
             },
             update: {
-                stories: finalStories
+                stories: finalStories,
+                updated_at: new Date()
             }
         });
 
@@ -2519,42 +2557,6 @@ router.post('/claim-completion', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Claim Completion Error", e);
         res.status(500).json({ error: "Failed to claim reward" });
-    }
-});
-
-// 11. GET /referrals (Track invites)
-router.get('/referrals', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-
-        const user = await prisma.users.findUnique({
-            where: { id: userId },
-            select: { referral_code: true }
-        });
-
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        // Count how many people used this user's ID as the referrer
-        const referrals = await prisma.users.findMany({
-            where: { referred_by: userId },
-            select: { 
-                id: true, 
-                full_name: true, 
-                created_at: true, 
-                is_verified: true 
-            },
-            orderBy: { created_at: 'desc' }
-        });
-
-        res.json({
-            referralCode: user.referral_code,
-            totalReferrals: referrals.length,
-            referrals
-        });
-
-    } catch (e) {
-        console.error("Referral Fetch Error", e);
-        res.status(500).json({ error: "Failed to fetch referrals" });
     }
 });
 

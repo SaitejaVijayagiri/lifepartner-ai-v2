@@ -249,7 +249,7 @@ export class NotificationService {
                     url: targetUrl
                 }
             };
-            const sent = await webPush.sendToUser(userId, webPayload).catch(err => {
+            const sent = await webPush.sendToUser(userId, webPayload, tokensRec).catch(err => {
                 console.error('[WebPush Error]:', err);
                 return 0;
             });

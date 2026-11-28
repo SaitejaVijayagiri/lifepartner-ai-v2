@@ -421,7 +421,7 @@ export default function HomeTab({
                             {connections.map((conn: any) => {
                                 const partner = conn.partner || conn.user || conn;
                                 const partnerName = partner.name || partner.full_name || 'Match';
-                                const avatar = partner.photoUrl || partner.avatar_url || '/default-avatar.png';
+                                const avatar = partner.photoUrl || partner.avatar_url || '/avatar-fallback.svg';
                                 const city = partner.city || partner.location || 'Connected';
 
                                 return (

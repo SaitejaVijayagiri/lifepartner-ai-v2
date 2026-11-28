@@ -170,7 +170,9 @@ export function isProfilePhotoBlurred(
     if (!profile) return false;
 
     const targetId = profile.id || profile.userId || profile.user_id;
-    const currentId = currentUser?.id || currentUser?.userId;
+    const currentId = typeof currentUser === 'string'
+        ? currentUser
+        : (currentUser?.id || currentUser?.userId);
     if (targetId && currentId && String(targetId) === String(currentId)) {
         return false;
     }

@@ -49,6 +49,9 @@ model device_tokens {
   created_at DateTime? @default(now()) @db.Timestamp(6)
   users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([user_id], map: "idx_device_tokens_user_id")
+  @@index([token], map: "idx_device_tokens_token")
+  @@index([user_id, platform], map: "idx_device_tokens_user_platform")
   @@id([user_id, token])
 }
 
@@ -95,6 +98,8 @@ model interactions {
   @@index([to_user_id, type, status, created_at(sort: Desc)], map: "idx_interactions_to_type_status_created")
   @@index([from_user_id, type, status, created_at(sort: Desc)], map: "idx_interactions_from_type_status_created")
   @@index([type, created_at(sort: Desc)], map: "idx_interactions_type_created")
+  @@index([created_at(sort: Desc)], map: "idx_interactions_created_at")
+  @@index([to_user_id, type, created_at(sort: Desc)], map: "idx_interactions_to_type_created")
 }
 
 model matches {
@@ -139,6 +144,8 @@ model messages {
   @@index([sender_id], map: "idx_messages_sender")
   @@index([created_at], map: "idx_messages_timestamp")
   @@index([sender_id, receiver_id, created_at], map: "idx_messages_composite")
+  @@index([receiver_id, delivery_status], map: "idx_messages_receiver_status")
+  @@index([receiver_id, sender_id, created_at(sort: Desc)], map: "idx_messages_receiver_sender_created")
 }
 
 model notifications {
@@ -153,6 +160,9 @@ model notifications {
 
   @@index([created_at(sort: Desc)], map: "idx_notifications_created_at")
   @@index([user_id], map: "idx_notifications_user_id")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_notifications_user_created")
+  @@index([user_id, type, created_at(sort: Desc)], map: "idx_notifications_user_type_created")
+  @@index([type, created_at(sort: Desc)], map: "idx_notifications_type_created")
 }
 
 // Performance Optimization: Compound Index for Chats
@@ -174,6 +184,8 @@ model profiles {
   photos          Json?                  @default("[]")
   location_name   String?
   users           users                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([updated_at(sort: Desc)], map: "idx_profiles_updated_at")
 }
 
 model reel_comments {
@@ -184,6 +196,8 @@ model reel_comments {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   reels      reels?    @relation(fields: [reel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([reel_id, created_at(sort: Desc)], map: "idx_reel_comments_reel_created")
 }
 
 model reel_likes {
@@ -194,6 +208,7 @@ model reel_likes {
   users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([reel_id, user_id])
+  @@index([user_id], map: "idx_reel_likes_user_id")
 }
 
 model reels {
@@ -209,6 +224,9 @@ model reels {
   reel_comments  reel_comments[]
   reel_likes     reel_likes[]
   users          users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_reels_created_at")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_reels_user_created")
 }
 
 model reports {
@@ -243,6 +261,8 @@ model transactions {
   currency    String?   @default("INR") @db.VarChar(10)
   status      String?   @default("SUCCESS") @db.VarChar(50)
   users       users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id, type], map: "idx_transactions_user_type")
 }
 
 model users {
@@ -316,6 +336,7 @@ model users {
   @@index([is_verified, is_banned, gender, created_at(sort: Desc)], map: "idx_users_match_feed")
   @@index([created_at(sort: Desc)], map: "idx_users_created_at")
   @@index([is_boosted, boost_expires_at], map: "idx_users_boosted")
+  @@index([referred_by], map: "idx_users_referred_by")
 }
 
 model blog_posts {
@@ -339,6 +360,8 @@ model verification_requests {
   admin_notes  String?
   created_at   DateTime? @default(now()) @db.Timestamp(6)
   users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, status], map: "idx_verification_requests_user_status")
 }
 
 model lounge_messages {

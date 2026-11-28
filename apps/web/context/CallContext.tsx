@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSocket } from './SocketContext';
 
 interface CallState {
@@ -82,8 +82,13 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         clearIncomingCall(); // Clear socket state too
     }, [clearIncomingCall]);
 
+    const callValue = useMemo(
+        () => ({ callState, startCall, endCall }),
+        [callState, startCall, endCall]
+    );
+
     return (
-        <CallContext.Provider value={{ callState, startCall, endCall }}>
+        <CallContext.Provider value={callValue}>
             {children}
         </CallContext.Provider>
     );

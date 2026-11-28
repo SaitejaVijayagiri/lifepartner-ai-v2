@@ -43,19 +43,19 @@ export function Toaster() {
                 <div
                     key={toast.id}
                     className={`
-                        min-w-[300px] bg-white border border-gray-100 shadow-lg rounded-lg p-4 flex items-center gap-3 transform animate-in slide-in-from-right duration-300 pointer-events-auto
+                        min-w-[280px] sm:min-w-[300px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-lg rounded-xl p-4 flex items-center gap-3 transform animate-in slide-in-from-right duration-300 pointer-events-auto
                         ${toast.type === 'success' ? 'border-l-4 border-l-green-500' : ''}
                         ${toast.type === 'error' ? 'border-l-4 border-l-red-500' : ''}
                         ${toast.type === 'info' ? 'border-l-4 border-l-blue-500' : ''}
                     `}
                 >
                     <div className="flex-1">
-                        <p className={`text-sm font-semibold  ${toast.type === 'success' ? 'text-green-800' : toast.type === 'error' ? 'text-red-800' : 'text-gray-800'}`}>
+                        <p className={`text-sm font-semibold ${toast.type === 'success' ? 'text-green-700 dark:text-green-400' : toast.type === 'error' ? 'text-red-700 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
                             {toast.type === 'success' && 'Success'}
                             {toast.type === 'error' && 'Error'}
                             {toast.type === 'info' && 'Info'}
                         </p>
-                        <p className="text-sm text-gray-600">{toast.message}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{toast.message}</p>
                     </div>
                 </div>
             ))}

@@ -298,7 +298,10 @@ export async function sendWittyNotifications() {
 export function initWittyNotificationsCron() {
     // Run hourly so users worldwide receive push notifications at their exact local optimal hours (9 AM, 1 PM, 6 PM, 9 PM)
     cron.schedule('0 * * * *', async () => {
-        await sendWittyNotifications();
+        const { withCronLock } = require('../utils/cronLock');
+        await withCronLock('witty_notifications', 3400, async () => {
+            await sendWittyNotifications();
+        });
     });
     console.log("⏰ Timezone-Aware Witty Push Notifications Cron Job Scheduled (Runs hourly to serve users at local 9 AM, 1 PM, 6 PM, 9 PM).");
 }

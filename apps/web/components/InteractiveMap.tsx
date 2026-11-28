@@ -239,10 +239,10 @@ export default function InteractiveMap({
 
                 {/* Row 2: Filters (Hidden Scrollbar) */}
                 <div 
-                    className="flex items-center gap-1.5 overflow-x-auto pb-1 pointer-events-auto"
+                    className="map-filter-strip flex items-center gap-1.5 overflow-x-auto pb-1 pointer-events-auto"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                    <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
+                    <style dangerouslySetInnerHTML={{__html: `.map-filter-strip::-webkit-scrollbar { display: none; }`}} />
                     
                     <button
                         onClick={() => setAstrologyMode(!astrologyMode)}

@@ -24,48 +24,60 @@ export type GrowthEventName =
     | 'user_blocked'
     | 'safety_shield_triggered';
 
-let isTableInitialized = false;
+let tableInitPromise: Promise<void> | null = null;
 
 /**
  * Ensures the growth_events table exists with optimal indexing.
- * Safe, idempotent execution using PostgreSQL DDL.
+ * Runs once per container boot using singleton promise.
  */
-export async function ensureGrowthEventsTable(): Promise<void> {
-    if (isTableInitialized || typeof (prisma as any).$executeRawUnsafe !== 'function') return;
-    try {
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS growth_events (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                event_name VARCHAR(60) NOT NULL,
-                user_id UUID NULL,
-                session_id VARCHAR(100) NULL,
-                traffic_source VARCHAR(50) DEFAULT 'direct',
-                country VARCHAR(10) DEFAULT 'GLOBAL',
-                gender VARCHAR(20) NULL,
-                metadata JSONB DEFAULT '{}',
-                created_at TIMESTAMP(6) NOT NULL DEFAULT now()
-            );
-        `);
-        await prisma.$executeRawUnsafe(`
-            CREATE INDEX IF NOT EXISTS idx_growth_events_name_created 
-            ON growth_events(event_name, created_at DESC);
-        `);
-        await prisma.$executeRawUnsafe(`
-            CREATE INDEX IF NOT EXISTS idx_growth_events_country 
-            ON growth_events(country);
-        `);
-        await prisma.$executeRawUnsafe(`
-            CREATE INDEX IF NOT EXISTS idx_growth_events_source 
-            ON growth_events(traffic_source);
-        `);
-        await prisma.$executeRawUnsafe(`
-            CREATE INDEX IF NOT EXISTS idx_growth_events_gender 
-            ON growth_events(gender);
-        `);
-        isTableInitialized = true;
-    } catch (e: any) {
-        console.warn('[GrowthAnalytics] DB init growth_events warning:', e.message);
-    }
+export function ensureGrowthEventsTable(): Promise<void> {
+    if (tableInitPromise) return tableInitPromise;
+    if (typeof (prisma as any).$executeRawUnsafe !== 'function') return Promise.resolve();
+    tableInitPromise = (async () => {
+        try {
+            await prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS growth_events (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    event_name VARCHAR(60) NOT NULL,
+                    user_id UUID NULL,
+                    session_id VARCHAR(100) NULL,
+                    traffic_source VARCHAR(50) DEFAULT 'direct',
+                    country VARCHAR(10) DEFAULT 'GLOBAL',
+                    gender VARCHAR(20) NULL,
+                    metadata JSONB DEFAULT '{}',
+                    created_at TIMESTAMP(6) NOT NULL DEFAULT now()
+                );
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_name_created 
+                ON growth_events(event_name, created_at DESC);
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_created_at 
+                ON growth_events(created_at DESC);
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_user_created 
+                ON growth_events(user_id, created_at DESC);
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_country 
+                ON growth_events(country);
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_source 
+                ON growth_events(traffic_source);
+            `);
+            await prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS idx_growth_events_gender 
+                ON growth_events(gender);
+            `);
+        } catch (e: any) {
+            tableInitPromise = null;
+            console.warn('[GrowthAnalytics] DB init growth_events warning:', e.message);
+        }
+    })();
+    return tableInitPromise;
 }
 
 // Automatically initialize on boot

@@ -341,36 +341,39 @@ router.post('/:id/sos', authenticateToken, async (req: any, res) => {
         const metadata = typeof date.profile_metadata === 'string' ? JSON.parse(date.profile_metadata) : (date.profile_metadata || {});
         const emergencyContact = metadata.emergency_contact;
 
-        if (emergencyContact && emergencyContact.email) {
-            const { Resend } = require('resend');
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            
-            let mapsLink = '';
-            if (lat && lng) mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-
-            await resend.emails.send({
-                from: 'LifePartner Safety <safety@lifepartner.in>',
-                to: emergencyContact.email,
-                subject: `🚨 SOS ALERT: ${date.user_name} Needs Help`,
-                html: `
-                    <h2 style="color: red;">SOS Alert Triggered</h2>
-                    <p><strong>${date.user_name}</strong> just triggered an SOS alert during their date.</p>
-                    <h3>Details:</h3>
-                    <ul>
-                        <li><strong>Partner Name:</strong> ${date.partner_name}</li>
-                        <li><strong>Location:</strong> ${date.location_name}</li>
-                        <li><strong>Reason:</strong> ${reason || 'Manual SOS Triggered'}</li>
-                    </ul>
-                    ${mapsLink ? `<p><a href="${mapsLink}" style="padding: 10px 15px; background: red; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Live GPS Location</a></p>` : ''}
-                    <p>Please contact them immediately. If you cannot reach them, consider contacting local authorities.</p>
-                `
-            });
-            
-            // Mark the date status as 'sos' so the cron timer doesn't fire again
-            await prisma.$queryRawUnsafe(`
-                UPDATE meet_dates SET status = 'sos', updated_at = now() WHERE id = $1::uuid;
-            `, dateId);
+        if (!emergencyContact || !emergencyContact.email) {
+            return res.status(400).json({ error: 'No emergency contact email configured. Add an emergency contact in your profile first.' });
         }
+
+        const { Resend } = require('resend');
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const safetyFrom = process.env.EMAIL_FROM || 'LifePartner Safety <no-reply@lifepartnerai.in>';
+
+        let mapsLink = '';
+        if (lat && lng) mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+        await resend.emails.send({
+            from: safetyFrom,
+            to: emergencyContact.email,
+            subject: `🚨 SOS ALERT: ${date.user_name} Needs Help`,
+            html: `
+                <h2 style="color: red;">SOS Alert Triggered</h2>
+                <p><strong>${date.user_name}</strong> just triggered an SOS alert during their date.</p>
+                <h3>Details:</h3>
+                <ul>
+                    <li><strong>Partner Name:</strong> ${date.partner_name}</li>
+                    <li><strong>Location:</strong> ${date.location_name}</li>
+                    <li><strong>Reason:</strong> ${reason || 'Manual SOS Triggered'}</li>
+                </ul>
+                ${mapsLink ? `<p><a href="${mapsLink}" style="padding: 10px 15px; background: red; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Live GPS Location</a></p>` : ''}
+                <p>Please contact them immediately. If you cannot reach them, consider contacting local authorities.</p>
+            `
+        });
+
+        // Mark the date status as 'sos' so the cron timer doesn't fire again
+        await prisma.$queryRawUnsafe(`
+            UPDATE meet_dates SET status = 'sos', updated_at = now() WHERE id = $1::uuid;
+        `, dateId);
 
         res.json({ success: true, message: 'SOS triggered successfully' });
     } catch (e: any) {
@@ -409,53 +412,66 @@ function toSafeBroadcastEvent(evt: LiveSpeedDateEvent): LiveSpeedDateEvent {
     };
 }
 
-// Helper: Ensure PostgreSQL table exists for Live & Scheduled Events
-async function ensureLiveEventsTable() {
-    try {
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS live_speed_date_events (
-                id VARCHAR(100) PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                target_gender VARCHAR(20) DEFAULT 'all',
-                status VARCHAR(50) DEFAULT 'live',
-                scheduled_at TIMESTAMP(6),
-                participant_count INT DEFAULT 1,
-                max_participants INT DEFAULT 50,
-                created_at TIMESTAMP(6) DEFAULT now()
-            );
-        `);
-    } catch (e: any) {
-        console.warn('[LiveEvents] DB init warning:', e.message);
-    }
+// Helper: Ensure PostgreSQL table exists once per container boot (eliminates per-request DDL locks)
+let liveEventsTableReady: Promise<void> | null = null;
+let lastLiveEventsSyncAt = 0;
+
+function ensureLiveEventsTable() {
+    if (liveEventsTableReady) return liveEventsTableReady;
+    if (typeof (prisma as any)?.$executeRawUnsafe !== 'function') return Promise.resolve();
+    liveEventsTableReady = (async () => {
+        try {
+            await prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS live_speed_date_events (
+                    id VARCHAR(100) PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    target_gender VARCHAR(20) DEFAULT 'all',
+                    status VARCHAR(50) DEFAULT 'live',
+                    scheduled_at TIMESTAMP(6),
+                    participant_count INT DEFAULT 1,
+                    max_participants INT DEFAULT 50,
+                    created_at TIMESTAMP(6) DEFAULT now()
+                );
+            `);
+        } catch (e: any) {
+            liveEventsTableReady = null;
+            console.warn('[LiveEvents] DB init warning:', e.message);
+        }
+    })();
+    return liveEventsTableReady;
 }
 ensureLiveEventsTable().catch(console.error);
 
 async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
     try {
         await ensureLiveEventsTable();
-        
-        // 1. Auto-expire stale live events older than 45 minutes
-        await prisma.$executeRawUnsafe(`
-            UPDATE live_speed_date_events
-            SET status = 'ended'
-            WHERE status = 'live' AND created_at < now() - INTERVAL '45 minutes';
-        `);
 
-        // 2. Auto-promote upcoming events in DB if start time reached (and within 45 mins)
-        await prisma.$executeRawUnsafe(`
-            UPDATE live_speed_date_events
-            SET status = 'live'
-            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= now() AND scheduled_at >= now() - INTERVAL '45 minutes';
-        `);
+        const now = Date.now();
+        if (now - lastLiveEventsSyncAt >= 15000) {
+            lastLiveEventsSyncAt = now;
+            // 1. Auto-expire stale live events older than 45 minutes from their actual start time
+            await prisma.$executeRawUnsafe(`
+                UPDATE live_speed_date_events
+                SET status = 'ended'
+                WHERE status = 'live' AND COALESCE(scheduled_at, created_at) < now() - INTERVAL '45 minutes';
+            `);
 
-        // 3. Auto-expire stale upcoming events scheduled in the past
-        await prisma.$executeRawUnsafe(`
-            UPDATE live_speed_date_events
-            SET status = 'ended'
-            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at < now() - INTERVAL '45 minutes';
-        `);
+            // 2. Auto-promote upcoming events in DB if start time reached (and within 45 mins)
+            await prisma.$executeRawUnsafe(`
+                UPDATE live_speed_date_events
+                SET status = 'live'
+                WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= now() AND scheduled_at >= now() - INTERVAL '45 minutes';
+            `);
+
+            // 3. Auto-expire stale upcoming events scheduled in the past
+            await prisma.$executeRawUnsafe(`
+                UPDATE live_speed_date_events
+                SET status = 'ended'
+                WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at < now() - INTERVAL '45 minutes';
+            `);
+        }
 
         const rows: any[] = await prisma.$queryRawUnsafe(`
             SELECT e.id, e.title, e.description, e.host_id, e.target_gender, e.status, 
@@ -464,10 +480,11 @@ async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
             FROM live_speed_date_events e
             JOIN users u ON e.host_id = u.id
             LEFT JOIN profiles p ON u.id = p.user_id
-            WHERE (e.status = 'upcoming' OR (e.status = 'live' AND e.created_at >= now() - INTERVAL '45 minutes'))
+            WHERE (e.status = 'upcoming' OR (e.status = 'live' AND COALESCE(e.scheduled_at, e.created_at) >= now() - INTERVAL '45 minutes'))
               AND COALESCE(u.is_banned, false) = false
               AND (COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until <= now()))
-            ORDER BY e.created_at DESC;
+            ORDER BY e.created_at DESC
+            LIMIT 100;
         `);
 
         const dbEvents: LiveSpeedDateEvent[] = (rows || []).map(r => {
@@ -671,7 +688,11 @@ router.post('/events/join', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { event_id } = req.body;
 
-        const targetEvent = liveEventsStore.find(e => e.id === event_id);
+        let targetEvent = liveEventsStore.find(e => e.id === event_id);
+        if (!targetEvent && event_id) {
+            await syncLiveEventsFromDB();
+            targetEvent = liveEventsStore.find(e => e.id === event_id);
+        }
         if (!targetEvent) {
             return res.status(404).json({ success: false, error: 'Live event room not found or has ended' });
         }
@@ -781,7 +802,9 @@ router.post('/events/end', authenticateToken, async (req: any, res) => {
         if (eventIndex !== -1) {
             endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
             endedEvent.status = 'ended';
+            liveEventParticipants.delete(endedEvent.id);
         }
+        if (event_id) liveEventParticipants.delete(event_id);
 
         try {
             await ensureLiveEventsTable();
@@ -823,7 +846,11 @@ router.put('/events/:id', authenticateToken, async (req: any, res) => {
         const { id } = req.params;
         const { title, description, target_gender, max_participants, scheduled_at } = req.body;
 
-        const event = liveEventsStore.find(e => e.id === id && e.host_id === userId);
+        let event = liveEventsStore.find(e => e.id === id && e.host_id === userId);
+        if (!event) {
+            await syncLiveEventsFromDB();
+            event = liveEventsStore.find(e => e.id === id && e.host_id === userId);
+        }
         if (!event) {
             return res.status(404).json({ error: 'Live event not found or unauthorized' });
         }
@@ -833,7 +860,7 @@ router.put('/events/:id', authenticateToken, async (req: any, res) => {
         if (target_gender) event.target_gender = target_gender;
         if (max_participants) event.max_participants = Number(max_participants);
 
-        let scheduledIso: Date | null = null;
+        let scheduledIso: Date | null = event.scheduled_at ? new Date(event.scheduled_at) : null;
         if (scheduled_at) {
             const schedDate = new Date(scheduled_at);
             if (!isNaN(schedDate.getTime()) && schedDate > new Date()) {
@@ -843,10 +870,12 @@ router.put('/events/:id', authenticateToken, async (req: any, res) => {
             } else {
                 event.status = 'live';
                 event.scheduled_at = undefined;
+                scheduledIso = null;
             }
         } else if (scheduled_at === null) {
             event.status = 'live';
             event.scheduled_at = undefined;
+            scheduledIso = null;
         }
 
         try {
@@ -894,6 +923,7 @@ router.delete('/events/:id', authenticateToken, async (req: any, res) => {
             deletedEvent = liveEventsStore.splice(index, 1)[0];
             deletedEvent.status = 'ended';
         }
+        liveEventParticipants.delete(id);
 
         try {
             await ensureLiveEventsTable();

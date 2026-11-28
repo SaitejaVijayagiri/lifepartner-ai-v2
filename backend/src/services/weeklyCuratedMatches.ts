@@ -473,7 +473,10 @@ export function initWeeklyCuratedMatchesCron() {
     // Every Sunday at 10:00 AM (0 10 * * 0)
     cron.schedule('0 10 * * 0', async () => {
         try {
-            await runWeeklyCuratedMatchesCampaign();
+            const { withCronLock } = require('../utils/cronLock');
+            await withCronLock('weekly_curated_matches', 3600, async () => {
+                await runWeeklyCuratedMatchesCampaign();
+            });
         } catch (err: any) {
             console.error('[CRON] Weekly Curated Matches error:', err?.message || err);
         }

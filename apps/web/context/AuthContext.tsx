@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Notifications, cacheAuthTokenForWorker } from '@/lib/notifications';
@@ -30,8 +30,11 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [needsOnboarding, setNeedsOnboarding] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+    const pathnameRef = useRef(pathname);
+    pathnameRef.current = pathname;
 
     useEffect(() => {
         const init = async () => {
@@ -55,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const userIdHint = localStorage.getItem('userId');
 
                 if (userIdHint) {
-                    // 2. Fresh Data Fetch
+                    // 2. Fresh Data Fetch (runs once on mount, not on every route transition)
                     try {
                         const freshProfile = await api.profile.getMe();
                         
@@ -109,21 +112,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         Notifications.init().catch(console.error);
 
                         // Mandatory 2-Step Onboarding Redirect for incomplete profiles
-                        // Only trigger if onboarding has NOT been completed
                         const hasCompletedOnboarding = Boolean(
                             freshProfile.onboarding_completed === true ||
                             (freshProfile.onboarding_completed !== false && freshProfile.gender && freshProfile.age && (freshProfile.city || freshProfile.location?.city))
                         );
-                        const isIncomplete = !hasCompletedOnboarding;
-                        if (isIncomplete) {
+                        setNeedsOnboarding(!hasCompletedOnboarding);
+                        if (!hasCompletedOnboarding) {
                             try {
                                 localStorage.removeItem('onboarding_completed');
                             } catch (_) {}
-                            if (pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login') && !pathname.startsWith('/auth/callback')) {
+                            const currentPath = pathnameRef.current;
+                            if (currentPath && !currentPath.startsWith('/onboarding') && !currentPath.startsWith('/register') && !currentPath.startsWith('/login') && !currentPath.startsWith('/auth/callback')) {
                                 console.warn("⚠️ Mandatory Onboarding Redirect triggered: Incomplete profile");
                                 router.replace('/onboarding');
                             }
-                        } else if (hasCompletedOnboarding) {
+                        } else {
                             try {
                                 localStorage.setItem('onboarding_completed', 'true');
                             } catch (_) {}
@@ -142,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         init();
 
-        // 4. Background Token Auto-Refresh (Every 25 minutes to prevent session expiration)
+        // 4. Background Token Auto-Refresh (Every 25 minutes — stable across navigations)
         const refreshInterval = setInterval(async () => {
             try {
                 if (localStorage.getItem('token') || localStorage.getItem('userId')) {
@@ -158,14 +161,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, 25 * 60 * 1000);
 
         return () => clearInterval(refreshInterval);
-    }, [pathname]);
+    }, []);
 
-    const login = (userData: User, token: string, requiresOnboarding?: boolean) => {
+    useEffect(() => {
+        if (!needsOnboarding || !pathname) return;
+        if (!pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login') && !pathname.startsWith('/auth/callback')) {
+            router.replace('/onboarding');
+        }
+    }, [needsOnboarding, pathname, router]);
+
+    const login = useCallback((userData: User, token: string, requiresOnboarding?: boolean) => {
         localStorage.setItem('token', token);
         cacheAuthTokenForWorker(token);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);
+        setNeedsOnboarding(Boolean(requiresOnboarding));
 
         if (typeof window !== 'undefined') {
             const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
@@ -193,9 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (_) {}
             router.replace('/dashboard');
         }
-    };
+    }, [router]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             await api.auth.logout();
         } catch (e) {
@@ -204,20 +215,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.clear();
         cacheAuthTokenForWorker(null);
         setUser(null);
+        setNeedsOnboarding(false);
         router.push('/login');
-    };
+    }, [router]);
 
-    const updateUser = (updates: Partial<User>) => {
+    const updateUser = useCallback((updates: Partial<User>) => {
         setUser(prev => {
             if (!prev) return null;
             const updated = { ...prev, ...updates };
             localStorage.setItem('user', JSON.stringify(updated));
             return updated;
         });
-    };
+    }, []);
+
+    const authValue = useMemo(
+        () => ({ user, isLoading, login, logout, updateUser }),
+        [user, isLoading, login, logout, updateUser]
+    );
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser }}>
+        <AuthContext.Provider value={authValue}>
             {children}
         </AuthContext.Provider>
     );

@@ -79,8 +79,11 @@ export default function LiveSinglesRadar({
         } catch (_) {}
 
         loadOnlineMembers();
-        // Periodically sync live online list every 45 seconds
-        const interval = setInterval(loadOnlineMembers, 45000);
+        // Periodically sync live online list every 45 seconds (skip when tab is backgrounded)
+        const interval = setInterval(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
+            loadOnlineMembers();
+        }, 45000);
         return () => clearInterval(interval);
     }, [loadOnlineMembers]);
 

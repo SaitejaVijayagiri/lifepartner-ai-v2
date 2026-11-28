@@ -59,8 +59,8 @@ class LRUCache<K, V> {
     }
 }
 
-// In-memory match cache: userId -> { data, expiresAt } (Max 2500 entries, LRU-evicted)
-export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(2500);
+// In-memory match cache: userId -> { data, expiresAt } (Max 1000 entries, LRU-evicted)
+export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(1000);
 const MATCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased for better scaling)
 
 // Helper: Sanitize avatar_url — imported from shared utility
@@ -1041,9 +1041,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                             WHEN ${myCountry} != '' AND LOWER(COALESCE(p.metadata->'location'->>'country', '')) = LOWER(${myCountry}) THEN 2
                             ELSE 3
                         END AS region_tier
-                    FROM users u
+                    FROM (
+                        SELECT id, city, state, created_at
+                        FROM users u
+                        LEFT JOIN profiles p ON p.user_id = u.id
+                        WHERE ${whereSql}
+                        ORDER BY u.created_at DESC
+                        LIMIT 2000
+                    ) u
                     LEFT JOIN profiles p ON p.user_id = u.id
-                    WHERE ${whereSql}
                 )
                 SELECT id FROM geo_pool
                 ORDER BY
@@ -1056,14 +1062,21 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             `;
         } else if (scope === 'nearby') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT u.id
-                FROM users u
-                LEFT JOIN profiles p ON p.user_id = u.id
-                WHERE ${whereSql}
+                WITH nearby_pool AS (
+                    SELECT u.id, u.city, u.state, u.created_at
+                    FROM users u
+                    LEFT JOIN profiles p ON p.user_id = u.id
+                    WHERE ${whereSql}
+                    ORDER BY u.created_at DESC, u.id ASC
+                    LIMIT 2000
+                )
+                SELECT np.id
+                FROM nearby_pool np
+                LEFT JOIN profiles p ON p.user_id = np.id
                 ORDER BY
                     (CASE
-                        WHEN ${myCity} != '' AND LOWER(COALESCE(u.city, p.metadata->'location'->>'city', '')) = LOWER(${myCity}) THEN 0
-                        WHEN ${myState} != '' AND LOWER(COALESCE(u.state, p.metadata->'location'->>'state', '')) = LOWER(${myState}) THEN 1
+                        WHEN ${myCity} != '' AND LOWER(COALESCE(np.city, p.metadata->'location'->>'city', '')) = LOWER(${myCity}) THEN 0
+                        WHEN ${myState} != '' AND LOWER(COALESCE(np.state, p.metadata->'location'->>'state', '')) = LOWER(${myState}) THEN 1
                         WHEN ${myCountry} != '' AND LOWER(COALESCE(p.metadata->'location'->>'country', '')) = LOWER(${myCountry}) THEN 2
                         ELSE 3
                     END) ASC,
@@ -1076,8 +1089,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                         THEN 1
                         ELSE 2
                     END) ASC,
-                    u.created_at DESC,
-                    u.id ASC
+                    np.created_at DESC,
+                    np.id ASC
                 LIMIT ${poolLimit}
             `;
         } else {

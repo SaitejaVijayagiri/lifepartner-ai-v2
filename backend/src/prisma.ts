@@ -8,9 +8,12 @@ const connectionString = process.env.DATABASE_URL;
 // NODE_TLS_REJECT_UNAUTHORIZED=0 alone does NOT apply to the pg Pool adapter.
 const pool = new Pool({
     connectionString,
-    max: parseInt(process.env.DB_POOL_MAX || '35', 10),
-    idleTimeoutMillis: 30000,
+    max: parseInt(process.env.DB_POOL_MAX || '15', 10),
+    idleTimeoutMillis: 20000,
     connectionTimeoutMillis: 5000,
+    statement_timeout: 15000,
+    keepAlive: true,
+    allowExitOnIdle: false,
     ssl: process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
         : false

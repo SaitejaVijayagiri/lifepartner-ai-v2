@@ -15,29 +15,39 @@ const memoryUpload = multer({
     limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
 });
 
-// Helper: Ensure instants table exists in DB with required columns
+// Helper: Ensure instants table exists in DB once per container boot (avoids per-request DDL locks)
+let instantsTableReady: Promise<void> | null = null;
 async function ensureInstantsTable() {
-    try {
-        await prisma.$executeRawUnsafe(`
-            CREATE TABLE IF NOT EXISTS instants (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
-                media_url TEXT NOT NULL,
-                caption TEXT,
-                created_at TIMESTAMP(6) DEFAULT now(),
-                expires_at TIMESTAMP(6) DEFAULT (now() + INTERVAL '24 hours'),
-                viewed_by JSON DEFAULT '[]',
-                likes JSON DEFAULT '[]',
-                is_viewed BOOLEAN DEFAULT false
-            );
-        `);
-        await prisma.$executeRawUnsafe(`
-            ALTER TABLE instants ADD COLUMN IF NOT EXISTS likes JSON DEFAULT '[]';
-        `);
-    } catch (err: any) {
-        console.warn('[Instants] Table init check warning:', err.message);
-    }
+    if (instantsTableReady) return instantsTableReady;
+    if (typeof (prisma as any)?.$executeRawUnsafe !== 'function') return;
+    instantsTableReady = (async () => {
+        try {
+            await prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS instants (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
+                    media_url TEXT NOT NULL,
+                    caption TEXT,
+                    created_at TIMESTAMP(6) DEFAULT now(),
+                    expires_at TIMESTAMP(6) DEFAULT (now() + INTERVAL '24 hours'),
+                    viewed_by JSON DEFAULT '[]',
+                    likes JSON DEFAULT '[]',
+                    is_viewed BOOLEAN DEFAULT false
+                );
+            `);
+            await prisma.$executeRawUnsafe(`
+                ALTER TABLE instants ADD COLUMN IF NOT EXISTS likes JSON DEFAULT '[]';
+            `);
+            await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_instants_expires_at ON instants(expires_at DESC);`);
+            await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_instants_sender_created ON instants(sender_id, created_at DESC);`);
+            await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_instants_receiver_expires ON instants(receiver_id, expires_at DESC);`);
+        } catch (err: any) {
+            instantsTableReady = null;
+            console.warn('[Instants] Table init check warning:', err.message);
+        }
+    })();
+    return instantsTableReady;
 }
 
 // Run table creation check on init

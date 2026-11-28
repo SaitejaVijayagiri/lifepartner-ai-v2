@@ -14,22 +14,26 @@ export async function cleanupExpiredStories(): Promise<number> {
         const now = new Date();
 
         while (true) {
-            const profiles = await prisma.profiles.findMany({
-                take: BATCH_SIZE,
-                ...(cursorId ? { skip: 1, cursor: { user_id: cursorId } } : {}),
-                orderBy: { user_id: 'asc' },
-                where: {
-                    OR: [
-                        { NOT: { stories: { equals: [] } } },
-                        { stories: { not: undefined } }
-                    ]
-                },
-                select: {
-                    user_id: true,
-                    stories: true,
-                    metadata: true
-                }
-            });
+            const profiles: Array<{ user_id: string; stories: any; metadata: any }> = cursorId
+                ? await prisma.$queryRaw`
+                    SELECT user_id, stories, metadata
+                    FROM profiles
+                    WHERE user_id > ${cursorId}::uuid
+                      AND (
+                        (stories IS NOT NULL AND jsonb_typeof(stories::jsonb) = 'array' AND jsonb_array_length(stories::jsonb) > 0)
+                        OR (metadata IS NOT NULL AND jsonb_typeof(metadata->'stories') = 'array' AND jsonb_array_length((metadata->'stories')::jsonb) > 0)
+                      )
+                    ORDER BY user_id ASC
+                    LIMIT ${BATCH_SIZE}
+                `
+                : await prisma.$queryRaw`
+                    SELECT user_id, stories, metadata
+                    FROM profiles
+                    WHERE (stories IS NOT NULL AND jsonb_typeof(stories::jsonb) = 'array' AND jsonb_array_length(stories::jsonb) > 0)
+                       OR (metadata IS NOT NULL AND jsonb_typeof(metadata->'stories') = 'array' AND jsonb_array_length((metadata->'stories')::jsonb) > 0)
+                    ORDER BY user_id ASC
+                    LIMIT ${BATCH_SIZE}
+                `;
 
             if (!profiles || profiles.length === 0) break;
 

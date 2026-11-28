@@ -30,6 +30,7 @@ export default function AISoulmateSpotlight({
         const currentCacheKey = `ai_soulmate_v2_${currentUser?.id || 'me'}_${todayDateStr}`;
 
         // PERF: 0ms Instant Hydration from today's cache (refreshes automatically when date changes)
+        let hasFreshTodayCache = false;
         try {
             // Clean up legacy unversioned / yesterday's cache
             localStorage.removeItem('ai_soulmate_cache_v1');
@@ -39,9 +40,12 @@ export default function AISoulmateSpotlight({
                 if (parsed && parsed.id) {
                     setSoulmate(parsed);
                     setLoading(false);
+                    hasFreshTodayCache = true;
                 }
             }
         } catch (_) {}
+
+        if (hasFreshTodayCache) return;
 
         const fetchSoulmate = async () => {
             try {
@@ -104,7 +108,7 @@ export default function AISoulmateSpotlight({
 
     if (loading) {
         return (
-            <div className="relative rounded-3xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-400/30 p-5 shadow-xl animate-pulse">
+            <div className="relative rounded-3xl min-h-[195px] bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-400/30 p-5 shadow-xl animate-pulse flex flex-col justify-center">
                 <div className="flex items-center gap-3">
                     <div className="w-16 h-16 rounded-2xl bg-amber-400/20" />
                     <div className="flex-1 space-y-2">

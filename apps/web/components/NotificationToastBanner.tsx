@@ -25,7 +25,14 @@ interface NotificationToast {
 // Synthesize a beautiful, premium, soft sine-wave chime using browser Web Audio API
 const playNotificationSound = () => {
     try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const w = window as any;
+        if (!w.__lpSharedAudioCtx || w.__lpSharedAudioCtx.state === 'closed') {
+            w.__lpSharedAudioCtx = new AudioCtx();
+        }
+        const audioCtx: AudioContext = w.__lpSharedAudioCtx;
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
         
         // Helper to play a soft tone with exponential decay envelope
         const playTone = (freq: number, startTime: number, duration: number, volume: number) => {

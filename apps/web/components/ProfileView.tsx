@@ -203,7 +203,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             <div className="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-900">
 
                 {/* Header with Edit Button */}
-                <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-center gap-3 sm:sticky sm:top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
+                <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:flex-wrap sm:justify-between sm:items-center gap-3 sm:sticky sm:top-16 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
                     <div className="flex flex-wrap items-center gap-2 min-w-0">
                         <h3 className="font-bold text-gray-800 dark:text-gray-100">My Profile</h3>
                         {displayProfileId && (

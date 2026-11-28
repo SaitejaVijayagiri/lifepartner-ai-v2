@@ -53,8 +53,10 @@ import path from 'path';
 
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import { withCronLock } from './utils/cronLock';
 
 export const app = express();
+app.disable('x-powered-by');
 app.use(compression());
 app.use(cookieParser());
 app.set('trust proxy', true);
@@ -218,6 +220,9 @@ const { createServer } = require('http');
 const { initSocket } = require('./socket');
 
 export const httpServer = createServer(app);
+// Keep-alive > 60s prevents HTTP 502 race conditions behind Google Cloud Load Balancing
+httpServer.keepAliveTimeout = 65000;
+httpServer.headersTimeout = 66000;
 initSocket(httpServer);
 
 const shouldListen = require.main === module || !process.env.JEST_WORKER_ID;
@@ -243,29 +248,35 @@ if (shouldListen) {
                 const { initWeeklyCuratedMatchesCron } = require('./services/weeklyCuratedMatches');
                 initWeeklyCuratedMatchesCron();
 
-                // ⏰ Auto-cleanup expired stories (runs 15s after boot and every hour)
+                // ⏰ Auto-cleanup expired stories (guarded across Cloud Run replicas)
                 const { cleanupExpiredStories } = require('./services/storyCleanup');
-                setTimeout(() => {
-                    cleanupExpiredStories()
-                        .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
-                        .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
+                const bootCleanupTimer = setTimeout(() => {
+                    withCronLock('story_cleanup_boot', 300, async () => {
+                        const cnt = await cleanupExpiredStories();
+                        if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`);
+                    }).catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
                 }, 15000);
+                if (typeof bootCleanupTimer.unref === 'function') bootCleanupTimer.unref();
                 cron.schedule('0 * * * *', async () => {
                     try {
-                        const cnt = await cleanupExpiredStories();
-                        if (cnt > 0) console.log(`[CRON] Cleaned up expired stories for ${cnt} profiles.`);
+                        await withCronLock('story_cleanup_hourly', 3400, async () => {
+                            const cnt = await cleanupExpiredStories();
+                            if (cnt > 0) console.log(`[CRON] Cleaned up expired stories for ${cnt} profiles.`);
+                        });
                     } catch (err) {
                         console.error("[CRON] Story cleanup error:", err);
                     }
                 });
                 console.log("⏰ Hourly Story Expiration Cleanup Scheduled.");
 
-                // ⏰ Start Daily SEO Blog Generation
+                // ⏰ Start Daily SEO Blog Generation (guarded across Cloud Run replicas)
                 cron.schedule('0 12 * * *', async () => {
-                    console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");
                     try {
-                        await generateBlogPost();
-                        console.log("[CRON] Successfully generated daily SEO blog post.");
+                        await withCronLock('daily_seo_blog', 43200, async () => {
+                            console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");
+                            await generateBlogPost();
+                            console.log("[CRON] Successfully generated daily SEO blog post.");
+                        });
                     } catch (error) {
                         console.error("[CRON] Failed to generate daily blog:", error);
                     }

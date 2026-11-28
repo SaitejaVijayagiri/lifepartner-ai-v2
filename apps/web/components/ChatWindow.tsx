@@ -145,17 +145,18 @@ const ChatSharedMediaCard = ({
     const [isResolvingVideo, setIsResolvingVideo] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
-    const isUnlocked = isUserVip || isMediaUnlocked(currentUser);
-
     useEffect(() => {
         return () => {
             if (audioRef.current) {
                 audioRef.current.pause();
+                audioRef.current.src = '';
                 audioRef.current = null;
             }
         };
     }, []);
+
+    const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
+    const isUnlocked = isUserVip || isMediaUnlocked(currentUser);
 
     const rawYtId = (videoUrl ? getYoutubeId(videoUrl) : null) || (audioUrl ? getYoutubeId(audioUrl) : null);
     const resolvedYtId = dynamicYtId || rawYtId;
@@ -420,6 +421,16 @@ const VoiceNoteWaveformPlayer = ({ audioUrl, isMe }: { audioUrl: string; isMe: b
     const [duration, setDuration] = useState(0);
     const [playbackRate, setPlaybackRate] = useState<number>(1);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = '';
+                audioRef.current = null;
+            }
+        };
+    }, []);
 
     const togglePlay = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -1414,15 +1425,17 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
         setDeleteMenuMsgId(null);
     };
 
-    // Sync chat history to localStorage cache in real-time
+    // Debounce chat history cache writes so keystrokes & bursts don't stringify on main thread synchronously
     useEffect(() => {
-        if (typeof window !== 'undefined' && partner.id) {
+        if (typeof window === 'undefined' || !partner.id) return;
+        const timer = setTimeout(() => {
             try {
-                localStorage.setItem(`chat_history_${partner.id}`, JSON.stringify(messages));
+                localStorage.setItem(`chat_history_${partner.id}`, JSON.stringify(messages.slice(-150)));
             } catch (e) {
                 console.error("Failed to write chat history to cache", e);
             }
-        }
+        }, 450);
+        return () => clearTimeout(timer);
     }, [messages, partner.id]);
 
     useEffect(() => {
@@ -1765,8 +1778,14 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
         };
     }, [socket, partner.id, user]);
 
-    // Active 1-second interval to tick countdown and vanish expired disappearing messages in real time
+    const hasDisappearingMessages = useMemo(
+        () => messages.some(m => m.isIncognito || m.is_incognito || m.isDisappearing || (typeof m.text === 'string' && (m.text.startsWith('[INCOGNITO]') || m.text.startsWith('[DISAPPEARING]')))),
+        [messages]
+    );
+
+    // Tick countdown timer ONLY when conversation actually contains disappearing messages
     useEffect(() => {
+        if (!hasDisappearingMessages) return;
         const interval = setInterval(() => {
             const now = Date.now();
             setNowTime(now);
@@ -1798,7 +1817,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [socket, partner?.id]);
+    }, [hasDisappearingMessages, socket, partner?.id]);
 
     const prevMsgCountRef = useRef(0);
     const isUserScrollingRef = useRef(false);
@@ -3676,10 +3695,6 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     enterKeyHint="send"
                     autoComplete="off"
                     onFocus={() => {
-                        if (typeof window !== 'undefined') {
-                            window.scrollTo(0, 0);
-                            document.body.scrollTop = 0;
-                        }
                         setTimeout(() => {
                             if (scrollRef.current) {
                                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

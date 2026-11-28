@@ -118,9 +118,9 @@ function DashboardContent() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('home');
-    // Pre-mount primary tabs so switching between Home, Matches, Chat, Requests and Profile is instantaneous (0ms)
+    // Lazy-mount secondary tabs on first visit to avoid rendering/polling 5 hidden heavy tabs at startup
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
-        () => new Set(['home', 'matches', 'connections', 'requests', 'profile'])
+        () => new Set(['home'])
     );
 
     useEffect(() => {
@@ -684,6 +684,7 @@ function DashboardContent() {
             } catch (e) {}
 
             // PERF: Fire profile check + matches + counts + connections + requests all in parallel
+            hasFetchedConnections.current = true;
             try {
                 const [profileResult, matchesResult, countsResult, connsResult, reqsResult] = await Promise.allSettled([
                     api.profile.getMe(),
@@ -1122,12 +1123,17 @@ function DashboardContent() {
         }
     };
 
-    // Real-time Message Listener for Unread Counts
+    const activeTabRef = useRef(activeTab);
+    activeTabRef.current = activeTab;
+    const selectedConnectionRef = useRef(selectedConnection);
+    selectedConnectionRef.current = selectedConnection;
+
+    // Real-time Message Listener for Unread Counts (registered once per socket)
     useEffect(() => {
         if (!socket) return;
 
         const handleNewMessage = (msg: any) => {
-            const isChatting = activeTab === 'connections' && selectedConnection?.partner?.id === msg.senderId;
+            const isChatting = activeTabRef.current === 'connections' && selectedConnectionRef.current?.partner?.id === msg.senderId;
 
             if (!isChatting) {
                 setUnreadMessageCount(prev => prev + 1);
@@ -1139,13 +1145,14 @@ function DashboardContent() {
                 if (existingIndex > -1) {
                     const newConns = [...prev];
                     const [targetConn] = newConns.splice(existingIndex, 1);
-                    if (!isChatting) {
-                        targetConn.unreadCount = (targetConn.unreadCount || 0) + 1;
-                    }
-                    targetConn.lastMessage = msg.text || msg.content;
-                    targetConn.lastMessageSenderId = msg.senderId;
-                    targetConn.latestMessageAt = msg.timestamp || msg.createdAt || new Date().toISOString();
-                    return [targetConn, ...newConns];
+                    const updatedConn = {
+                        ...targetConn,
+                        unreadCount: isChatting ? (targetConn.unreadCount || 0) : ((targetConn.unreadCount || 0) + 1),
+                        lastMessage: msg.text || msg.content,
+                        lastMessageSenderId: msg.senderId,
+                        latestMessageAt: msg.timestamp || msg.createdAt || new Date().toISOString()
+                    };
+                    return [updatedConn, ...newConns];
                 }
 
                 fetchConnections();
@@ -1171,7 +1178,7 @@ function DashboardContent() {
             socket.off('receiveMessage', handleNewMessage);
             socket.off('notification:new', handleNewNotification);
         };
-    }, [socket, activeTab, selectedConnection]);
+    }, [socket]);
 
     // Instantly remove blocked users and refresh data when blocked in chat
     useEffect(() => {
@@ -1356,11 +1363,7 @@ function DashboardContent() {
         });
     };
 
-    // Get filtered matches (Memoized for smooth 60fps tab switching)
-    const displayMatches = useMemo(() => {
-        const safeMatches = Array.isArray(matches) ? matches : [];
-        return activeFilters ? filterMatches(safeMatches) : safeMatches;
-    }, [matches, activeFilters]);
+    // Filtering is handled inside MatchesTab directly; omit redundant top-level pass
 
     // Incoming Call Listener - REMOVED (Handled by Global CallManager)
     /*

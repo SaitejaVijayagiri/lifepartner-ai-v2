@@ -280,6 +280,18 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
 
     const [isHovered, setIsHovered] = useState(false);
     const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const voiceBioAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+            if (voiceBioAudioRef.current) {
+                voiceBioAudioRef.current.pause();
+                voiceBioAudioRef.current.src = '';
+                voiceBioAudioRef.current = null;
+            }
+        };
+    }, []);
 
     // Asynchronous In-Memory Preloader for Adjacent Photos (LRU Queue - Zero DOM Bloat)
     useEffect(() => {
@@ -309,7 +321,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
         }, 3500);
 
         return () => clearInterval(interval);
-    }, [photos.length, isHovered, isInViewport, isPhotoBlurred, currentPhotoIndex, hasUploadedPhoto]);
+    }, [photos.length, isHovered, isInViewport, isPhotoBlurred, hasUploadedPhoto]);
 
     // 1. Handle "Send Interest" (Primary Action)
     const handleConnect = async (e: React.MouseEvent) => {
@@ -417,7 +429,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
     return (
         <div
             ref={cardRef}
-            className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
+            className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 touch-manipulation select-none"
             onMouseEnter={() => {
                 if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
                     setIsHovered(true);
@@ -972,14 +984,19 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                const audio = new Audio(match.voiceBioUrl);
-                                if (isPlaying) {
+                                if (isPlaying && voiceBioAudioRef.current) {
+                                    voiceBioAudioRef.current.pause();
                                     setIsPlaying(false);
-                                } else {
-                                    audio.play();
-                                    setIsPlaying(true);
-                                    audio.onended = () => setIsPlaying(false);
+                                    return;
                                 }
+                                if (voiceBioAudioRef.current) {
+                                    voiceBioAudioRef.current.pause();
+                                    voiceBioAudioRef.current = null;
+                                }
+                                const audio = new Audio(match.voiceBioUrl);
+                                voiceBioAudioRef.current = audio;
+                                audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                                audio.onended = () => setIsPlaying(false);
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg hover:bg-white/30 transition-all"
                         >

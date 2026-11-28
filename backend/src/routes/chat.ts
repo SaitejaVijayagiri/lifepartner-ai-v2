@@ -68,15 +68,20 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             return res.status(403).json({ error: "Cannot view chat history with a blocked user." });
         }
         let messages: any[] = [];
+        const beforeRaw = typeof req.query.before === 'string' ? req.query.before.trim() : '';
+        const beforeDate = beforeRaw ? new Date(beforeRaw) : null;
+        const hasValidBefore = Boolean(beforeDate && !isNaN(beforeDate.getTime()));
+        const messageWhere = {
+            OR: [
+                { sender_id: userId, receiver_id: connectionId },
+                { sender_id: connectionId, receiver_id: userId }
+            ],
+            ...(hasValidBefore ? { created_at: { lt: beforeDate! } } : {})
+        };
         try {
             // Try with is_liked (works after DB migration)
             messages = await prisma.messages.findMany({
-                where: {
-                    OR: [
-                        { sender_id: userId, receiver_id: connectionId },
-                        { sender_id: connectionId, receiver_id: userId }
-                    ]
-                },
+                where: messageWhere,
                 orderBy: { created_at: 'desc' },
                 take: 100,
                 select: {
@@ -96,12 +101,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             // Fallback: column may not exist yet in DB — query without is_liked
             console.warn("is_liked column not found, falling back:", dbErr?.message);
             messages = await (prisma.messages as any).findMany({
-                where: {
-                    OR: [
-                        { sender_id: userId, receiver_id: connectionId },
-                        { sender_id: connectionId, receiver_id: userId }
-                    ]
-                },
+                where: messageWhere,
                 orderBy: { created_at: 'desc' },
                 take: 100,
                 select: {
@@ -298,12 +298,11 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     receiver_id: connectionId,
                     content: dbContent,
                     delivery_status: "sent",
-                    reply_to_id: replyToId || null,
-                    is_incognito: shouldDisappear
+                    reply_to_id: replyToId || null
                 }
             });
         } catch (dbErr) {
-            console.warn("is_incognito/reply_to_id might not exist, falling back to legacy create");
+            console.warn("reply_to_id might not exist, falling back to legacy create");
             if (replyToId) {
                 finalContent = `[REPLY:${replyToId}]${dbContent}`;
             }
@@ -326,17 +325,19 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         }
 
         
-        // Ingest growth tracking: user_active, first_message_sent, first_reply_received
+        // Ingest growth tracking asynchronously (sample count checks cleanly)
         (async () => {
             try {
                 trackGrowthEvent('user_active', { userId: senderId }).catch(() => {});
-                const priorMessages = await prisma.messages.count({ where: { sender_id: senderId } });
-                if (priorMessages <= 1) {
+                const [priorMessage, connectionPriorMessage, myPriorReply] = await Promise.all([
+                    prisma.messages.findFirst({ where: { sender_id: senderId }, select: { id: true } }),
+                    prisma.messages.findFirst({ where: { sender_id: connectionId, receiver_id: senderId }, select: { id: true } }),
+                    prisma.messages.findFirst({ where: { sender_id: senderId, receiver_id: connectionId, id: { not: newMessageRecord.id } }, select: { id: true } })
+                ]);
+                if (!priorMessage || priorMessage.id === newMessageRecord.id) {
                     trackGrowthEvent('first_message_sent', { userId: senderId }).catch(() => {});
                 }
-                const connectionPriorMessages = await prisma.messages.count({ where: { sender_id: connectionId, receiver_id: senderId } });
-                const myPriorReplies = await prisma.messages.count({ where: { sender_id: senderId, receiver_id: connectionId } });
-                if (connectionPriorMessages > 0 && myPriorReplies <= 1) {
+                if (connectionPriorMessage && !myPriorReply) {
                     trackGrowthEvent('first_reply_received', { userId: connectionId }).catch(() => {});
                 }
             } catch (_) {}
@@ -366,29 +367,31 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             select: { id: true }
         });
 
-        // Auto-connect interaction so user appears in Connections list
-        try {
-            await prisma.interactions.upsert({
-                where: {
-                    from_user_id_to_user_id_type: {
+        // Skip redundant interactions.upsert write when users are already connected
+        if (!existingConnBefore) {
+            try {
+                await prisma.interactions.upsert({
+                    where: {
+                        from_user_id_to_user_id_type: {
+                            from_user_id: senderId,
+                            to_user_id: connectionId,
+                            type: 'REQUEST'
+                        }
+                    },
+                    update: {
+                        status: 'connected',
+                        created_at: new Date()
+                    },
+                    create: {
                         from_user_id: senderId,
                         to_user_id: connectionId,
-                        type: 'REQUEST'
+                        type: 'REQUEST',
+                        status: 'connected'
                     }
-                },
-                update: {
-                    status: 'connected',
-                    created_at: new Date()
-                },
-                create: {
-                    from_user_id: senderId,
-                    to_user_id: connectionId,
-                    type: 'REQUEST',
-                    status: 'connected'
-                }
-            });
-        } catch (connErr) {
-            // Ignore if already connected
+                });
+            } catch (connErr) {
+                // Ignore if already connected
+            }
         }
 
         // Pre-fetch sender profile once for both Socket.io broadcast and Push notification
@@ -811,44 +814,73 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
     const userId = req.user.userId;
 
     try {
-        const msgs = await prisma.messages.findMany({
-            where: {
-                OR: [
-                    { sender_id: userId, receiver_id: connectionId },
-                    { sender_id: connectionId, receiver_id: userId }
-                ]
-            },
-            select: {
-                id: true,
-                sender_id: true,
-                cleared_by: true
+        if (typeof (prisma as any).$executeRaw === 'function') {
+            if (mode === 'everyone') {
+                await prisma.$executeRaw`
+                    UPDATE messages
+                    SET cleared_by = CASE
+                        WHEN sender_id = ${userId}::uuid THEN (
+                            SELECT COALESCE(jsonb_agg(DISTINCT elem), '[]'::jsonb)::json
+                            FROM jsonb_array_elements_text(
+                                COALESCE(cleared_by::jsonb, '[]'::jsonb) || jsonb_build_array(${userId}, ${connectionId})
+                            ) AS elem
+                        )
+                        ELSE (
+                            SELECT COALESCE(jsonb_agg(DISTINCT elem), '[]'::jsonb)::json
+                            FROM jsonb_array_elements_text(
+                                COALESCE(cleared_by::jsonb, '[]'::jsonb) || jsonb_build_array(${userId})
+                            ) AS elem
+                        )
+                    END
+                    WHERE (sender_id = ${userId}::uuid AND receiver_id = ${connectionId}::uuid)
+                       OR (sender_id = ${connectionId}::uuid AND receiver_id = ${userId}::uuid)
+                `;
+            } else {
+                await prisma.$executeRaw`
+                    UPDATE messages
+                    SET cleared_by = (
+                        SELECT COALESCE(jsonb_agg(DISTINCT elem), '[]'::jsonb)::json
+                        FROM jsonb_array_elements_text(
+                            COALESCE(cleared_by::jsonb, '[]'::jsonb) || jsonb_build_array(${userId})
+                        ) AS elem
+                    )
+                    WHERE ((sender_id = ${userId}::uuid AND receiver_id = ${connectionId}::uuid)
+                        OR (sender_id = ${connectionId}::uuid AND receiver_id = ${userId}::uuid))
+                      AND NOT COALESCE(cleared_by::jsonb, '[]'::jsonb) @> jsonb_build_array(${userId})
+                `;
             }
-        });
-
-        const updatePromises = msgs.map(async (msg) => {
-            const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? [...(msg as any).cleared_by] : [];
-            let updated = false;
-
-            if (!clearedBy.includes(userId)) {
-                clearedBy.push(userId);
-                updated = true;
-            }
-            // Only remove a message from the recipient's view if the caller actually sent it
-            if (mode === 'everyone' && msg.sender_id === userId && !clearedBy.includes(connectionId)) {
-                clearedBy.push(connectionId);
-                updated = true;
-            }
-
-            if (updated) {
-                return (prisma.messages as any).update({
-                    where: { id: msg.id },
-                    data: { cleared_by: clearedBy },
-                    select: { id: true, cleared_by: true }
-                });
-            }
-        });
-
-        await Promise.all(updatePromises);
+        } else {
+            // Mock/test fallback when $executeRaw is mocked out
+            const msgs = await prisma.messages.findMany({
+                where: {
+                    OR: [
+                        { sender_id: userId, receiver_id: connectionId },
+                        { sender_id: connectionId, receiver_id: userId }
+                    ]
+                },
+                take: 500,
+                select: { id: true, sender_id: true, cleared_by: true }
+            });
+            await Promise.all(msgs.map(async (msg) => {
+                const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? [...(msg as any).cleared_by] : [];
+                let updated = false;
+                if (!clearedBy.includes(userId)) {
+                    clearedBy.push(userId);
+                    updated = true;
+                }
+                if (mode === 'everyone' && msg.sender_id === userId && !clearedBy.includes(connectionId)) {
+                    clearedBy.push(connectionId);
+                    updated = true;
+                }
+                if (updated) {
+                    return (prisma.messages as any).update({
+                        where: { id: msg.id },
+                        data: { cleared_by: clearedBy },
+                        select: { id: true, cleared_by: true }
+                    });
+                }
+            }));
+        }
 
         if (mode === 'everyone') {
             try {

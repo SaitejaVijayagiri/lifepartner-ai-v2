@@ -13,11 +13,30 @@ const API_URL = getApiUrl();
 
 let storyFeedCache: { data: any; timestamp: number } | null = null;
 const profileDetailsCache = new Map<string, { data: any; timestamp: number }>();
+const inFlightGets = new Map<string, Promise<any>>();
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}, retries = 1): Promise<any> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const baseUrl = getApiUrl();
+    const method = (options.method || 'GET').toUpperCase();
 
+    // Deduplicate concurrent identical GET requests (eliminates startup & modal waterfalls)
+    if (method === 'GET' && !options.signal) {
+        const dedupeKey = `${baseUrl}${endpoint}:${token || 'anon'}`;
+        const existing = inFlightGets.get(dedupeKey);
+        if (existing) return existing;
+
+        const reqPromise = executeFetchAPI(endpoint, options, retries, token, baseUrl).finally(() => {
+            inFlightGets.delete(dedupeKey);
+        });
+        inFlightGets.set(dedupeKey, reqPromise);
+        return reqPromise;
+    }
+
+    return executeFetchAPI(endpoint, options, retries, token, baseUrl);
+}
+
+async function executeFetchAPI(endpoint: string, options: RequestInit, retries: number, token: string | null, baseUrl: string): Promise<any> {
     const headers: any = {
         ...options.headers,
     };
@@ -40,7 +59,7 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}, retr
     } catch (netErr: any) {
         if (retries > 0 && (!options.method || options.method === 'GET')) {
             await new Promise(r => setTimeout(r, 1200));
-            return fetchAPI(endpoint, options, retries - 1);
+            return executeFetchAPI(endpoint, options, retries - 1, token, baseUrl);
         }
         console.error(`[API Network Error] on ${endpoint}:`, netErr);
         throw new Error("Unable to connect to the server. Please check your internet connection or try again in a few seconds.");
@@ -68,7 +87,10 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}, retr
             console.warn("Session expired. Redirecting to login.");
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
-            window.location.href = '/login';
+            const p = window.location.pathname || '';
+            if (p !== '/login' && p !== '/register' && p !== '/') {
+                window.location.href = '/login';
+            }
         }
         throw new Error('Session Expired. Please login again.');
     }

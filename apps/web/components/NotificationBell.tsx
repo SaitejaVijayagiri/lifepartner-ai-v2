@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Check, Trash2, Heart, Eye, Camera, MessageCircle, Sparkles } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { api } from '@/lib/api';
@@ -13,14 +14,22 @@ export const NotificationBell = () => {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
 
-    // Click outside to close
+    useEffect(() => { setMounted(true); }, []);
+
+    // Click outside to close (supports portaled dropdown panel)
     useEffect(() => {
         const handleClickOutside = (event: any) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
+            if (
+                (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
+                (panelRef.current && panelRef.current.contains(event.target))
+            ) {
+                return;
             }
+            setIsOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -142,8 +151,11 @@ export const NotificationBell = () => {
                 )}
             </button>
 
-            {isOpen && (
-                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[1100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+            {isOpen && mounted && typeof document !== 'undefined' && createPortal(
+                <div
+                    ref={panelRef}
+                    className="fixed inset-x-4 top-20 md:inset-x-auto md:right-6 md:top-[68px] md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[1100] animate-in fade-in zoom-in-95 duration-200 origin-top-right"
+                >
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                         <h3 className="font-bold text-gray-900 dark:text-gray-100">Notifications</h3>
                         {unreadCount > 0 && (
@@ -226,7 +238,8 @@ export const NotificationBell = () => {
                     <div className="p-2 border-t border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-800/30 text-center">
                         <p className="text-xs text-gray-400 dark:text-gray-500">Real-time updates active</p>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

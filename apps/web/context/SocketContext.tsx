@@ -222,19 +222,21 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         }
     }, [socket, userId]);
 
+    const clearIncomingCall = React.useCallback(() => setIncomingCall(null), []);
     const onlineUserSet = useMemo(() => new Set(onlineUsers), [onlineUsers]);
     const isUserOnline = useMemo(() => (id?: string | null) => Boolean(id && onlineUserSet.has(id)), [onlineUserSet]);
+    const socketContextValue = useMemo(() => ({
+        socket,
+        isConnected,
+        onlineUsers,
+        isUserOnline,
+        incomingCall,
+        clearIncomingCall,
+        publicStats
+    }), [socket, isConnected, onlineUsers, isUserOnline, incomingCall, clearIncomingCall, publicStats]);
 
     return (
-        <SocketContext.Provider value={{
-            socket,
-            isConnected,
-            onlineUsers,
-            isUserOnline,
-            incomingCall,
-            clearIncomingCall: () => setIncomingCall(null),
-            publicStats
-        }}>
+        <SocketContext.Provider value={socketContextValue}>
             {children}
         </SocketContext.Provider>
     );

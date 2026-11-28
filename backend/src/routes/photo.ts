@@ -18,31 +18,52 @@ router.get(['/', '/proxy'], async (req, res) => {
         return res.status(400).send('Missing url parameter');
     }
 
-    // Security: only proxy Supabase storage URLs
-    if (!url.startsWith('https://') || !url.includes('supabase.co/storage')) {
+    // Security: validate parsed URL protocol, hostname, and storage path (prevents SSRF)
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(url);
+    } catch {
+        return res.status(400).send('Invalid URL');
+    }
+    const isAllowedSupabaseHost = parsedUrl.protocol === 'https:' &&
+        (parsedUrl.hostname === 'supabase.co' || parsedUrl.hostname.endsWith('.supabase.co')) &&
+        parsedUrl.pathname.startsWith('/storage/');
+    if (!isAllowedSupabaseHost) {
         return res.status(400).send('Invalid URL — only Supabase storage URLs allowed');
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-        const response = await fetch(url, {
-            headers: { 'User-Agent': 'LifePartnerAI-ImageProxy/1.0' }
+        const response = await fetch(parsedUrl.toString(), {
+            headers: { 'User-Agent': 'LifePartnerAI-ImageProxy/1.0' },
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
-            console.error(`[PhotoProxy] Supabase returned ${response.status} for: ${url.substring(0, 100)}`);
+            res.set('Cache-Control', 'no-store');
             return res.status(response.status).send(`Upstream error: ${response.status}`);
+        }
+
+        const contentLength = Number(response.headers.get('content-length') || 0);
+        if (contentLength > 15 * 1024 * 1024) {
+            return res.status(413).send('Image too large');
         }
 
         const contentType = response.headers.get('Content-Type') || 'image/webp';
         const buffer = Buffer.from(await response.arrayBuffer());
 
         // Cache aggressively — profile photos don't change often
+        res.set('Access-Control-Allow-Origin', '*');
         res.set('Content-Type', contentType);
         res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800'); // 1 day fresh, 7 days stale
         res.set('X-Proxy-Source', 'supabase');
         res.send(buffer);
     } catch (err: any) {
+        clearTimeout(timeoutId);
         console.error(`[PhotoProxy] Failed to fetch image:`, err.message);
+        res.set('Cache-Control', 'no-store');
         return res.status(502).send('Failed to fetch image from storage');
     }
 });

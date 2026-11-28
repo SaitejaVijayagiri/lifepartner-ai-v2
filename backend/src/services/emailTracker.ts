@@ -18,9 +18,9 @@ export interface EmailStats {
 
 export class EmailTracker {
     private static instance: EmailTracker;
-    private initialized = false;
+    private initPromise: Promise<void> | null = null;
 
-    // In-memory cache of suppressed/bounced emails for ultra-fast lookup
+    // In-memory cache of suppressed/bounced emails (bounded to 50k entries)
     private suppressedSet: Set<string> = new Set([
         'priyareddy14141@gmail.com',
         'chinnureddy1414@gmail.com',
@@ -43,51 +43,55 @@ export class EmailTracker {
         return EmailTracker.instance;
     }
 
-    private async ensureTables() {
-        if (this.initialized) return;
-        try {
-            await prisma.$executeRawUnsafe(`
-                CREATE TABLE IF NOT EXISTS email_suppressions (
-                    email VARCHAR(255) PRIMARY KEY,
-                    reason VARCHAR(100) DEFAULT 'bounced',
-                    created_at TIMESTAMP(6) DEFAULT now()
-                );
-            `).catch(() => {});
-
-            await prisma.$executeRawUnsafe(`
-                CREATE TABLE IF NOT EXISTS email_events (
-                    id BIGSERIAL PRIMARY KEY,
-                    event_type VARCHAR(50) NOT NULL,
-                    email VARCHAR(255) NOT NULL,
-                    message_id VARCHAR(255),
-                    url VARCHAR(500),
-                    metadata JSONB DEFAULT '{}',
-                    created_at TIMESTAMP(6) DEFAULT now()
-                );
-            `).catch(() => {});
-
-            // Seed known bounced emails
-            for (const email of this.suppressedSet) {
+    private ensureTables(): Promise<void> {
+        if (this.initPromise) return this.initPromise;
+        if (typeof (prisma as any)?.$executeRawUnsafe !== 'function') return Promise.resolve();
+        this.initPromise = (async () => {
+            try {
                 await prisma.$executeRawUnsafe(`
-                    INSERT INTO email_suppressions (email, reason)
-                    VALUES ($1, 'bounced_or_suppressed')
-                    ON CONFLICT (email) DO NOTHING;
-                `, email).catch(() => {});
-            }
+                    CREATE TABLE IF NOT EXISTS email_suppressions (
+                        email VARCHAR(255) PRIMARY KEY,
+                        reason VARCHAR(100) DEFAULT 'bounced',
+                        created_at TIMESTAMP(6) DEFAULT now()
+                    );
+                `).catch(() => {});
 
-            // Load existing suppressions from DB into memory set
-            const rows: any[] = await prisma.$queryRawUnsafe(`SELECT email FROM email_suppressions;`);
-            if (rows && rows.length > 0) {
-                for (const r of rows) {
-                    if (r.email) this.suppressedSet.add(r.email.toLowerCase().trim());
+                await prisma.$executeRawUnsafe(`
+                    CREATE TABLE IF NOT EXISTS email_events (
+                        id BIGSERIAL PRIMARY KEY,
+                        event_type VARCHAR(50) NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        message_id VARCHAR(255),
+                        url VARCHAR(500),
+                        metadata JSONB DEFAULT '{}',
+                        created_at TIMESTAMP(6) DEFAULT now()
+                    );
+                `).catch(() => {});
+
+                // Seed known bounced emails
+                for (const email of this.suppressedSet) {
+                    await prisma.$executeRawUnsafe(`
+                        INSERT INTO email_suppressions (email, reason)
+                        VALUES ($1, 'bounced_or_suppressed')
+                        ON CONFLICT (email) DO NOTHING;
+                    `, email).catch(() => {});
                 }
-            }
 
-            this.initialized = true;
-            console.log(`[EmailTracker] Initialized with ${this.suppressedSet.size} suppressed/bounced addresses.`);
-        } catch (e: any) {
-            console.warn('[EmailTracker] Warning during ensureTables:', e.message);
-        }
+                // Load existing suppressions from DB into memory set (capped at 50k)
+                const rows: any[] = await prisma.$queryRawUnsafe(`SELECT email FROM email_suppressions LIMIT 50000;`);
+                if (rows && rows.length > 0) {
+                    for (const r of rows) {
+                        if (r.email) this.suppressedSet.add(r.email.toLowerCase().trim());
+                    }
+                }
+
+                console.log(`[EmailTracker] Initialized with ${this.suppressedSet.size} suppressed/bounced addresses.`);
+            } catch (e: any) {
+                this.initPromise = null;
+                console.warn('[EmailTracker] Warning during ensureTables:', e.message);
+            }
+        })();
+        return this.initPromise;
     }
 
     public async isSuppressed(email: string): Promise<boolean> {

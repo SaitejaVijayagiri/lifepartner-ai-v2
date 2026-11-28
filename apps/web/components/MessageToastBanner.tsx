@@ -63,21 +63,28 @@ export default function MessageToastBanner() {
                 text: preview,
             };
 
-            // Play audio notification chime
+            // Play audio notification chime reusing shared window AudioContext (prevents AudioContext limit leak)
             try {
-                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
-                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5 note
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
+                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioCtx) {
+                    const w = window as any;
+                    if (!w.__lpSharedAudioCtx || w.__lpSharedAudioCtx.state === 'closed') {
+                        w.__lpSharedAudioCtx = new AudioCtx();
+                    }
+                    const audioCtx: AudioContext = w.__lpSharedAudioCtx;
+                    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5 note
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }
             } catch (e) {
                 // Fallback to audio element if available
                 try {
@@ -112,7 +119,7 @@ export default function MessageToastBanner() {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+        <div className="fixed top-20 right-4 z-[9998] flex flex-col gap-2 pointer-events-none">
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
